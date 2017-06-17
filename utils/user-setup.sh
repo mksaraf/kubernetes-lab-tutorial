@@ -3,12 +3,14 @@
 # Copyright 2017 - Adriano Pezzuto
 # https://github.com/kalise
 #
+sudo groupadd docker
 for i in one two three four five six seven eight nine ten eleven twelve;
 do
         USER=user-$i;
         echo "add password for user " $USER
         sudo passwd $USER
         sudo usermod -aG wheel $USER
+        sudo usermod -aG docker $USER
         sudo mkdir /home/$USER/.ssh
         sudo cp /home/centos/.ssh/authorized_keys /home/$USER/.ssh/authorized_keys
         sudo chmod 700 /home/$USER/.ssh

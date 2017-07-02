@@ -11,6 +11,7 @@ SERVER=$1:8080 || http://localhost:8080
 for i in `seq -w 00 12`;
 do
      USER=user$i
+     echo
      echo "set the kubernetes context for " $USER
      NAMESPACE=project${USER:4:2}
      echo "set the namespace " $NAMESPACE " for " $USER

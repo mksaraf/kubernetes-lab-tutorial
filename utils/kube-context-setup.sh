@@ -1,22 +1,28 @@
-#!/bin/bash -xv
+#!/bin/bash
 #
 # Copyright 2017 - Adriano Pezzuto
 # https://github.com/kalise
 #
-# Create context for kubectl
+# Make sure the kube-context-setup.sh script is in the home dir of granting user
 #
-# Usage ./kube-context-setup.sh <SERVER_NAME>
+# Usage: sudo ./kube-context-setup.sh <SERVER_NAME>
 #
-USER:=$(whoami)
-NAMESPACE=project${USER:4:2}
-CLUSTER=kubernetes
 SERVER=$1:8080 || http://localhost:8080
-kubectl config set-credentials $USER
-kubectl config set-cluster $CLUSTER --server=$SERVER
-kubectl config set-context $NAMESPACE/$CLUSTER/$USER --cluster=$CLUSTER --user=$USER
-kubectl config set contexts.$NAMESPACE/$CLUSTER/$USER.namespace $NAMESPACE
-kubectl config use-context $NAMESPACE/$CLUSTER/$USER
-kubectl create namespace $NAMESPACE
-kubectl label namespace $NAMESPACE type=project
-kubectl create quota besteffort --hard=pods=10
-kubectl describe namespace $NAMESPACE
+for i in `seq -w 00 12`;
+do
+     USER=user$i
+     echo "set the kubernetes context for " $USER
+     NAMESPACE=project${USER:4:2}
+     echo "set the namespace " $NAMESPACE " for " $USER
+     CLUSTER=kubernetes
+     echo "set the cluster " $CLUSTER
+     su -c "kubectl config set-credentials $USER" -s /bin/bash $USER
+     su -c "kubectl config set-cluster $CLUSTER --server=$SERVER" -s /bin/bash $USER
+     su -c "kubectl config set-context $NAMESPACE/$CLUSTER/$USER --cluster=$CLUSTER --user=$USER" -s /bin/bash $USER
+     su -c "kubectl config set contexts.$NAMESPACE/$CLUSTER/$USER.namespace $NAMESPACE" -s /bin/bash $USER
+     su -c "kubectl config use-context $NAMESPACE/$CLUSTER/$USER" -s /bin/bash $USER
+     su -c "kubectl create namespace $NAMESPACE" -s /bin/bash $USER
+     su -c "kubectl label namespace $NAMESPACE type=project" -s /bin/bash $USER
+     su -c "kubectl create quota besteffort --hard=pods=10" -s /bin/bash $USER
+     su -c "kubectl describe namespace $NAMESPACE" -s /bin/bash $USER
+done

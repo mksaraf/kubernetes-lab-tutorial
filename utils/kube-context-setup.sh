@@ -16,5 +16,5 @@ kubectl config set contexts.$NAMESPACE/$CLUSTER/$USER.namespace $NAMESPACE
 kubectl config use-context $NAMESPACE/$CLUSTER/$USER
 kubectl create namespace $NAMESPACE
 kubectl label namespace $NAMESPACE type=project
-kubectl get all -n $NAMESPACE
-
+kubectl create quota besteffort --hard=pods=10
+kubectl describe namespace $NAMESPACE

@@ -5,10 +5,12 @@
 #
 # Create context for kubectl
 #
-USER=$(whoami)
+# Usage ./kube-context-setup.sh <SERVER_NAME>
+#
+USER:=$(whoami)
 NAMESPACE=project${USER:4:2}
 CLUSTER=kubernetes
-SERVER=http://10.10.10.90:8080
+SERVER=$1:8080 || http://localhost:8080
 kubectl config set-credentials $USER
 kubectl config set-cluster $CLUSTER --server=$SERVER
 kubectl config set-context $NAMESPACE/$CLUSTER/$USER --cluster=$CLUSTER --user=$USER

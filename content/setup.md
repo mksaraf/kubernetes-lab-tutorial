@@ -85,7 +85,7 @@ Before launching and enabling the etcd service, set options in the ``/etc/system
       --listen-peer-urls http://10.10.10.80:2380 \
       --listen-client-urls http://10.10.10.80:2379,http://127.0.0.1:2379 \
       --advertise-client-urls http://10.10.10.80:2379 \
-      --initial-cluster-token etcd-cluster-0 \
+      --initial-cluster-token etcd-cluster-token \
       --initial-cluster kubem00=http://10.10.10.80:2380 \
       --initial-cluster-state new \
       --data-dir=/var/lib/etcd \
@@ -128,17 +128,17 @@ To configure the API server, configure the ``/etc/systemd/system/kube-apiserver.
       --audit-log-path=/var/lib/audit.log \
       --enable-swagger-ui=true \
       --event-ttl=1h \
-      --insecure-bind-address=10.10.10.80 \
+      --insecure-bind-address=0.0.0.0 \
       --service-cluster-ip-range=10.32.0.0/16 \
       --service-node-port-range=30000-32767 \
       --v=2
-    
     Restart=on-failure
     RestartSec=5
     LimitNOFILE=65536
 
     [Install]
     WantedBy=multi-user.target
+
 
 
 Start and enable the service
@@ -149,25 +149,25 @@ Start and enable the service
     systemctl status kube-apiserver
 
 ### Configure controller manager
-To configure the kubernetes controller manager, edit the ``/usr/lib/systemd/system/kube-controller-manager.service`` startup file
+To configure the kubernetes controller manager, create the ``/etc/systemd/system/kube-controller-manager.service`` startup file
 
     [Unit]
     Description=Kubernetes Controller Manager
     Documentation=https://github.com/GoogleCloudPlatform/kubernetes
+    After=network.target
 
     [Service]
-    User=kube
     ExecStart=/usr/bin/kube-controller-manager \
+      --address=0.0.0.0 \
       --allocate-node-cidrs=true \
       --cluster-cidr=10.38.0.0/16 \
       --cluster-name=kubernetes \
-      --leader-elect=true \
       --master=http://10.10.10.80:8080 \
       --service-cluster-ip-range=10.32.0.0/16 \
-      --root-ca-file=/srv/kubernetes/ca.crt \
-      --service-account-private-key-file=/srv/kubernetes/server.key
+      --v=2
 
     Restart=on-failure
+    RestartSec=5
     LimitNOFILE=65536
 
     [Install]
@@ -181,19 +181,20 @@ Start and enable the service
     systemctl status kube-controller-manager
     
 ### Configure scheduler
-To configure the kubernetes scheduler, edit the ``/usr/lib/systemd/system/kube-scheduler.service`` startup file
+To configure the kubernetes scheduler, create the ``/etc/systemd/system/kube-scheduler.service`` startup file
 
     [Unit]
-    Description=Kubernetes Scheduler Plugin
+    Description=Kubernetes Scheduler
     Documentation=https://github.com/GoogleCloudPlatform/kubernetes
+    After=network.target
 
     [Service]
-    User=kube
     ExecStart=/usr/bin/kube-scheduler \
-      --leader-elect=true \
-      --master=http://10.10.10.80:8080
+      --master=http://10.10.10.80:8080 \
+      --v=2
 
     Restart=on-failure
+    RestartSec=5
     LimitNOFILE=65536
 
     [Install]
@@ -213,22 +214,24 @@ The contest defines the namespace as well as the cluster and the user accessing 
 
 Create a context for default admin access to the cluster
 
-    kubectl config set-credentials admin
-    User "admin" set.
+    kubectl config set-credentials root
+    User "root" set.
 
-    kubectl config set-cluster kubernetes --server=http://10.10.10.90:8080
-    Cluster "kubernetes" set.
+    kubectl config set-cluster unsecure-kubernetes --server=http://10.10.10.80:8080
+    Cluster "unsecure-kubernetes" set.
 
-    kubectl config set-context default/kubernetes/admin --cluster=kubernetes --user=admin
-    Context "default/kubernetes/admin" set.
-
-    kubectl config set contexts.default/kubernetes/admin.namespace default
-    Property "contexts.default/kubernetes/admin.namespace" set.
+    kubectl config set-context default/unsecure-kubernetes/root --cluster=unsecure-kubernetes --user=root --namespace=default
+    Context "default/unsecure-kubernetes/root" set.
 
 then enable the context
 
-    kubectl config use-context default/kubernetes/admin
-    Switched to context "default/kubernetes/admin".
+    kubectl config use-context default/unsecure-kubernetes/root
+    Switched to context "default/unsecure-kubernetes/root"
+    
+and check it
+
+    kubectl config current-context
+    default/unsecure-kubernetes/root
 
 Now it is possible to query and operate with the cluster
 
@@ -244,18 +247,18 @@ It is possible to define more contexts and switch between different contexts wit
     clusters:
     - cluster:
         server: http://10.10.10.90:8080
-      name: kubernetes
+      name: unsecure-kubernetes
     contexts:
     - context:
-        cluster: kubernetes
+        cluster: unsecure-kubernetes
         namespace: default
-        user: admin
-      name: default/kubernetes/admin
-    current-context: default/kubernetes/admin
+        user: root
+      name: default/unsecure-kubernetes/admin
+    current-context: default/unsecure-kubernetes/root
     kind: Config
     preferences: {}
     users:
-    - name: admin
+    - name: root
       user: {}
 
 ## Configure Workers

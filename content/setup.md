@@ -9,14 +9,14 @@ This tutorial refers to a cluster of nodes (virtual, physical or a mix of both) 
    * [Configure GUI dashboard](#configure-gui-dashboard)
    
 ## Requirements
-Our initial cluster will be made of 1 Master node and 3 Workers nodes. All machines can be virtual or physical or a mix of both. Minimum hardware requirements are: 2 vCPUs, 2GB of RAM, 16GB HDD for OS. All machines will be installed with Linux CentOS 7.3. Firewall and Selinux will be disabled. An NTP server is installed and running on all machines. Docker is installed with a Device Mapper on a separate 1GB HDD. Internet access.
+Our initial cluster will be made of 1 Master node and 3 Workers nodes. All machines can be virtual or physical or a mix of both. Minimum hardware requirements are: 2 vCPUs, 2GB of RAM, 16GB HDD for OS. All machines will be installed with Linux CentOS 7.3. Firewall and Selinux will be disabled. An NTP server is installed and running on all machines. On worker nodes, Docker is installed with a Device Mapper on a separate 10GB HDD. Internet access.
 
 Here the hostnames:
 
-   * kube00 10.10.10.80 (master)
-   * kube01 10.10.10.81 (worker)
-   * kube02 10.10.10.82 (worker)
-   * kube03 10.10.10.82 (worker)
+   * kubem00 10.10.10.80 (master)
+   * kubew03 10.10.10.83 (worker)
+   * kubew04 10.10.10.84 (worker)
+   * kubew05 10.10.10.85 (worker)
 
 Make sure to enable DNS resolution for the above hostnames or set the ``/etc/hosts`` file on all the machines.
 
@@ -32,41 +32,67 @@ The IP address space for containers will be allocated from the ``10.38.0.0/16`` 
     10.38.1.0/24
     10.38.2.0/24
 
-In addition, Kubernetes allocates IP addresses for internal services. These addresses are not required to be routable outside the cluster itself. In this lab we're going to use the ``10.32.0.0/16`` range for internal services.
+In addition, Kubernetes allocates IP addresses for internal services. These addresses are not required to be routable outside the cluster itself. However, each node needs to know where to find the cluster's subnets. For example, on the master node, to provision permanent static routes, create the file ``/etc/sysconfig/network-scripts/route-ens160`` with the following static routes
+
+    10.38.0.0/24 via 10.10.10.83
+    10.38.1.0/24 via 10.10.10.84
+    10.38.2.0/24 via 10.10.10.85
+
+Here ``ens160`` is the network interface name used by the node. Restart the network service to activate the routes ``systemctl restart networking``.
 
 Here the releases we'll use during this tutorial
 
-   * Kubernetes 1.5.2
+   * Kubernetes 1.7.0
    * Docker 1.12.6
-   * Etcd 3.1.7
+   * Etcd 3.2.6
 
 ## Configure Masters
 On the Master, first install etcd and kubernetes
 
-    yum -y install kubernetes etcd
+    wget https://github.com/coreos/etcd/releases/download/v3.2.6/etcd-v3.2.6-linux-amd64.tar.gz
+    wget https://storage.googleapis.com/kubernetes-release/release/v1.7.0/bin/linux/amd64/kube-apiserver
+    wget https://storage.googleapis.com/kubernetes-release/release/v1.7.0/bin/linux/amd64/kube-controller-manager
+    wget https://storage.googleapis.com/kubernetes-release/release/v1.7.0/bin/linux/amd64/kube-scheduler
+    wget https://storage.googleapis.com/kubernetes-release/release/v1.7.0/bin/linux/amd64/kubectl
+
+Estract and install the binaries
+
+    tar -xvf etcd-v3.2.6-linux-amd64.tar.gz && mv etcd-v3.2.6-linux-amd64/etcd* /usr/bin/
+    chmod +x kube-apiserver && mv kube-apiserver /usr/bin/
+    chmod +x kube-controller-manager && mv kube-controller-manager /usr/bin/
+    chmod +x kube-scheduler && mv kube-scheduler /usr/bin/
+    chmod +x kubectl && mv kubectl /usr/bin/
 
 ### Configure etcd
-Before launching and enabling the etcd service you need to set options in the ``/usr/lib/systemd/system/etcd.service`` startup file
+Create the etcd data directory
+
+    mkdir -p /var/lib/etcd
+
+Before launching and enabling the etcd service, set options in the ``/etc/systemd/system/etcd.service`` startup file
 
     [Unit]
-    Description=Etcd Server
+    Description=etcd
+    Documentation=https://github.com/coreos
     After=network.target
     After=network-online.target
     Wants=network-online.target
 
     [Service]
     Type=notify
-    WorkingDirectory=/var/lib/etcd/
-    User=etcd
     ExecStart=/usr/bin/etcd \
-       --name kube00 \
-       --data-dir=/var/lib/etcd \
-       --listen-client-urls http://10.10.10.80:2379,http://127.0.0.1:2379 \
-       --advertise-client-urls http://10.10.10.80:2379 \
-       --listen-peer-urls http://10.10.10.80:2380 \
-       --debug=false
+      --name kubem00 \
+      --initial-advertise-peer-urls http://10.10.10.80:2380 \
+      --listen-peer-urls http://10.10.10.80:2380 \
+      --listen-client-urls http://10.10.10.80:2379,http://127.0.0.1:2379 \
+      --advertise-client-urls http://10.10.10.80:2379 \
+      --initial-cluster-token etcd-cluster-0 \
+      --initial-cluster kubem00=http://10.10.10.80:2380 \
+      --initial-cluster-state new \
+      --data-dir=/var/lib/etcd \
+      --debug=false
 
     Restart=on-failure
+    RestartSec=5
     LimitNOFILE=65536
 
     [Install]
@@ -77,73 +103,43 @@ Start and enable the service
     systemctl daemon-reload
     systemctl start etcd
     systemctl enable etcd
-    systemctl status etcd -l
-
-### Create certificates
-Kubernetes uses certificates to authenticate API request. We need to generate certificates that can be used for authentication. Kubernetes provides ready made scripts for generating these certificates which can be found [here](https://github.com/kalise/Kubernetes-Lab-Tutorial/tree/master/utils/ca-cert.sh).
-
-Set the master IP address and the Kubernetes internal service IP address
-
-    MASTER_IP=10.10.10.80
-    KUBE_SVC_IP=10.32.0.1
-
-Run the script
-
-    bash ca-cert.sh "${MASTER_IP}" "IP:${MASTER_IP},IP:${KUBE_SVC_IP},DNS:kubernetes,DNS:kubernetes.default,DNS:kubernetes.default.svc,DNS:kubernetes.default.svc.cluster.local"
-
-This script will create certificates in ``/srv/kubernetes/`` directory
-
-    ll /srv/kubernetes/
-    total 28
-    -rw-rw---- 1 root kube 1216 Apr 19 18:36 ca.crt
-    -rw------- 1 root root 4466 Apr 19 18:36 kubecfg.crt
-    -rw------- 1 root root 1704 Apr 19 18:36 kubecfg.key
-    -rw-rw---- 1 root kube 4868 Apr 19 18:36 server.cert
-    -rw-rw---- 1 root kube 1704 Apr 19 18:36 server.key
-
-Make sure file permissions and owners are correct.
+    systemctl status etcd
 
 ### Configure API server
-To configure the API server, edit the ``/usr/lib/systemd/system/kube-apiserver.service`` startup file
+To configure the API server, configure the ``/etc/systemd/system/kube-apiserver.service`` startup file
 
     [Unit]
     Description=Kubernetes API Server
-    Documentation=https://kubernetes.io/docs/admin/kube-apiserver/
+    Documentation=https://github.com/GoogleCloudPlatform/kubernetes
     After=network.target
     After=etcd.service
 
     [Service]
-    User=kube
+    Type=notify
     ExecStart=/usr/bin/kube-apiserver \
-      --audit-log-path=/var/log/kubernetes/kube-apiserver-audit.log \
-      --allow-privileged=true \
-      --etcd-servers=http://127.0.0.1:2379 \
-      --bind-address=10.10.10.80 \
-      --secure-port=6443 \
-      --insecure-bind-address=10.10.10.80 \
-      --insecure-port=8080 \
-      --advertise-address=10.10.10.80 \
       --admission-control=NamespaceLifecycle,LimitRanger,ServiceAccount,DefaultStorageClass,ResourceQuota \
+      --anonymous-auth=false \
+      --etcd-servers=http://10.10.10.80:2379 \
+      --advertise-address=10.10.10.80 \
+      --allow-privileged=true \
+      --audit-log-maxage=30 \
+      --audit-log-maxbackup=3 \
+      --audit-log-maxsize=100 \
+      --audit-log-path=/var/lib/audit.log \
+      --enable-swagger-ui=true \
+      --event-ttl=1h \
+      --insecure-bind-address=10.10.10.80 \
       --service-cluster-ip-range=10.32.0.0/16 \
       --service-node-port-range=30000-32767 \
-      --client-ca-file=/srv/kubernetes/ca.crt \
-      --tls-cert-file=/srv/kubernetes/server.cert \
-      --tls-private-key-file=/srv/kubernetes/server.key
-
+      --v=2
+    
     Restart=on-failure
-    Type=notify
+    RestartSec=5
     LimitNOFILE=65536
 
     [Install]
     WantedBy=multi-user.target
 
-The API Server will log all requests into the ``/var/log/kubernetes`` directory. Make sure this dir exists and have the right permissions
-
-    mkdir /var/log/kubernetes
-    chown -R kube:kube /var/log/kubernetes
-
-    ll /var/log/kubernetes
-    -rw-r--r-- 1 kube kube 8076 Jun 16 12:53 kube-apiserver-audit.log
 
 Start and enable the service
 

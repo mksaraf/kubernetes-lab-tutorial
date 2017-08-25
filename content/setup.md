@@ -32,13 +32,7 @@ The IP address space for containers will be allocated from the ``10.38.0.0/16`` 
     10.38.1.0/24
     10.38.2.0/24
 
-In addition, Kubernetes allocates IP addresses for internal services. These addresses are not required to be routable outside the cluster itself. However, each node needs to know where to find the cluster's subnets. For example, on the master node, to provision permanent static routes, create the file ``/etc/sysconfig/network-scripts/route-ens160`` with the following static routes
-
-    10.38.0.0/24 via 10.10.10.83
-    10.38.1.0/24 via 10.10.10.84
-    10.38.2.0/24 via 10.10.10.85
-
-Here ``ens160`` is the network interface name used by the node. Restart the network service to activate the routes ``systemctl restart networking``.
+In addition, Kubernetes allocates IP addresses for internal services. These addresses are not required to be routable outside the cluster itself. However, each node needs to know where to find the cluster's subnets.
 
 Here the releases we'll use during this tutorial
 

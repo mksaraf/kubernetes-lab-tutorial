@@ -1,12 +1,11 @@
 # Cluster Administration
-In this section we are going to deal with some advanced cluster admin tasks:
+In this section we are going to deal with some advanced cluster admin tasks.
 
    * [Cluster healing](#cluster-healing)
    * [Securing the Cluster](#securing-the-cluster)
    * [Scale the Control Plane](#scaling-the-control-plane)
 
-## Cluster healing
-In this section we'll walk through some fire drills and to understand how to operate with a running kubernetes cluster. To show the impact of the cluster on user applications, start a simple nginx deploy of three pods and the related service
+To show the impact of the cluster on user applications, start a simple nginx deploy of three pods and the related service
 
     kubectl create -f nginx-deploy.yaml
     kubectl create -f nginx-svc.yaml
@@ -29,7 +28,7 @@ In this section we'll walk through some fire drills and to understand how to ope
     rs/nginx-1423793266   3         3         3         2h
 
 
-### Cluster Backup and Restore
+## Cluster Backup and Restore
 The state of the cluster is stored in the etcd db, usually running on the master node along with the API Server and other components of the control plane. To avoid single point of failure, it is recommended to use an odd number of etcd nodes.
 
 For now, let's take a backup of the cluster data. To interact with etcd, we're going to use the ``etcdctl`` admin tool. The etcd db supports both v2 and v3 APIs.
@@ -99,7 +98,7 @@ Check if everything is restored
     nginx-1423793266-q2nnw   1/1       Running   0          19m
 
 
-### APIs Server failure
+## APIs Server failure
 An APIs server failure breaks the cluster control plane preventings users and administrators to interact with it. For this reason, production envinronments should leverage on an high availability control plane.
 
 However, a failure in the control plane does not prevents user applications to work. To check this, login to the master node and stop the APIs server
@@ -121,7 +120,7 @@ Restart the APIs server
     systemctl start kube-apiserver
 
 
-### Scheduler failure
+## Scheduler failure
 A Scheduler failure prevents the users to schedule new pods to the cluster. However already running pods are still serving. To check this, login to the master node and stop the scheduler
 
     systemctl stop kube-scheduler
@@ -154,7 +153,7 @@ Restore the scheduler service and check the status of the pods
     nginx-1423793266-wjmjs   1/1       Running   0          2m
 
 
-### Controller Manager failure
+## Controller Manager failure
 Primary task of the control manager is to reconcile the actual state of the system with the desired state. A failure of the controller prevents the cluster to update the actual state with changes requested by the users.
 
 Login to the master node and stop the controller manager service
@@ -189,7 +188,7 @@ Restore the controller manager and check it does its job correctly
     nginx-1423793266-w87jh   0/1       ContainerCreating   0          1s
     nginx-1423793266-wjmjs   1/1       Running             0          15m
 
-### Maintenance of a worker node
+## Maintenance of a worker node
 The cluster admin can have needs to operate on a worker node for any maintenance reason. Our cluster has three worker nodes
 
     kubectl get nodes
@@ -254,4 +253,68 @@ After the node is completly restored, check where are running the pods
 
 We see pods are not moved back to the restored node.
 
+## Failure of a worker node
+As in any working envinronments, a worker nodes can fail. However, the kubernetes cluster is designed to deal with that leaving user applications to be moved on other worker nodes.
 
+As in the previous example, check where user pods are running before to simulate a worker failure
+
+    kubectl get pods -o wide
+
+    NAME                     READY     STATUS    RESTARTS   AGE       IP           NODE
+    nginx-1423793266-704fv   1/1       Running   0          21s       10.38.1.15   kubew05
+    nginx-1423793266-jh5m7   1/1       Running   0          21s       10.38.0.49   kubew03
+    nginx-1423793266-x60qb   1/1       Running   0          21s       10.38.2.19   kubew04
+
+Login to a worker node, e.g. kubew03, and simulate a failure by stopping the kubelet service
+
+    systemctl stop kubelet
+    
+And check the status of the nodes
+
+    kubectl get node
+    NAME      STATUS     AGE       VERSION
+    kubew03   NotReady   8h        v1.7.0
+    kubew04   Ready      8h        v1.7.0
+    kubew05   Ready      8h        v1.7.0
+
+It has been marker as not ready. Now check the running pods. It will take some time before the pods are running on the failed node are moved to another one in the cluster
+
+    kubectl get pods -o wide
+
+    NAME                     READY     STATUS    RESTARTS   AGE       IP           NODE
+    nginx-1423793266-704fv   1/1       Running   0          4m        10.38.1.15   kubew05
+    nginx-1423793266-jh5m7   1/1       Running   0          4m        10.38.0.49   kubew03
+    nginx-1423793266-x60qb   1/1       Running   0          4m        10.38.2.19   kubew04
+
+It will take 5 minutes by design and it is controlled by the ``--pod-eviction-timeout`` of the controller manager.
+
+    kubectl get pods -o wide
+
+    NAME                     READY     STATUS    RESTARTS   AGE       IP           NODE
+    nginx-1423793266-704fv   1/1       Running   0          8m        10.38.1.15   kubew05
+    nginx-1423793266-7220d   1/1       Running   0          2m        10.38.2.20   kubew04
+    nginx-1423793266-jh5m7   1/1       Unknown   0          8m        10.38.0.49   kubew03
+    nginx-1423793266-x60qb   1/1       Running   0          8m        10.38.2.19   kubew04
+
+Login again to the worker node and put it back
+
+    systemctl restart kubelet
+
+The node is moved back in ready state
+
+    kubectl get node
+    NAME      STATUS    AGE       VERSION
+    kubew03   Ready     8h        v1.7.0
+    kubew04   Ready     8h        v1.7.0
+    kubew05   Ready     8h        v1.7.0
+
+Now check where are running the pods
+
+    kubectl get pods -o wide
+
+    NAME                     READY     STATUS    RESTARTS   AGE       IP           NODE
+    nginx-1423793266-704fv   1/1       Running   0          11m       10.38.1.15   kubew05
+    nginx-1423793266-7220d   1/1       Running   0          4m        10.38.2.20   kubew04
+    nginx-1423793266-x60qb   1/1       Running   0          11m       10.38.2.19   kubew04
+
+As in the previous example, we see pods are not moved back to the restored node.

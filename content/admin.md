@@ -189,5 +189,69 @@ Restore the controller manager and check it does its job correctly
     nginx-1423793266-w87jh   0/1       ContainerCreating   0          1s
     nginx-1423793266-wjmjs   1/1       Running             0          15m
 
+### Maintenance of a worker node
+The cluster admin can have needs to operate on a worker node for any maintenance reason. Our cluster has three worker nodes
+
+    kubectl get nodes
+    NAME      STATUS    AGE       VERSION
+    kubew03   Ready     7h        v1.7.0
+    kubew04   Ready     7h        v1.7.0
+    kubew05   Ready     7h        v1.7.0
+
+and a maintenance windows can be scheduled on it without impacting on the user applications
+
+    kubectl get pods -o wide
+    NAME                     READY     STATUS    RESTARTS   AGE       IP           NODE
+    nginx-1423793266-b10l0   1/1       Running   0          6m        10.38.2.16   kubew04
+    nginx-1423793266-fbrvg   1/1       Running   0          21m       10.38.0.44   kubew03
+    nginx-1423793266-ghk3t   1/1       Running   0          8m        10.38.1.13   kubew05
+    nginx-1423793266-q2nnw   1/1       Running   0          54m       10.38.1.11   kubew05
+    nginx-1423793266-w87jh   1/1       Running   0          6m        10.38.0.45   kubew03
+    nginx-1423793266-wjmjs   1/1       Running   0          21m       10.38.2.14   kubew04
+
+The admin can put in maintenance one of the node. This move all the pods running on that node to the remaining nodes preventing the scheduler to schedule new pod on the cordoned node
+
+    kubectl drain kubew03 --force
+    node "kubew03" cordoned
+    pod "nginx-1423793266-fbrvg" evicted
+    pod "nginx-1423793266-w87jh" evicted
+    pod "kube-dns-2619606146-224mm" evicted
+    node "kubew03" drained
+    
+Check the status of the nodes
+
+    kubectl get nodes
+    NAME      STATUS                     AGE       VERSION
+    kubew03   Ready,SchedulingDisabled   7h        v1.7.0
+    kubew04   Ready                      7h        v1.7.0
+    kubew05   Ready                      7h        v1.7.0
+
+And where its pods are now running
+
+    kubectl get pods -o wide
+    NAME                     READY     STATUS    RESTARTS   AGE       IP           NODE
+    nginx-1423793266-b10l0   1/1       Running   0          10m       10.38.2.16   kubew04
+    nginx-1423793266-ghk3t   1/1       Running   0          13m       10.38.1.13   kubew05
+    nginx-1423793266-j9px4   1/1       Running   0          47s       10.38.2.17   kubew04
+    nginx-1423793266-q2nnw   1/1       Running   0          59m       10.38.1.11   kubew05
+    nginx-1423793266-wjmjs   1/1       Running   0          26m       10.38.2.14   kubew04
+    nginx-1423793266-zf11c   1/1       Running   0          47s       10.38.2.18   kubew04
+
+Having completed the maintenance operations, the cluster admin can restore the node to be again available for user applications
+
+    kubectl uncordon  kubew03
+    node "kubew03" uncordoned
+    
+After the node is completly restored, check where are running the pods
+
+    NAME                     READY     STATUS    RESTARTS   AGE       IP           NODE
+    nginx-1423793266-b10l0   1/1       Running   0          21m       10.38.2.16   kubew04
+    nginx-1423793266-ghk3t   1/1       Running   0          24m       10.38.1.13   kubew05
+    nginx-1423793266-j9px4   1/1       Running   0          11m       10.38.2.17   kubew04
+    nginx-1423793266-q2nnw   1/1       Running   0          1h        10.38.1.11   kubew05
+    nginx-1423793266-wjmjs   1/1       Running   0          37m       10.38.2.14   kubew04
+    nginx-1423793266-zf11c   1/1       Running   0          11m       10.38.2.18   kubew04
+
+We see pods are not moved back to the restored node.
 
 

@@ -1,9 +1,12 @@
-# Cluster Administration
+# Cluster Healing
 In this section we are going to deal with some advanced cluster admin tasks.
 
-   * [Cluster healing](#cluster-healing)
-   * [Securing the Cluster](#securing-the-cluster)
-   * [Scale the Control Plane](#scaling-the-control-plane)
+   * [Cluster Backup and Restore](#cluster-backup-and-restore)
+   * [APIs Server failure](#apis-server-failure)
+   * [Scheduler failure](#scheduler-failure)
+   * [Controller Manager failure](#controller-manager-failure)
+   * [Maintenance of a worker node](#maintenance-of-a-worker-node)
+   * [Failure of a worker node](#failure-of-a-worker-node)
 
 To show the impact of the cluster on user applications, start a simple nginx deploy of three pods and the related service
 

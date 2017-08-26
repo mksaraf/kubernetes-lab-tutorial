@@ -29,7 +29,7 @@ In this section we'll walk through some fire drills and to understand how to ope
     rs/nginx-1423793266   3         3         3         2h
 
 
-### Cluster Backup
+### Cluster Backup and Restore
 The state of the cluster is stored in the etcd db, usually running on the master node along with the API Server and other components of the control plane. To avoid single point of failure, it is recommended to use an odd number of etcd nodes.
 
 For now, let's take a backup of the cluster data. To interact with etcd, we're going to use the ``etcdctl`` admin tool. The etcd db supports both v2 and v3 APIs.

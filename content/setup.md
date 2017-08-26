@@ -41,7 +41,7 @@ Here the releases we'll use during this tutorial
    * Etcd 3.2.6
 
 ## Configure Masters
-On the Master, first install etcd and kubernetes
+On the Master, get etcd and kubernetes
 
     wget https://github.com/coreos/etcd/releases/download/v3.2.6/etcd-v3.2.6-linux-amd64.tar.gz
     wget https://storage.googleapis.com/kubernetes-release/release/v1.7.0/bin/linux/amd64/kube-apiserver
@@ -256,9 +256,19 @@ It is possible to define more contexts and switch between different contexts wit
       user: {}
 
 ## Configure Workers
-On all the worker nodes, install kubernetes and docker
+On all the worker nodes, get kubernetes
 
-    yum -y install kubernetes docker
+    wget https://storage.googleapis.com/kubernetes-release/release/v1.7.0/bin/linux/amd64/kubelet
+    wget https://storage.googleapis.com/kubernetes-release/release/v1.7.0/bin/linux/amd64/kube-proxy
+
+Estract and install the binaries
+
+    chmod +x kubelet && mv kubelet /usr/bin/
+    chmod +x kubeproxy && mv kubeproxy /usr/bin/
+
+On all the worker nodes, install docker
+
+    yum -y install docker
 
 ### Configure Docker
 There are a number of ways to customize the Docker daemon flags and environment variables. The recommended way from Docker web site is to use the platform-independent ``/etc/docker/daemon.json`` file instead of the systemd unit file. This file is available on all the Linux distributions
@@ -274,7 +284,7 @@ There are a number of ways to customize the Docker daemon flags and environment 
 
 On CentOS systems, the suggested storage mapper is the Device Mapper.
 
-Also, since Kubernetes uses a different network model than Docker, we need to prevent Docker to use NAT/IP Table rewriting. For this reason, we disable the IP Table and NAT options in Docker daemon.
+Also, since Kubernetes uses a different network model than Docker, we need to prevent Docker to use NAT/IP Table rewriting, as for its default settings. For this reason, we disable the IP Table and NAT options in Docker daemon.
 
 Start and enable the docker service
 
@@ -292,13 +302,13 @@ As usual, Docker will create the default ``docker0`` bridge network interface
 However, we're not going to use it since Kubernetes networking is based on the **CNI** Container Network Interface.
 
 ### Setup the CNI network plugins
-Download the CNI network plugins from [here](https://github.com/kalise/Kubernetes-Lab-Tutorial/raw/master/cni-plugins/cni-amd64.tar.gz) and place them in the expected directory
+On all the worker nodes, download the CNI network plugins from [here](https://github.com/kalise/Kubernetes-Lab-Tutorial/raw/master/cni-plugins/cni-amd64.tar.gz) and place them in the expected directory
 
     mkdir -p /opt/cni
     tar -xvf cni-amd64.tar.gz -C /opt/cni
 
 ### Configure kubelet
-To configure the kubelet component, edit the ``/usr/lib/systemd/system/kubelet.service`` startup file
+To configure the kubelet component, create the ``/etc/systemd/system/kubelet.service`` startup file
 
     [Unit]
     Description=Kubernetes Kubelet Server
@@ -309,13 +319,16 @@ To configure the kubelet component, edit the ``/usr/lib/systemd/system/kubelet.s
     [Service]
     WorkingDirectory=/var/lib/kubelet
     ExecStart=/usr/bin/kubelet \
+      --api-servers=http://10.10.10.80:8080 \
       --network-plugin=kubenet \
       --allow-privileged=true \
-      --api-servers=http://10.10.10.80:8080 \
       --cluster-dns=10.32.0.10 \
       --cluster-domain=cluster.local \
       --container-runtime=docker \
-      --register-node=true
+      --cgroup-driver=systemd \
+      --serialize-image-pulls=false \
+      --register-node=true \
+      --v=2
 
     Restart=on-failure
 
@@ -332,7 +345,7 @@ Start and enable the kubelet service
     systemctl status kubelet
 
 ### Configure proxy
-To configure the proxy component, edit the ``/usr/lib/systemd/system/kube-proxy.service`` startup file
+To configure the proxy component, edit the ``/etc/systemd/system/kube-proxy.service`` startup file
 
     [Unit]
     Description=Kubernetes Kube-Proxy Server
@@ -344,7 +357,8 @@ To configure the proxy component, edit the ``/usr/lib/systemd/system/kube-proxy.
       --master=http://10.10.10.80:8080 \
       --cluster-cidr=10.38.0.0/16 \
       --proxy-mode=iptables \
-      --masquerade-all=true
+      --masquerade-all=true \
+      --v=2
 
     Restart=on-failure
     LimitNOFILE=65536
@@ -368,9 +382,9 @@ On the master node, use kubectl to gather the IP addresses
     kubectl get nodes \
      -o jsonpath='{range .items[*]} {.spec.externalID} {.status.addresses[?(@.type=="InternalIP")].address} {.spec.podCIDR} {"\n"}{end}'
     
-    kube01 10.10.10.81 10.38.0.0/24
-    kube02 10.10.10.82 10.38.1.0/24
-    kube03 10.10.10.83 10.38.2.0/24
+     kubew03 10.10.10.83 10.38.0.0/24
+     kubew04 10.10.10.84 10.38.2.0/24
+     kubew05 10.10.10.85 10.38.1.0/24
 
 On the master node, given ``ens160`` the cluster network interface, create the script file ``/etc/sysconfig/network-scripts/route-ens160`` for adding permanent static routes containing the following
 
@@ -391,9 +405,7 @@ Restart the network service and check the master routing table
     10.38.1.0       10.10.10.82     255.255.255.0   UG        0 0          0 ens160
     10.38.2.0       10.10.10.83     255.255.255.0   UG        0 0          0 ens160
 
-On all the worker nodes, create a similar script file.
-
-For example, on the worker ``kube01``, create the file ``/etc/sysconfig/network-scripts/route-ens160`` containing the following
+On all the worker nodes, create a similar script file. For example, on the worker ``kube01``, create the file ``/etc/sysconfig/network-scripts/route-ens160`` containing the following
 
     10.38.1.0/24 via 10.10.10.82
     10.38.2.0/24 via 10.10.10.83
@@ -417,44 +429,12 @@ Repeat the steps for all workers paying attention to set the routes correctly. F
 ## Test the cluster
 The cluster should be now running. Check to make sure the cluster can see the node, by logging to the master
 
-    kubectl get nodes
-    NAME      STATUS    AGE
-    kube01   Ready     2d
-    kube02   Ready     2d
-    kube03   Ready     2d
+    NAME      STATUS    AGE       VERSION
+    kubew03   Ready     12m       v1.7.0
+    kubew04   Ready     1m        v1.7.0
+    kubew05   Ready     1m        v1.7.0
 
-Kubernetes cluster stores all of its internal state in etcd. The idea is, that you should interact with Kubernetes only via its API provided by API service. API service abstracts away all the Kubernetes cluster state manipulating by reading from and writing into the etcd cluster. Let’s explore what’s stored in the etcd cluster after fresh installation:
-
-    [root@kube00 ~]# etcdctl ls
-    /registry
-
-The etcd has the /registry area where stores all info related to the cluster. The /kube-centos area contains the flannel network configuration.
-
-Let's see the cluster info stored in etcd
-
-    [root@kube00 ~]# etcdctl ls /registry --recursive
-    /registry/deployments
-    /registry/deployments/default
-    /registry/deployments/kube-system
-    /registry/ranges
-    /registry/ranges/serviceips
-    /registry/ranges/servicenodeports
-    /registry/secrets
-    /registry/secrets/default
-    /registry/secrets/default/default-token-92z22
-    /registry/secrets/kube-system
-    /registry/secrets/kube-system/default-token-sj7t3
-    /registry/secrets/demo
-    ...
-
-For example, get detailed info about a worker node
-
-    [root@kubem00 ~]# etcdctl ls /registry/minions
-    /registry/minions/kube01
-    /registry/minions/kube02
-    /registry/minions/kube03
-    
-    [root@kubem00 ~]# etcdctl get /registry/minions/kube01 | jq .
+Kubernetes cluster stores all of its internal state in etcd. The idea is, that you should interact with Kubernetes only via its API provided by API service. API service abstracts away all the Kubernetes cluster state manipulating by reading from and writing into the etcd cluster.
 
 
 ## Configure DNS service
@@ -492,7 +472,7 @@ metadata:
 spec:
   selector:
     k8s-app: kube-dns
-  clusterIP: 10.254.3.100
+  clusterIP: 10.32.0.10
   ports:
   - name: dns
     port: 53
@@ -502,7 +482,7 @@ spec:
     protocol: TCP
 ```
 
-Note: make sure you have updated in the above file the correct cluster IP ``10.254.3.100`` as we specified in kubelet configuration file for DNS service ``--cluster-dns=10.254.3.100`` option.
+Note: make sure you have updated in the above file the correct cluster IP ``10.32.0.10`` as we specified in kubelet configuration file for DNS service ``--cluster-dns`` option.
 
 
 Create the DNS for service discovery
@@ -517,7 +497,7 @@ and check if it works in the dedicated namespace
     NAME              DESIRED   CURRENT   READY     AGE
     rc/kube-dns-v20   1         1         1         22m
     NAME           CLUSTER-IP     EXTERNAL-IP   PORT(S)         AGE
-    svc/kube-dns   10.254.3.100   <none>        53/UDP,53/TCP   22m
+    svc/kube-dns   10.32.0.10     <none>        53/UDP,53/TCP   22m
     NAME                    READY     STATUS    RESTARTS   AGE
     po/kube-dns-v20-3xk4v   3/3       Running   0          22m
 

@@ -436,28 +436,41 @@ The cluster should be now running. Check to make sure the cluster can see the no
 
 Kubernetes cluster stores all of its internal state in etcd. The idea is, that you should interact with Kubernetes only via its API provided by API service. API service abstracts away all the Kubernetes cluster state manipulating by reading from and writing into the etcd cluster.
 
-
 ## Configure DNS service
 To enable service name discovery in our Kubernetes cluster, we need to configure an embedded DNS service. To do so, we need to deploy DNS pod and service having configured kubelet to resolve all DNS queries from this local DNS service.
 
 Login to the master node and download the DNS template ``kubedns-template.yaml`` from [here](https://github.com/kalise/Kubernetes-Lab-Tutorial/blob/master/examples/kubedns-template.yaml)
 
-This template defines a Replica Controller and a DNS service. The controller defines three containers running on the same pod: a DNS server, a dnsmaq for caching and healthz for liveness probe:
+This template defines a Replica Controller and a DNS service. The controller defines four containers running on the same pod: a DNS server, a dnsmasq for caching, a dnsmasq metric collector and healthz for liveness probe:
 ```yaml
 ...
     spec:
       containers:
       - name: kubedns
-        image: gcr.io/google_containers/kubedns-amd64:1.8
+        image: gcr.io/google_containers/kubedns-amd64:1.9
 ...
       - name: dnsmasq
         image: gcr.io/google_containers/kube-dnsmasq-amd64:1.4
+...
+      - name: dnsmasq-metrics
+        image: gcr.io/google_containers/dnsmasq-metrics-amd64:1.0
 ...
       - name: healthz
         image: gcr.io/google_containers/exechealthz-amd64:1.2
 ```
 
-Here the DNS service definition
+Make sure you have set the master IP address parameter to pass to the kubedns container
+```
+...
+        # This is used to reach kubernetes master
+        # It should be set only if service accounts are not used
+        - --kube-master-url=http://10.10.10.80:8080
+...
+```
+
+*Note: the above is required only if service accounts are not used.*
+
+Make sure you have set the correct cluster IP address parameter as we have specified in ``--cluster-dns`` option of the kubelet startup configuration 
 ```yaml
 ...
 apiVersion: v1
@@ -482,10 +495,7 @@ spec:
     protocol: TCP
 ```
 
-Note: make sure you have updated in the above file the correct cluster IP ``10.32.0.10`` as we specified in kubelet configuration file for DNS service ``--cluster-dns`` option.
-
-
-Create the DNS for service discovery
+Create the DNS setup from the template
 
     [root@kube00 ~]# kubectl create -f kubedns-template.yaml
     replicationcontroller "kube-dns-v20" created
@@ -495,11 +505,11 @@ and check if it works in the dedicated namespace
 
     [root@kube00 ~]# kubectl get all -n kube-system
     NAME              DESIRED   CURRENT   READY     AGE
-    rc/kube-dns-v20   1         1         1         22m
+    rc/kube-dns       1         1         1         22m
     NAME           CLUSTER-IP     EXTERNAL-IP   PORT(S)         AGE
     svc/kube-dns   10.32.0.10     <none>        53/UDP,53/TCP   22m
     NAME                    READY     STATUS    RESTARTS   AGE
-    po/kube-dns-v20-3xk4v   3/3       Running   0          22m
+    po/kube-dns-3xk4v       4/4       Running   0          22m
 
 To test if it works, create a file named ``busybox.yaml`` with the following contents:
 ```yaml
@@ -540,36 +550,3 @@ Take a look inside the ``resolv.conf file`` of the busybox container
     options ndots:5
 
 Each time a new service starts on the cluster, it will register with the DNS letting all the pods to reach the new service.
-
-## Configure GUI dashboard
-Kubernetes dashboard provides a GUI through which we can manage Kubernetes work units. We can create, delete or edit all work unit from this dashboard. Kubernetes dashboard is deployed as a pod in a dedicated namespace.
-
-Download the dashboard deploy from [here](https://github.com/kalise/Kubernetes-Lab-Tutorial/blob/master/examples/kubegui-deploy.yaml) and deploy it
-
-    kubectl create -f kubegui-deploy.yaml
-    deployment "kubernetes-dashboard" created
-
-Download the dashboard service from [here](https://github.com/kalise/Kubernetes-Lab-Tutorial/blob/master/examples/kubegui-svc.yaml) and expose to the external port 8080
-
-    kubectl create -f kubegui-svc.yaml
-    service "kubernetes-dashboard" created
-
-When objects are ready
-
-    kubectl get all -n kube-system
-    
-    NAME                          DESIRED   CURRENT   UP-TO-DATE   AVAILABLE   AGE
-    deploy/kubernetes-dashboard   1         1         1            1           23s
-    NAME              DESIRED   CURRENT   READY     AGE
-    rc/kube-dns-v20   1         1         1         1d
-    NAME                       CLUSTER-IP       EXTERNAL-IP   PORT(S)         AGE
-    svc/kube-dns               10.254.3.100     <none>        53/UDP,53/TCP   1d
-    svc/kubernetes-dashboard   10.254.180.188   <none>        80/TCP          18s
-    NAME                                 DESIRED   CURRENT   READY     AGE
-    rs/kubernetes-dashboard-3543765157   1         1         1         23s
-    NAME                                       READY     STATUS    RESTARTS   AGE
-    po/kube-dns-v20-3xk4v                      3/3       Running   3          1d
-    po/kubernetes-dashboard-3543765157-tbc49   1/1       Running   0          23s
-
-
-point the browser to the public master IP address ``http://10.10.10.80:8080/ui``. Please, note, the dashboard requires the embedded DNS server for service discovery.

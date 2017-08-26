@@ -41,11 +41,11 @@
     * [Volume Reclaim Policy](./content/storage.md#volume-reclaim-policy)
     * [NFS Persistent Volume](./content/storage.md#nfs-persistent-volume)
     
-6. [Cluster Administration](./content/info.md)
-    * [High Availability](./content/info.md)
-    * [Cluster Scaling](./content/info.md)
-    * [Security](./content/info.md)
-    * [Users Management](./content/info.md)
+6. [Security](./content/security.md)
+
+7. [High Availability](./content/info.md)
+
+8. [Users Management](./content/info.md)
 
 ## Disclaimer
 This tutorial is for personal use only. This is just a lab guide, not a documentation for Kubernets, please go to their online

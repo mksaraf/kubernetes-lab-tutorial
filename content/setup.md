@@ -6,7 +6,6 @@ This tutorial refers to a cluster of nodes (virtual, physical or a mix of both) 
    * [Configure Workers](#configure-workers)
    * [Test the cluster](#test-the-cluster)
    * [Configure DNS service](#configure-dns-service)
-   * [Configure GUI dashboard](#configure-gui-dashboard)
    
 ## Requirements
 Our initial cluster will be made of 1 Master node and 3 Workers nodes. All machines can be virtual or physical or a mix of both. Minimum hardware requirements are: 2 vCPUs, 2GB of RAM, 16GB HDD for OS. All machines will be installed with Linux CentOS 7.3. Firewall and Selinux will be disabled. An NTP server is installed and running on all machines. On worker nodes, Docker is installed with a Device Mapper on a separate 10GB HDD. Internet access.

@@ -17,7 +17,6 @@
     * [Configure Workers](./content/setup.md#configure-workers)
     * [Test the cluster](./content/setup.md#test-the-cluster)
     * [Configure DNS service](./content/setup.md#configure-dns-service)
-    * [Configure GUI dashboard](./content/setup.md#configure-gui-dashboard)
 
 3. [Core Concepts](./content/core.md)
     * [Pods](./content/core.md#core)

@@ -85,12 +85,12 @@ To restore the previous cluster state from the backup file, stop the etcd servic
 
 Note that to restore data, we also need to specify all the parameters of the etcd service.
 
-Now start the etcd service and restart also the kubernetes service to reconcile the previous state
+Now start the etcd service and restart also the kubernetes service to reconcilie the previous state
 
     systemctl start etcd
     systemctl restart kube-apiserver kube-controller-manager kube-scheduler
     
-Check if everithing is restored
+Check if everything is restored
 
     kubectl get pods
     NAME                     READY     STATUS    RESTARTS   AGE
@@ -99,8 +99,95 @@ Check if everithing is restored
     nginx-1423793266-q2nnw   1/1       Running   0          19m
 
 
+### APIs Server failure
+An APIs server failure breaks the cluster control plane preventings users and administrators to interact with it. For this reason, production envinronments should leverage on an high availability control plane.
+
+However, a failure in the control plane does not prevents user applications to work. To check this, login to the master node and stop the APIs server
+
+    systemctl stop kube-apiserver
+
+Now it no more possible to access any resource in the cluster
+
+    kubectl get all
+    The connection to the server was refused - did you specify the right host or port?
+
+However, our nginx pods are still serving
+
+    curl http://kubew03:31000
+    Welcome to nginx!
+
+Restart the APIs server
+
+    systemctl start kube-apiserver
 
 
+### Scheduler failure
+A Scheduler failure prevents the users to schedule new pods to the cluster. However already running pods are still serving. To check this, login to the master node and stop the scheduler
+
+    systemctl stop kube-scheduler
+
+Now try to scale up the nginx deploy
+
+    kubectl scale deploy nginx --replicas=6
+    deployment "nginx" scaled
+
+    kubectl get pods
+    NAME                     READY     STATUS    RESTARTS   AGE
+    nginx-1423793266-0fh6d   1/1       Running   0          33m
+    nginx-1423793266-4lxgp   1/1       Running   0          33m    
+    nginx-1423793266-q2nnw   1/1       Running   0          33m
+    nginx-1423793266-wjmjs   0/1       Pending   0          9s
+    nginx-1423793266-14x09   0/1       Pending   0          9s
+    nginx-1423793266-fbrvg   0/1       Pending   0          9s
+    
+We see new pods stucking in pending state since the scheduler is not available.
+
+Restore the scheduler service and check the status of the pods
+
+    kubectl get pods
+    NAME                     READY     STATUS    RESTARTS   AGE
+    nginx-1423793266-0fh6d   1/1       Running   0          35m
+    nginx-1423793266-14x09   1/1       Running   0          2m
+    nginx-1423793266-4lxgp   1/1       Running   0          35m
+    nginx-1423793266-fbrvg   1/1       Running   0          2m
+    nginx-1423793266-q2nnw   1/1       Running   0          35m
+    nginx-1423793266-wjmjs   1/1       Running   0          2m
+
+
+### Controller Manager failure
+Primary task of the control manager is to reconcile the actual state of the system with the desired state. A failure of the controller prevents the cluster to update the actual state with changes requested by the users.
+
+Login to the master node and stop the controller manager service
+
+    systemctl stop kube-controller-manager
+    
+Now change the status of the cluster by deleting some running pods
+
+    kubectl delete pod nginx-1423793266-0fh6d nginx-1423793266-14x09
+    pod "nginx-1423793266-0fh6d" deleted
+    pod "nginx-1423793266-14x09" deleted
+
+In normal conditions, with the controller manager running, this trigger the recreation of two new pods to honour the replica set specified by the user. But the controller failure prevents it
+
+    kubectl get pods
+    NAME                     READY     STATUS    RESTARTS   AGE
+    nginx-1423793266-fbrvg   1/1       Running   0          14m
+    nginx-1423793266-ghk3t   1/1       Running   0          1m
+    nginx-1423793266-q2nnw   1/1       Running   0          47m
+    nginx-1423793266-wjmjs   1/1       Running   0          14m
+
+Restore the controller manager and check it does its job correctly
+
+    systemctl start kube-controller-manager
+    
+    kubectl get pods
+    NAME                     READY     STATUS              RESTARTS   AGE
+    nginx-1423793266-b10l0   0/1       ContainerCreating   0          1s
+    nginx-1423793266-fbrvg   1/1       Running             0          15m
+    nginx-1423793266-ghk3t   1/1       Running             0          2m
+    nginx-1423793266-q2nnw   1/1       Running             0          48m
+    nginx-1423793266-w87jh   0/1       ContainerCreating   0          1s
+    nginx-1423793266-wjmjs   1/1       Running             0          15m
 
 
 

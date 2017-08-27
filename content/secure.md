@@ -532,7 +532,7 @@ Start and enable the service
     systemctl status kube-proxy
 
 ## Complete the setup
-Now complete the cluster setup by configuring the network paths as reported [here](../content/setup.md#define-the-container-network-routes).
+Now configure the network routes as reported [here](../content/setup.md#define-the-container-network-routes).
 
 The cluster should be now running. Check to make sure the cluster can see the node, by logging to the master
 
@@ -541,3 +541,5 @@ The cluster should be now running. Check to make sure the cluster can see the no
     kubew03   Ready     12m       v1.7.0
     kubew04   Ready     1m        v1.7.0
     kubew05   Ready     1m        v1.7.0
+
+To complete the setup, install the DNS service on the cluster.

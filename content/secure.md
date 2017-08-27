@@ -5,11 +5,12 @@ The Kubernetes two-way authentication requires each component to have two certif
 
   * etcd
   * kube-apiserver
-  * kubectl
   * kubelet
   * kube-proxy
 
-We are not going to secure the controller manager and the scheduler since we suppose they run tied togheter to the api server on the same master node. 
+We are not going to secure the controller manager and the scheduler since we suppose they run tied togheter to the api server on the same master node.
+
+*Note: securing an existing cluster can be a potentially destructive task. In this tutorial we assume to setup a secure cluster from scratch. In case of a cluster already running, remove any configuration and data before to try to implement these instructions.*
 
 ## Create Certification Authority certificate and key
 On any Linux machine install OpenSSL, create a folder where store certificates and keys
@@ -155,7 +156,7 @@ Move the key and certificate, along with the Certificate Authority certificate t
     scp ca.pem root@kube-admin:~/.kube
     scp client*.pem root@kube-admin:~/.kube
 
-## Create kubelet certificates and key
+## Create kubelet certificate and key
 We need also to secure interaction between worker nodes (kubelet) and master node (APIs server). Create the ``kubelet03-csr.json`` configuration file for each worker node
 ```json
 {
@@ -186,6 +187,103 @@ Move the key and certificate, along with the Certificate Authority certificate t
 
 Repeat the step above for each worker node we want to add to the cluster.
 
+## Create proxy certificate and key
+
+## Securing etcd
+We are going to secure the communication between etcd and APIs server. For simplicity, we assume the etcd is installed on the same master node where api server will run.
+
+Create the etcd directory data
+
+    mkdir /var/lib/etcd
+
+Copy the server certificate and key along with the Certification Authority certificate in a dedicatd directory
+
+    mkdir /etc/etcd
+    cp /var/lib/kubernetes/ca.pem /etc/etcd
+    cp /var/lib/kubernetes/server*.pem /etc/etcd
+
+Set etcd options in the ``/etc/systemd/system/etcd.service`` startup file
+
+    [Unit]
+    Description=etcd
+    Documentation=https://github.com/coreos
+    After=network.target
+    After=network-online.target
+    Wants=network-online.target
+
+    [Service]
+    Type=notify
+    ExecStart=/usr/bin/etcd \
+      --name kubem00 \
+      --cert-file=/etc/etcd/server.pem \
+      --key-file=/etc/etcd/server-key.pem \
+      --peer-cert-file=/etc/etcd/server.pem \
+      --peer-key-file=/etc/etcd/server-key.pem \
+      --trusted-ca-file=/etc/etcd/ca.pem \
+      --peer-trusted-ca-file=/etc/etcd/ca.pem \
+      --peer-client-cert-auth \
+      --client-cert-auth \
+      --initial-advertise-peer-urls https://10.10.10.80:2380 \
+      --listen-peer-urls https://10.10.10.80:2380 \
+      --listen-client-urls https://10.10.10.80:2379,http://127.0.0.1:2379 \
+      --advertise-client-urls https://10.10.10.80:2379 \
+      --initial-cluster-token etcd-cluster-token \
+      --initial-cluster kubem00=https://10.10.10.80:2380 \
+      --initial-cluster-state new \
+      --data-dir=/var/lib/etcd
+    
+    Restart=on-failure
+    RestartSec=5
+    LimitNOFILE=65536
+
+    [Install]
+    WantedBy=multi-user.target
+
+Start and enable the service
+
+    systemctl daemon-reload
+    systemctl start etcd
+    systemctl enable etcd
+    systemctl status etcd
+
+To query the etcd, use the ``etcdctl`` command utlity. Since we configured TLS on etcd, any client needs to present a certificate to be authenticad by the etcd service. Create an env file ``etcdctl-v2.rc`` to access etcd by using API v2 
+
+    cat etcdctl-v2.rc
+
+    export PS1='[\W(etcdctl-v2)]\$ '
+    unset  ETCDCTL_API
+    export ETCDCTL_CA_FILE=/etc/etcd/ca.pem
+    export ETCDCTL_CERT_FILE=/etc/etcd/server.pem
+    export ETCDCTL_KEY_FILE=/etc/etcd/server-key.pem
+
+    source etcdctl-v2.rc
+
+    etcdctl --endpoints=https://10.10.10.80:2379 member list
+
+    1857fba22cc98a20: name=kubem00
+    peerURLs=https://10.10.10.80:2380
+    clientURLs=https://10.10.10.80:2379
+    isLeader=true
 
 
+or an env file ``etcdctl-v3.rc`` to access etcd by using API v3
 
+    cat etcdctl-v3.rc
+
+    export PS1='[\W(etcdctl-v3)]\$ '
+    export ETCDCTL_API=3
+    export ETCDCTL_CACERT=/etc/etcd/ca.pem
+    export ETCDCTL_CERT=/etc/etcd/server.pem
+    export ETCDCTL_KEY=/etc/etcd/server-key.pem
+    export ENDPOINTS=10.10.10.80:2379
+
+    source etcdctl-v3.rc
+
+    etcdctl --endpoints=https://10.10.10.80:2379 member list
+    1857fba22cc98a20, started, kubem00, https://10.10.10.80:2380, https://10.10.10.80:2379
+
+## Securing APIs server
+
+## Securing worker nodes
+
+## Accessing the APIs server

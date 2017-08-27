@@ -1,16 +1,25 @@
 # Securing the cluster
 Kubernetes supports **TLS** certificates on each of its components. When set up correctly, it will only allow components with a certificate signed by a specific **Certification Authority** to talk to each other. In general a single Certification Authority is enough to setup a secure kubernets cluster. However nothing prevents to use different Certification Authorities for different components. For example, a public Certification Authority can be used to authenticate the API server in public Internet while internal components, such as worker nodes can be authenticate by using a self signed certificate.
 
-The Kubernetes two-way authentication requires each component to have two certificates: the Certification Authority certificate and the component certificate and a private key. In this tutorial, we are going to use a unique self signed Certification Authority to secure the following components:
+The Kubernetes two-way authentication requires each component to have two certificates: the Certification Authority certificate and the component certificate and a private key. In this tutorial, we are going to use a unique self signed Certification Authority to secure the following components: **etcd**, **kube-apiserver**, **kubelet**, and **kube-proxy**.
 
-  * etcd
-  * kube-apiserver
-  * kubelet
-  * kube-proxy
-
+   * [Create Certification Authority keys pair](#create-certification-authority-keys-pair)
+   * [Create server keys pair](#create-server-keys-pair)
+   * [Create client keys pair](#create-client-keys-pair)
+   * [Create kubelet keys pair](#create-kubelet-keys-pair)
+   * [Create proxy keys pair](#create-proxy-keys-pair)
+   * [Securing the server](#securing-the-server)
+   * [Configure the controller manager](#configure-the-controller-manager)
+   * [Configure the scheduler](#configure-the-scheduler)
+   * [Accessing the APIs server from client](#accessing-the-apis-server-from-client)   
+   * [Securing the kubelet](#securing-the-kubelet)
+   * [Securing the proxy](#securing-the-proxy)
+   * [Enable Service Accounts](#enable-service-accounts)
+   * [Complete the setup](#complete-the-setup)
+   
 *Note: in this tutorial we are assuming to setup a secure cluster from scratch. In case of a cluster already running, remove any configuration and data before to try to implement these instructions.*
 
-## Create Certification Authority certificate and key
+## Create Certification Authority keys pair
 On any Linux machine install OpenSSL, create a folder where store certificates and keys
 
     openssl version
@@ -81,7 +90,7 @@ As result, we have following files
 
 They are the key and the certificate of our self signed Certification Authority. Take this files in a secure place.
 
-## Create server certificate and key
+## Create server keys pair
 The master node IP addresses and names will be included in the list of subject alternative content names for the server certificate. Create the configuration file ``server-csr.json`` for server certificate signing request
 
 ```json
@@ -123,7 +132,7 @@ Move the key and certificate, along with the Certificate Authority certificate t
     scp ca.pem root@kubem00:/var/lib/kubernetes
     scp server*.pem root@kubem00:/var/lib/kubernetes
 
-## Create client certificate and key
+## Create client keys pair
 Since TLS authentication in kubernetes is a two way authentication between client and server, we create the client certificate and key to authenticate users to access the APIs server. We are going to create a certificate for the admin cluster user. This user will be allowed to perform any admin operation on the cluster via kubectl command line client interface.
 
 Create the ``client-csr.json`` configuration file for the admin client.
@@ -154,7 +163,7 @@ Move the key and certificate, along with the Certificate Authority certificate t
     scp ca.pem root@kube-admin:~/.kube
     scp client*.pem root@kube-admin:~/.kube
 
-## Create kubelet certificate and key
+## Create kubelet keys pair
 We need also to secure interaction between worker nodes and master node. Create the ``kubelet-csr.json`` configuration file for the kubelet component
 ```json
 {
@@ -185,7 +194,7 @@ Move the key and certificate, along with the Certificate Authority certificate t
 
 Repeat the step above for each worker node we want to add to the cluster.
 
-## Create proxy certificate and key
+## Create proxy keys pair
 For the proxy component, create the ``kube-proxy-csr.json`` configuration file 
 ```json
 {
@@ -650,6 +659,9 @@ Start and enable the service
     systemctl start kube-proxy
     systemctl enable kube-proxy
     systemctl status kube-proxy
+
+## Enable the Service Accounts
+T.B.D
 
 ## Complete the setup
 Now configure the network routes as reported [here](../content/setup.md#define-the-container-network-routes).

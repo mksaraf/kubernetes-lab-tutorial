@@ -660,7 +660,7 @@ Start and enable the service
     systemctl enable kube-proxy
     systemctl status kube-proxy
 
-## Enable the Service Accounts
+## Enable Service Accounts
 T.B.D
 
 ## Complete the setup

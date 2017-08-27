@@ -43,7 +43,7 @@
     
 6. [Cluster Healing](./content/admin.md)
 
-7. [Securing the Cluster](./content/info.md)
+7. [Securing the Cluster](./content/secure.md)
 
 8. [Scale the Control Plane](./content/info.md)
 

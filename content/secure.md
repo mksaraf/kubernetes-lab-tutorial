@@ -155,10 +155,10 @@ Move the key and certificate, along with the Certificate Authority certificate t
     scp client*.pem root@kube-admin:~/.kube
 
 ## Create kubelet certificate and key
-We need also to secure interaction between worker nodes (kubelet) and master node (APIs server). Create the ``kubelet03-csr.json`` configuration file for each worker node
+We need also to secure interaction between worker nodes and master node. Create the ``kubelet-csr.json`` configuration file for the kubelet component
 ```json
 {
-  "CN": "kubew03",
+  "CN": "kubelet",
   "hosts": [],
   "key": {
     "algo": "rsa",
@@ -174,18 +174,47 @@ Create the admin client key and certificate
       -ca-key=ca-key.pem \
       -config=ca-config.json \
       -profile=custom \
-      kubelet03-csr.json | cfssljson -bare kubelet03
+      kubelet-csr.json | cfssljson -bare kubelet
 
-This will produce the ``kubelet03.pem`` certificate file containing the public key and the ``kubelet03-key.pem`` file, containing the private key.
+This will produce the ``kubelet.pem`` certificate file containing the public key and the ``kubelet-key.pem`` file, containing the private key.
 
 Move the key and certificate, along with the Certificate Authority certificate to the kubelet proper location ``/var/lib/kubelet`` on the worker node
 
-    scp ca.pem root@kubew03:/var/lib/kubelet
-    scp kubelet03*.pem root@kubew03:/var/lib/kubelet
+    scp ca.pem root@kubew03:/var/lib/kubernetes
+    scp kubelet*.pem root@kubew03:/var/lib/kubelet
 
 Repeat the step above for each worker node we want to add to the cluster.
 
 ## Create proxy certificate and key
+For the proxy component, create the ``kube-proxy-csr.json`` configuration file 
+```json
+{
+  "CN": "kube-proxy",
+  "hosts": [],
+  "key": {
+    "algo": "rsa",
+    "size": 4096
+  }
+}
+```
+
+Create the admin client key and certificate
+
+    cfssl gencert \
+      -ca=ca.pem \
+      -ca-key=ca-key.pem \
+      -config=ca-config.json \
+      -profile=custom \
+      kube-proxy-csr.json | cfssljson -bare kube-proxy
+
+This will produce the ``kube-proxy.pem`` certificate file containing the public key and the ``kube-proxy-key.pem`` file, containing the private key.
+
+Move the key and certificate, along with the Certificate Authority certificate to the kube-proxy proper location ``/var/lib/kube-proxy`` on the worker node
+
+    scp ca.pem root@kubew03:/var/lib/kubernetes
+    scp kube-proxy*.pem root@kubew03:/var/lib/kube-proxy
+
+Repeat the step above for each worker node we want to add to the cluster.
 
 ## Securing etcd
 We are going to secure the communication between etcd and APIs server. For simplicity, we assume the etcd is installed on the same master node where api server will run.
@@ -333,6 +362,7 @@ Start and enable the service
     systemctl enable kube-apiserver
     systemctl status kube-apiserver
 
+## Configure the controller manager
 Having configured TLS on the APIs server, we need to configure other components to authenticate with the server. To configure the controller manager component to communicate securely with APIs server, set the required options in the ``/etc/systemd/system/kube-controller-manager.service`` startup file
 
     [Unit]
@@ -369,7 +399,8 @@ Start and enable the service
     systemctl enable kube-controller-manager
     systemctl status kube-controller-manager
 
-Finally, set the required options in the ``/etc/systemd/system/kube-scheduler.service`` startup file
+## Configure the scheduler
+Finally, configure the sceduler by setting the required options in the ``/etc/systemd/system/kube-scheduler.service`` startup file
 
     [Unit]
     Description=Kubernetes Scheduler
@@ -460,10 +491,10 @@ Now it is possible to query and operate with the cluster in a secure way
     scheduler            Healthy   ok
     etcd-0               Healthy   {"health": "true"}
 
-## Securing worker nodes
+## Securing the kubelet
 In a kubernetes cluster, each worker node run both the kubelet and the proxy components. Since worker nodes can be placed on a remote location, we are going to secure the communication between these components and the APIs server.
 
-Login to the worker node and set the required options in the ``/etc/systemd/system/kubelet.service`` startup file
+Login to the worker node and configure the kubelet by setting the required options in the ``/etc/systemd/system/kubelet.service`` startup file
 
     [Unit]
     Description=Kubernetes Kubelet
@@ -490,6 +521,50 @@ Login to the worker node and set the required options in the ``/etc/systemd/syst
     [Install]
     WantedBy=multi-user.target
 
+As a client of the APIs server, the kubelet requires its own ``kubeconfig`` context authentication file
+
+    cd /var/lib/kubelet
+    
+    kubectl config set-credentials kubelet \
+            --username=kubelet \
+            --client-certificate=/var/lib/kubelet/kubelet.pem \
+            --client-key=/var/lib/kubelet/kubelet.pem-key.pem \
+            --kubeconfig=kubeconfig
+
+    kubectl config set-cluster kubernetes \
+            --server=https://10.10.10.80:6443 \
+            --certificate-authority=/var/lib/kubernetes/ca.pem \
+            --kubeconfig=kubeconfig
+
+    kubectl config set-context default \
+            --cluster=kubernetes \
+            --user=kubelet \
+            --kubeconfig=kubeconfig
+
+The context file ``kubeconfig`` should look like this
+
+```yaml
+apiVersion: v1
+clusters:
+- cluster:
+    certificate-authority: /var/lib/kubernetes/ca.pem
+    server: https://10.10.10.80:6443
+  name: kubernetes
+contexts:
+- context:
+    cluster: kubernetes
+    user: kubelet
+  name: default
+current-context: default
+kind: Config
+preferences: {}
+users:
+- name: kubelet
+  user:
+    client-certificate: /var/lib/kubelet/kubelet.pem
+    client-key: /var/lib/kubelet/kubelet-key.pem
+```
+
 Start and enable the kubelet service
 
     systemctl daemon-reload
@@ -497,6 +572,7 @@ Start and enable the kubelet service
     systemctl enable kubelet
     systemctl status kubelet    
     
+## Securing the proxy
 Lastly, configure the proxy by setting the required options in the ``/etc/systemd/system/kube-proxy.service`` startup file
 
     [Unit]
@@ -523,6 +599,50 @@ Lastly, configure the proxy by setting the required options in the ``/etc/system
 
     [Install]
     WantedBy=multi-user.target
+
+As a client of the APIs server, the kube-proxy requires its own ``kubeconfig`` context authentication file
+
+    cd /var/lib/kube-proxy
+    
+    kubectl config set-credentials kube-proxy \
+            --username=kube-proxy \
+            --client-certificate=/var/lib/kube-proxy/kube-proxy.pem \
+            --client-key=/var/lib/kube-proxy/kube-proxy.pem-key.pem \
+            --kubeconfig=kubeconfig
+
+    kubectl config set-cluster kubernetes \
+            --server=https://10.10.10.80:6443 \
+            --certificate-authority=/var/lib/kubernetes/ca.pem \
+            --kubeconfig=kubeconfig
+
+    kubectl config set-context default \
+            --cluster=kubernetes \
+            --user=kube-proxy \
+            --kubeconfig=kubeconfig
+
+The context file ``kubeconfig`` should look like this
+
+```yaml
+apiVersion: v1
+clusters:
+- cluster:
+    certificate-authority: /var/lib/kubernetes/ca.pem
+    server: https://10.10.10.80:6443
+  name: kubernetes
+contexts:
+- context:
+    cluster: kubernetes
+    user: kube-proxy
+  name: default
+current-context: default
+kind: Config
+preferences: {}
+users:
+- name: kube-proxy
+  user:
+    client-certificate: /var/lib/kube-proxy/kube-proxy.pem
+    client-key: /var/lib/kube-proxy/kube-proxy-key.pem
+```
 
 Start and enable the service
 

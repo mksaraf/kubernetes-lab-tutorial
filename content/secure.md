@@ -8,9 +8,7 @@ The Kubernetes two-way authentication requires each component to have two certif
   * kubelet
   * kube-proxy
 
-We are not going to secure the controller manager and the scheduler since we suppose they run tied togheter to the api server on the same master node.
-
-*Note: securing an existing cluster can be a potentially destructive task. In this tutorial we assume to setup a secure cluster from scratch. In case of a cluster already running, remove any configuration and data before to try to implement these instructions.*
+*Note: in this tutorial we are assuming to setup a secure cluster from scratch. In case of a cluster already running, remove any configuration and data before to try to implement these instructions.*
 
 ## Create Certification Authority certificate and key
 On any Linux machine install OpenSSL, create a folder where store certificates and keys
@@ -265,7 +263,6 @@ To query the etcd, use the ``etcdctl`` command utlity. Since we configured TLS o
     clientURLs=https://10.10.10.80:2379
     isLeader=true
 
-
 or an env file ``etcdctl-v3.rc`` to access etcd by using API v3
 
     cat etcdctl-v3.rc
@@ -282,8 +279,122 @@ or an env file ``etcdctl-v3.rc`` to access etcd by using API v3
     etcdctl --endpoints=https://10.10.10.80:2379 member list
     1857fba22cc98a20, started, kubem00, https://10.10.10.80:2380, https://10.10.10.80:2379
 
-## Securing APIs server
+## Securing the server
+We are going to secure the APIs server on the master node. Set the options in the ``/etc/systemd/system/kube-apiserver.service`` startup file
+      [Unit]
+      Description=Kubernetes API Server
+      Documentation=https://github.com/GoogleCloudPlatform/kubernetes
+      After=network.target
+      After=etcd.service
+
+      [Service]
+      Type=notify
+      ExecStart=/usr/bin/kube-apiserver \
+        --admission-control=NamespaceLifecycle,ServiceAccount,LimitRanger,DefaultStorageClass,ResourceQuota \
+        --anonymous-auth=false \
+        --etcd-servers=http://10.10.10.80:2379 \
+        --advertise-address=10.10.10.80 \
+        --allow-privileged=true \
+        --audit-log-maxage=30 \
+        --audit-log-maxbackup=3 \
+        --audit-log-maxsize=100 \
+        --audit-log-path=/var/lib/audit.log \
+        --enable-swagger-ui=true \
+        --event-ttl=1h \
+        --insecure-bind-address=0.0.0.0 \
+        --bind-address=0.0.0.0 \
+        --service-cluster-ip-range=10.32.0.0/16 \
+        --service-node-port-range=30000-32767 \
+        --client-ca-file=/var/lib/kubernetes/ca.pem \
+        --tls-cert-file=/var/lib/kubernetes/server.pem \
+        --tls-private-key-file=/var/lib/kubernetes/server-key.pem \
+        --etcd-cafile=/var/lib/kubernetes/ca.pem \
+        --etcd-certfile=/var/lib/kubernetes/server.pem \
+        --etcd-keyfile=/var/lib/kubernetes/server-key.pem \
+        --kubelet-https=true \
+        --kubelet-certificate-authority=/var/lib/kubernetes/ca.pem \
+        --kubelet-client-certificate=/var/lib/kubernetes/server.pem \
+        --kubelet-client-key=/var/lib/kubernetes/server-key.pem \
+        --service-account-key-file=/var/lib/kubernetes/ca-key.pem \
+        --v=2
+
+      Restart=on-failure
+      RestartSec=5
+      LimitNOFILE=65536
+
+      [Install]
+      WantedBy=multi-user.target
+
+Start and enable the service
+
+    systemctl daemon-reload
+    systemctl start kube-apiserver
+    systemctl enable kube-apiserver
+    systemctl status kube-apiserver
+
+Having configured TLS on the APIs server, we need to adapt other master components to authenticate with the server. To configure the controller manager component to communicate with APIs server, set the required options in the ``/etc/systemd/system/kube-controller-manager.service`` startup file
+
+    [Unit]
+    Description=Kubernetes Controller Manager
+    Documentation=https://github.com/GoogleCloudPlatform/kubernetes
+    After=network.target
+
+    [Service]
+    ExecStart=/usr/bin/kube-controller-manager \
+      --address=0.0.0.0 \
+      --allocate-node-cidrs=true \
+      --cluster-cidr=10.38.0.0/16 \
+      --cluster-name=kubernetes \
+      --cluster-signing-cert-file=/var/lib/kubernetes/ca.pem \
+      --cluster-signing-key-file=/var/lib/kubernetes/ca-key.pem \
+      --root-ca-file=/var/lib/kubernetes/ca.pem \
+      --service-account-private-key-file=/var/lib/kubernetes/ca-key.pem \
+      --master=http://10.10.10.80:8080 \
+      --leader-elect=true \
+      --service-cluster-ip-range=10.32.0.0/16 \
+      --v=2
+
+    Restart=on-failure
+    RestartSec=5
+    LimitNOFILE=65536
+
+    [Install]
+    WantedBy=multi-user.target
+
+Start and enable the service
+
+    systemctl daemon-reload
+    systemctl start kube-controller-manager
+    systemctl enable kube-controller-manager
+    systemctl status kube-controller-manager
+
+Finally, set the required options in the ``/etc/systemd/system/kube-scheduler.service`` startup file
+
+    [Unit]
+    Description=Kubernetes Scheduler
+    Documentation=https://github.com/GoogleCloudPlatform/kubernetes
+    After=network.target
+
+    [Service]
+    ExecStart=/usr/bin/kube-scheduler \
+      --master=http://10.10.10.80:8080 \
+      --v=2
+    Restart=on-failure
+    RestartSec=5
+    LimitNOFILE=65536
+
+    [Install]
+    WantedBy=multi-user.target
+
+Start and enable the service
+
+    systemctl daemon-reload
+    systemctl start kube-scheduler
+    systemctl enable kube-scheduler
+    systemctl status kube-scheduler
+
+## Accessing the APIs server
 
 ## Securing worker nodes
 
-## Accessing the APIs server
+

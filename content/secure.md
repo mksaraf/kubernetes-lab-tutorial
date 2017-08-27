@@ -454,11 +454,11 @@ users:
 
 Now it is possible to query and operate with the cluster in a secure way
 
-   kubectl get cs
-   NAME                 STATUS    MESSAGE              ERROR
-   controller-manager   Healthy   ok
-   scheduler            Healthy   ok
-   etcd-0               Healthy   {"health": "true"}
+    kubectl get cs
+    NAME                 STATUS    MESSAGE              ERROR
+    controller-manager   Healthy   ok
+    scheduler            Healthy   ok
+    etcd-0               Healthy   {"health": "true"}
 
 ## Securing worker nodes
 In a kubernetes cluster, each worker node run both the kubelet and the proxy components. Since worker nodes can be placed on a remote location, we agoing to secure the communication between these components and the APIs server.

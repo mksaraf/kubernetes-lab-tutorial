@@ -292,8 +292,7 @@ We are going to secure the APIs server on the master node. Set the options in th
       Type=notify
       ExecStart=/usr/bin/kube-apiserver \
         --admission-control=NamespaceLifecycle,ServiceAccount,LimitRanger,DefaultStorageClass,ResourceQuota \
-        --anonymous-auth=false \
-        --etcd-servers=http://10.10.10.80:2379 \
+        --etcd-servers=https://10.10.10.80:2379 \
         --advertise-address=10.10.10.80 \
         --allow-privileged=true \
         --audit-log-maxage=30 \
@@ -312,10 +311,6 @@ We are going to secure the APIs server on the master node. Set the options in th
         --etcd-cafile=/var/lib/kubernetes/ca.pem \
         --etcd-certfile=/var/lib/kubernetes/server.pem \
         --etcd-keyfile=/var/lib/kubernetes/server-key.pem \
-        --kubelet-https=true \
-        --kubelet-certificate-authority=/var/lib/kubernetes/ca.pem \
-        --kubelet-client-certificate=/var/lib/kubernetes/server.pem \
-        --kubelet-client-key=/var/lib/kubernetes/server-key.pem \
         --service-account-key-file=/var/lib/kubernetes/ca-key.pem \
         --v=2
 
@@ -325,6 +320,11 @@ We are going to secure the APIs server on the master node. Set the options in th
 
       [Install]
       WantedBy=multi-user.target
+      
+      # --kubelet-https=true \
+      # --kubelet-certificate-authority=/var/lib/kubernetes/ca.pem \
+      # --kubelet-client-certificate=/var/lib/kubernetes/server.pem \
+      # --kubelet-client-key=/var/lib/kubernetes/server-key.pem \
 
 Start and enable the service
 
@@ -333,7 +333,7 @@ Start and enable the service
     systemctl enable kube-apiserver
     systemctl status kube-apiserver
 
-Having configured TLS on the APIs server, we need to adapt other master components to authenticate with the server. To configure the controller manager component to communicate with APIs server, set the required options in the ``/etc/systemd/system/kube-controller-manager.service`` startup file
+Having configured TLS on the APIs server, we need to configure other components to authenticate with the server. To configure the controller manager component to communicate securely with APIs server, set the required options in the ``/etc/systemd/system/kube-controller-manager.service`` startup file
 
     [Unit]
     Description=Kubernetes Controller Manager
@@ -461,9 +461,83 @@ Now it is possible to query and operate with the cluster in a secure way
     etcd-0               Healthy   {"health": "true"}
 
 ## Securing worker nodes
-In a kubernetes cluster, each worker node run both the kubelet and the proxy components. Since worker nodes can be placed on a remote location, we agoing to secure the communication between these components and the APIs server.
+In a kubernetes cluster, each worker node run both the kubelet and the proxy components. Since worker nodes can be placed on a remote location, we are going to secure the communication between these components and the APIs server.
 
 Login to the worker node and set the required options in the ``/etc/systemd/system/kubelet.service`` startup file
 
+    [Unit]
+    Description=Kubernetes Kubelet
+    Documentation=https://github.com/GoogleCloudPlatform/kubernetes
+    After=docker.service
+    Requires=docker.service
 
+    [Service]
+    ExecStart=/usr/bin/kubelet \
+      --api-servers=https://10.10.10.80:6443 \
+      --allow-privileged=true \
+      --cgroup-driver=systemd \
+      --cluster-dns=10.32.0.10 \
+      --cluster-domain=cluster.local \
+      --container-runtime=docker \
+      --network-plugin=kubenet \
+      --serialize-image-pulls=false \
+      --register-node=true \
+      --kubeconfig=/var/lib/kubelet/kubeconfig \
+      --v=2
+    Restart=on-failure
+    RestartSec=5
 
+    [Install]
+    WantedBy=multi-user.target
+
+Start and enable the kubelet service
+
+    systemctl daemon-reload
+    systemctl start kubelet
+    systemctl enable kubelet
+    systemctl status kubelet    
+    
+Lastly, configure the proxy by setting the required options in the ``/etc/systemd/system/kube-proxy.service`` startup file
+
+    [Unit]
+    Description=Kubernetes Kubelet
+    Documentation=https://github.com/GoogleCloudPlatform/kubernetes
+    After=docker.service
+    Requires=docker.service
+
+    [Service]
+    ExecStart=/usr/bin/kubelet \
+      --api-servers=https://10.10.10.80:6443 \
+      --allow-privileged=true \
+      --cgroup-driver=systemd \
+      --cluster-dns=10.32.0.10 \
+      --cluster-domain=cluster.local \
+      --container-runtime=docker \
+      --network-plugin=kubenet \
+      --serialize-image-pulls=false \
+      --register-node=true \
+      --kubeconfig=/var/lib/kubelet/kubeconfig \
+      --v=2
+    Restart=on-failure
+    RestartSec=5
+
+    [Install]
+    WantedBy=multi-user.target
+
+Start and enable the service
+
+    systemctl daemon-reload
+    systemctl start kube-proxy
+    systemctl enable kube-proxy
+    systemctl status kube-proxy
+
+## Complete the setup
+Now complete the cluster setup by configuring the network paths as reported [here](../content/setup.md#define-the-container-network-routes).
+
+The cluster should be now running. Check to make sure the cluster can see the node, by logging to the master
+
+    kubectl get nodes
+    NAME      STATUS    AGE       VERSION
+    kubew03   Ready     12m       v1.7.0
+    kubew04   Ready     1m        v1.7.0
+    kubew05   Ready     1m        v1.7.0

@@ -210,10 +210,14 @@ Create a context for default admin access to the cluster
     kubectl config set-credentials root
     User "root" set.
 
-    kubectl config set-cluster unsecure-kubernetes --server=http://10.10.10.80:8080
+    kubectl config set-cluster unsecure-kubernetes \
+            --server=http://10.10.10.80:8080
     Cluster "unsecure-kubernetes" set.
 
-    kubectl config set-context default/unsecure-kubernetes/root --cluster=unsecure-kubernetes --user=root --namespace=default
+    kubectl config set-context default/unsecure-kubernetes/root \
+            --cluster=unsecure-kubernetes \
+            --user=root \
+            --namespace=default
     Context "default/unsecure-kubernetes/root" set.
 
 then enable the context

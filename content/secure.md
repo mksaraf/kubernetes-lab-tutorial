@@ -281,6 +281,7 @@ or an env file ``etcdctl-v3.rc`` to access etcd by using API v3
 
 ## Securing the server
 We are going to secure the APIs server on the master node. Set the options in the ``/etc/systemd/system/kube-apiserver.service`` startup file
+
       [Unit]
       Description=Kubernetes API Server
       Documentation=https://github.com/GoogleCloudPlatform/kubernetes
@@ -393,8 +394,76 @@ Start and enable the service
     systemctl enable kube-scheduler
     systemctl status kube-scheduler
 
-## Accessing the APIs server
+## Accessing the APIs server from client
+We just configured TLS on the APIs server. So, any interaction with it will require authentication. Kubernetes supports different types of authentication, please, refer to the documentation for details. In this section, we are going to use the **X.509** certificates based authentication.
+
+All the users, including the cluster admin, have to authenticate against the APIs server before to access it. For now, we are not going to configure any authorization, so once a user is authentication, it is enabled to operate on the cluster.
+
+To enable the ``kubectl`` command cli, login to the client admin machine where the cli is installed and create the context authentication file
+
+    cd ~/.kube
+
+    ls -l
+    total 24
+    -rw-r--r-- 1 root root 2061 Aug 13 19:37 ca.pem
+    -rw------- 1 root root 3243 Aug 27 10:27 client-key.pem
+    -rw-r--r-- 1 root root 1976 Aug 27 10:27 client.pem
+
+    kubectl config set-credentials admin \
+            --username=admin \
+            --client-certificate=client.pem \
+            --client-key=client-key.pem
+
+    kubectl config set-cluster kubernetes \
+            --server=https://10.10.10.80:6443 \
+            --certificate-authority=ca.pem
+
+    kubectl config set-context default/kubernetes/admin \
+            --cluster=kubernetes \
+            --namespace=default \
+            --user=admin
+
+    kubectl config use-context default/kubernetes/admin
+    Switched to context "default/kubernetes/admin".
+
+The context file ``~/.kube/config`` should look like this
+
+```yaml
+apiVersion: v1
+clusters:
+- cluster:
+    certificate-authority: ca.pem
+    server: https://10.10.10.80:6443
+  name: kubernetes
+contexts:
+- context:
+    cluster: kubernetes
+    namespace: default
+    user: admin
+  name: default/kubernetes/admin
+current-context: default/kubernetes/admin
+kind: Config
+preferences: {}
+users:
+- name: admin
+  user:
+    client-certificate: client.pem
+    client-key: client-key.pem
+    username: admin
+```
+
+Now it is possible to query and operate with the cluster in a secure way
+
+   kubectl get cs
+   NAME                 STATUS    MESSAGE              ERROR
+   controller-manager   Healthy   ok
+   scheduler            Healthy   ok
+   etcd-0               Healthy   {"health": "true"}
 
 ## Securing worker nodes
+In a kubernetes cluster, each worker node run both the kubelet and the proxy components. Since worker nodes can be placed on a remote location, we agoing to secure the communication between these components and the APIs server.
+
+Login to the worker node and set the required options in the ``/etc/systemd/system/kubelet.service`` startup file
+
 
 

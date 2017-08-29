@@ -110,7 +110,7 @@ To configure the API server, configure the ``/etc/systemd/system/kube-apiserver.
     [Service]
     Type=notify
     ExecStart=/usr/bin/kube-apiserver \
-      --admission-control=NamespaceLifecycle,LimitRanger,ServiceAccount,DefaultStorageClass,ResourceQuota \
+      --admission-control=NamespaceLifecycle,LimitRanger,DefaultStorageClass,ResourceQuota \
       --anonymous-auth=false \
       --etcd-servers=http://10.10.10.80:2379 \
       --advertise-address=10.10.10.80 \
@@ -267,7 +267,7 @@ On all the worker nodes, get kubernetes
 Estract and install the binaries
 
     chmod +x kubelet && mv kubelet /usr/bin/
-    chmod +x kubeproxy && mv kubeproxy /usr/bin/
+    chmod +x kube-proxy && mv kube-proxy /usr/bin/
 
 On all the worker nodes, install docker
 
@@ -305,9 +305,10 @@ As usual, Docker will create the default ``docker0`` bridge network interface
 However, we're not going to use it since Kubernetes networking is based on the **CNI** Container Network Interface.
 
 ### Setup the CNI network plugins
-On all the worker nodes, download the CNI network plugins from [here](https://github.com/kalise/Kubernetes-Lab-Tutorial/raw/master/cni-plugins/cni-amd64.tar.gz) and place them in the expected directory
+On all the worker nodes, download the CNI network plugins and place them in the expected directory
 
     mkdir -p /opt/cni
+    wget https://github.com/kalise/Kubernetes-Lab-Tutorial/raw/master/cni-plugins/cni-amd64.tar.gz 
     tar -xvf cni-amd64.tar.gz -C /opt/cni
 
 ### Configure kubelet
@@ -320,7 +321,6 @@ To configure the kubelet component, create the ``/etc/systemd/system/kubelet.ser
     Requires=docker.service
 
     [Service]
-    WorkingDirectory=/var/lib/kubelet
     ExecStart=/usr/bin/kubelet \
       --api-servers=http://10.10.10.80:8080 \
       --network-plugin=kubenet \

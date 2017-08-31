@@ -437,7 +437,7 @@ Start and enable the service
 ## Accessing the APIs server from client
 We just configured TLS on the APIs server. So, any interaction with it will require authentication. Kubernetes supports different types of authentication, please, refer to the documentation for details. In this section, we are going to use the **X.509** certificates based authentication.
 
-All the users, including the cluster admin, have to authenticate against the APIs server before to access it. For now, we are not going to configure any authorization, so once a user is authentication, it is enabled to operate on the cluster.
+All the users, including the cluster admin, have to authenticate against the APIs server before to access it. For now, we are not going to configure any authorization, so once a user is authenticated, he is enabled to operate on the cluster.
 
 To enable the ``kubectl`` command cli, login to the client admin machine where the cli is installed and create the context authentication file
 

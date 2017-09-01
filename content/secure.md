@@ -660,13 +660,13 @@ Start and enable the service
     systemctl enable kube-proxy
     systemctl status kube-proxy
 
-## Enable Service Accounts
+## Service Accounts
 T.B.D
 
 ## Complete the setup
 Now configure the network routes as reported [here](../content/setup.md#define-the-container-network-routes).
 
-The cluster should be now running. Check to make sure the cluster can see the node, by logging to the master
+The cluster should be now running. Check to make sure the cluster can see the nodes, by logging to the master
 
     kubectl get nodes
     NAME      STATUS    AGE       VERSION

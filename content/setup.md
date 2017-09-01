@@ -391,8 +391,11 @@ On the master node, use kubectl to gather the IP addresses
 
 On the master node, given ``ens160`` the cluster network interface, create the script file ``/etc/sysconfig/network-scripts/route-ens160`` for adding permanent static routes containing the following
 
+    # The pod network 10.38.0.0/24 is reachable through the worker node kubew03
     10.38.0.0/24 via 10.10.10.81
+    # The pod network 10.38.1.0/24 is reachable through the worker node kubew04
     10.38.1.0/24 via 10.10.10.82
+    # The pod network 10.38.2.0/24 is reachable through the worker node kubew05
     10.38.2.0/24 via 10.10.10.83
 
 Restart the network service and check the master routing table
@@ -410,7 +413,9 @@ Restart the network service and check the master routing table
 
 On all the worker nodes, create a similar script file. For example, on the worker ``kube01``, create the file ``/etc/sysconfig/network-scripts/route-ens160`` containing the following
 
+    # The pod network 10.38.1.0/24 is reachable through the worker node kubew04
     10.38.1.0/24 via 10.10.10.82
+    # The pod network 10.38.2.0/24 is reachable through the worker node kubew05
     10.38.2.0/24 via 10.10.10.83
 
 Restart the network service and check the master routing table

@@ -15,7 +15,6 @@
     * [Requirements](./content/setup.md#requirements)
     * [Configure Master](./content/setup.md#configure-masters)
     * [Configure Workers](./content/setup.md#configure-workers)
-    * [Test the cluster](./content/setup.md#test-the-cluster)
     * [Configure DNS service](./content/setup.md#configure-dns-service)
 
 3. [Core Concepts](./content/core.md)

@@ -4,7 +4,7 @@ This tutorial refers to a cluster of nodes (virtual, physical or a mix of both) 
    * [Requirements](#requirements)
    * [Configure Master](#configure-masters)
    * [Configure Workers](#configure-workers)
-   * [Test the cluster](#test-the-cluster)
+   * [Define the Containers Network Routes](#define-the-containers-network-routes)
    * [Configure DNS service](#configure-dns-service)
    
 ## Requirements

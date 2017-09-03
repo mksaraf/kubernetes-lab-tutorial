@@ -296,9 +296,8 @@ In this tutorial we are not going to provision any overlay networks for containe
 
 First, make sure the IP forwarding kernel option is enabled on all hosts
 
-    cat /etc/sysctl.conf
-      net.ipv4.ip_forward = 1
-    sysctl -p /etc/sysctl.conf
+    echo "net.ipv4.ip_forward = 1" > /etc/sysctl.conf
+    systemctl restart network
 
 The IP address space for containers will be allocated from the ``10.38.0.0/16`` cluster range assigned to each Kubernetes worker through the node registration process. Based on the above configuration each worker will be set with a 24-bit subnet
 
@@ -308,7 +307,7 @@ The IP address space for containers will be allocated from the ``10.38.0.0/16`` 
 
 On all the worker nodes, download and install the CNI network plugin
 
-    https://github.com/containernetworking/plugins/releases/download/v0.6.0/cni-plugins-amd64-v0.6.0.tgz 
+    wget https://github.com/containernetworking/plugins/releases/download/v0.6.0/cni-plugins-amd64-v0.6.0.tgz 
     mkdir -p /etc/cni/bin
     tar -xvf cni-plugins-amd64-v0.6.0.tgz -C /etc/cni/bin
 
@@ -341,7 +340,7 @@ Then configure the CNI networking according to the subnets above. For example, o
 
 Make the same for all worker nodes paying attention to set the correct subnet for each node.
 
-The above configurations will create on the worker node a bridge interface ``cni0`` having the IP address as ``10.38.3.1/24``. All containers running on that worker node, will get an IP in the above subnet having that bridge interface as default gateway.
+On the first cluster activation, the above configurations will create on the worker node a bridge interface ``cni0`` having the IP address as ``10.38.3.1/24``. All containers running on that worker node, will get an IP in the above subnet having that bridge interface as default gateway.
 
 ### Configure kubelet
 To configure the kubelet component, create the ``/etc/systemd/system/kubelet.service`` startup file
@@ -355,7 +354,6 @@ To configure the kubelet component, create the ``/etc/systemd/system/kubelet.ser
     [Service]
     ExecStart=/usr/bin/kubelet \
       --api-servers=http://10.10.10.80:8080 \
-      --network-plugin=kubenet \
       --allow-privileged=true \
       --cluster-dns=10.32.0.10 \
       --cluster-domain=cluster.local \
@@ -363,12 +361,16 @@ To configure the kubelet component, create the ``/etc/systemd/system/kubelet.ser
       --cgroup-driver=systemd \
       --serialize-image-pulls=false \
       --register-node=true \
+      --network-plugin=cni \
+      --cni-bin-dir=/etc/cni/bin \
+      --cni-conf-dir=/etc/cni/config \
       --v=2
 
     Restart=on-failure
 
     [Install]
     WantedBy=multi-user.target
+
 
 The cluster DNS parameter above refers to the IP of the DNS internal service used by Kubernetes for service discovery. It should be in the IP addressese space used for internal services we set in the ``--service-cluster-ip-range`` option of the controller manager.
 
@@ -423,8 +425,10 @@ Now that each worker node is online we need to add routes to make sure that cont
 
     # The pod network 10.38.3.0/24 is reachable through the worker node kubew03
     10.38.3.0/24 via 10.10.10.83
+    
     # The pod network 10.38.4.0/24 is reachable through the worker node kubew04
     10.38.4.0/24 via 10.10.10.84
+    
     # The pod network 10.38.2.0/24 is reachable through the worker node kubew05
     10.38.5.0/24 via 10.10.10.85
 
@@ -444,6 +448,7 @@ On all the worker nodes, create a similar script file. For example, on the worke
 
     # The pod network 10.38.4.0/24 is reachable through the worker node kubew04
     10.38.4.0/24 via 10.10.10.84
+    
     # The pod network 10.38.5.0/24 is reachable through the worker node kubew05
     10.38.5.0/24 via 10.10.10.85
 
@@ -455,7 +460,6 @@ Restart the network service and check the master routing table
     Destination     Gateway         Genmask         Flags   MSS Window  irtt Iface
     0.0.0.0         10.10.10.1      0.0.0.0         UG        0 0          0 eth0
     10.10.10.0      0.0.0.0         255.255.255.0   U         0 0          0 eth0
-    10.38.3.0       0.0.0.0         255.255.255.0   U         0 0          0 cni0
     10.38.4.0       10.10.10.84     255.255.255.0   UG        0 0          0 eth0
     10.38.5.0       10.10.10.85     255.255.255.0   UG        0 0          0 eth0
     172.17.0.0      0.0.0.0         255.255.0.0     U         0 0          0 docker0

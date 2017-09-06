@@ -664,7 +664,7 @@ Start and enable the service
 T.B.D
 
 ## Complete the setup
-Now configure the network routes as reported [here](../content/setup.md#define-the-container-network-routes).
+Now configure the network routes as reported [here](../content/setup.md#define-the-containers-network-routes).
 
 The cluster should be now running. Check to make sure the cluster can see the nodes, by logging to the master
 

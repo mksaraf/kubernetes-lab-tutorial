@@ -246,6 +246,11 @@ It is possible to define more contexts and switch between different contexts wit
       user: {}
 
 ## Configure Workers
+On all the worker nodes, make sure IP forwarding is enabled
+
+    echo "net.ipv4.ip_forward = 1" > /etc/sysctl.conf
+    sysctl -p /etc/sysctl.conf
+
 On all the worker nodes, get kubernetes
 
     wget https://storage.googleapis.com/kubernetes-release/release/v1.7.0/bin/linux/amd64/kubelet

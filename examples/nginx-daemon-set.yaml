@@ -1,0 +1,29 @@
+---
+apiVersion: extensions/v1beta1
+kind: DaemonSet
+metadata:
+  labels:
+    run: nginx
+  name: nginx-ds
+  namespace:
+spec:
+  selector:
+    matchLabels:
+      run: nginx-ds
+  template:
+    metadata:
+      labels:
+        run: nginx-ds
+    spec:
+      containers:
+      - image: nginx:latest
+        imagePullPolicy: Always
+        name: nginx
+        ports:
+        - containerPort: 80
+          protocol: TCP
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 30
+      nodeSelector:
+        kubernetes.io/hostname: kubew03

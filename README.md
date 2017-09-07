@@ -24,8 +24,6 @@
     * [Deployments](./content/core.md#deployments)
     * [Services](./content/core.md#services)
     * [Volumes](./content/core.md#volumes)
-    * [Namespaces](./content/core.md#namespaces)
-    * [Quotas and Limits](./content/core.md#quotas-and-limits)
     
 4. [Networking](./content/network.md)
     * [Pod Networking](./content/network.md#pod-networking)

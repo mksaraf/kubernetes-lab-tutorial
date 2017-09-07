@@ -3,7 +3,8 @@ In this section, we are going to explore additional objects in Kubernetes.
 
    * [Namespaces](#namespaces)
    * [Quotas and Limits](#quotas-and-limits)
-   
+   * [Daemon Sets](#daemon-sets)
+      
 ## Namespaces
 Kubernetes supports multiple virtual clusters backed by the same physical cluster. These virtual clusters are called namespaces. Namespaces are intended for use in environments with many users spread across multiple teams, or projects. Within the same namespace, kubernetes objects name should be unique. Different objects in different namespaces may have the same name.
 

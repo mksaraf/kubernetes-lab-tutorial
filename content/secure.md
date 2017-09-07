@@ -382,7 +382,6 @@ Having configured TLS on the APIs server, we need to configure other components 
     [Service]
     ExecStart=/usr/bin/kube-controller-manager \
       --address=0.0.0.0 \
-      --allocate-node-cidrs=true \
       --cluster-cidr=10.38.0.0/16 \
       --cluster-name=kubernetes \
       --cluster-signing-cert-file=/var/lib/kubernetes/ca.pem \
@@ -503,6 +502,8 @@ Now it is possible to query and operate with the cluster in a secure way
 ## Securing the kubelet
 In a kubernetes cluster, each worker node run both the kubelet and the proxy components. Since worker nodes can be placed on a remote location, we are going to secure the communication between these components and the APIs server.
 
+First, configure docker on worker node as reported [here](../content/setup.md#configure-docker) and then configure the network plugins as reported [here](../content/setup.md#setup-the-cni-network-plugins).
+
 Login to the worker node and configure the kubelet by setting the required options in the ``/etc/systemd/system/kubelet.service`` startup file
 
     [Unit]
@@ -519,9 +520,11 @@ Login to the worker node and configure the kubelet by setting the required optio
       --cluster-dns=10.32.0.10 \
       --cluster-domain=cluster.local \
       --container-runtime=docker \
-      --network-plugin=kubenet \
       --serialize-image-pulls=false \
       --register-node=true \
+      --network-plugin=cni \
+      --cni-bin-dir=/etc/cni/bin \
+      --cni-conf-dir=/etc/cni/config \
       --kubeconfig=/var/lib/kubelet/kubeconfig \
       --v=2
     Restart=on-failure
@@ -549,6 +552,8 @@ As a client of the APIs server, the kubelet requires its own ``kubeconfig`` cont
             --cluster=kubernetes \
             --user=kubelet \
             --kubeconfig=kubeconfig
+    
+    kubectl config use-context default
 
 The context file ``kubeconfig`` should look like this
 
@@ -620,6 +625,8 @@ As a client of the APIs server, the kube-proxy requires its own ``kubeconfig`` c
             --cluster=kubernetes \
             --user=kube-proxy \
             --kubeconfig=kubeconfig
+            
+    kubectl config use-context default
 
 The context file ``kubeconfig`` should look like this
 
@@ -666,4 +673,4 @@ The cluster should be now running. Check to make sure the cluster can see the no
     kubew04   Ready     1m        v1.7.0
     kubew05   Ready     1m        v1.7.0
 
-To complete the setup, install the DNS service on the cluster.
+To complete the setup, install the DNS service on the cluster as reported [here](../content/setup.md#configure-dns-service).

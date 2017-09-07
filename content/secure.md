@@ -585,23 +585,15 @@ Start and enable the kubelet service
 Lastly, configure the proxy by setting the required options in the ``/etc/systemd/system/kube-proxy.service`` startup file
 
     [Unit]
-    Description=Kubernetes Kubelet
+    Description=Kubernetes Kube Proxy
     Documentation=https://github.com/GoogleCloudPlatform/kubernetes
-    After=docker.service
-    Requires=docker.service
 
     [Service]
-    ExecStart=/usr/bin/kubelet \
-      --api-servers=https://10.10.10.80:6443 \
-      --allow-privileged=true \
-      --cgroup-driver=systemd \
-      --cluster-dns=10.32.0.10 \
-      --cluster-domain=cluster.local \
-      --container-runtime=docker \
-      --network-plugin=kubenet \
-      --serialize-image-pulls=false \
-      --register-node=true \
-      --kubeconfig=/var/lib/kubelet/kubeconfig \
+    ExecStart=/usr/bin/kube-proxy \
+      --cluster-cidr=10.38.0.0/16 \
+      --masquerade-all=true \
+      --kubeconfig=/var/lib/kube-proxy/kubeconfig \
+      --proxy-mode=iptables \
       --v=2
     Restart=on-failure
     RestartSec=5

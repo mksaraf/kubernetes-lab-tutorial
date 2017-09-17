@@ -8,7 +8,7 @@
 # Usage: sudo ./kube-context-setup.sh <SERVER_NAME>
 #
 SERVER=$1:8080 || http://localhost:8080
-for i in `seq -w 00 12`;
+for i in `seq -w 01 12`;
 do
      USER=user$i
      echo

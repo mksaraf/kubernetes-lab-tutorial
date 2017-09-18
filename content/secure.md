@@ -553,7 +553,7 @@ As a client of the APIs server, the kubelet requires its own ``kubeconfig`` cont
             --user=kubelet \
             --kubeconfig=kubeconfig
     
-    kubectl config use-context default
+    kubectl config use-context default --kubeconfig=kubeconfig
 
 The context file ``kubeconfig`` should look like this
 
@@ -626,7 +626,7 @@ As a client of the APIs server, the kube-proxy requires its own ``kubeconfig`` c
             --user=kube-proxy \
             --kubeconfig=kubeconfig
             
-    kubectl config use-context default
+    kubectl config use-context default --kubeconfig=kubeconfig
 
 The context file ``kubeconfig`` should look like this
 

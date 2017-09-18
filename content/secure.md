@@ -540,7 +540,7 @@ As a client of the APIs server, the kubelet requires its own ``kubeconfig`` cont
     kubectl config set-credentials kubelet \
             --username=kubelet \
             --client-certificate=/var/lib/kubelet/kubelet.pem \
-            --client-key=/var/lib/kubelet/kubelet.pem-key.pem \
+            --client-key=/var/lib/kubelet/kubelet-key.pem \
             --kubeconfig=kubeconfig
 
     kubectl config set-cluster kubernetes \

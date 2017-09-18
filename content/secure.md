@@ -613,7 +613,7 @@ As a client of the APIs server, the kube-proxy requires its own ``kubeconfig`` c
     kubectl config set-credentials kube-proxy \
             --username=kube-proxy \
             --client-certificate=/var/lib/kube-proxy/kube-proxy.pem \
-            --client-key=/var/lib/kube-proxy/kube-proxy.pem-key.pem \
+            --client-key=/var/lib/kube-proxy/kube-proxy-key.pem \
             --kubeconfig=kubeconfig
 
     kubectl config set-cluster kubernetes \
@@ -658,9 +658,6 @@ Start and enable the service
     systemctl start kube-proxy
     systemctl enable kube-proxy
     systemctl status kube-proxy
-
-## Service Accounts
-T.B.D
 
 ## Complete the setup
 Now configure the network routes as reported [here](../content/setup.md#define-the-containers-network-routes).

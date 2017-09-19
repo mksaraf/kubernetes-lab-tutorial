@@ -136,7 +136,7 @@ spec:
     run: nginx
 ```
 
-As we saw [before](https://github.com/kalise/Kubernetes-Tutorial/blob/master/content/core.md#services), any other pod in the cluster is able to access the nginx service without worring about pod IP addresses
+Any other pod in the cluster is able to access the nginx service without worring about pod IP addresses
 
     [root@kubem00 ~]# kubectl create -f busybox.yaml
     pod "busybox" created
@@ -145,7 +145,7 @@ As we saw [before](https://github.com/kalise/Kubernetes-Tutorial/blob/master/con
     / # wget -O - 10.254.247.153:80
     Welcome to nginx!
 
-However, the service is still not reachable from any cluster host. If we try to access the service we do not get anything
+However, the service is not reachable from any cluster host. If we try to access the service we do not get anything
 
     [root@kubem00 ~]# curl 10.254.247.153:80
     ^C
@@ -156,8 +156,8 @@ Without specifying the type of service, kubernetes by default uses the ``Type: C
 When creating a service, kubernetes has four options of service types:
 
    * **ClusterIP**: it exposes the service only on a cluster internal IP making the service only reachable from within the cluster. This is the default Service Type.
-   * **NodePort**: it exposes the service on each node public IP at a static port as defined in the NodePort option. It will be possible to access the service, from outside the cluster.
-   * **LoadBalancer**: it exposes the service externally using an external load balancer.
+   * **NodePort**: it exposes the service on each node public IP on a static port as defined in the NodePort option. It will be possible to access the service, from outside the cluster.
+   * **LoadBalancer**: it exposes the service by creating an external load balancer. It works only on some public cloud providers.
    * **ExternalName**: it maps the service to the contents of the externalName option, e.g. search.google.com, by returning a name record with its value.
 
 In this section we are going to use the NodePort service type to expose the service.

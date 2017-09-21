@@ -247,7 +247,7 @@ spec:
   - ReadWriteOnce
   nfs:
     path: "/mnt/PV00"
-    server: kubem04
+    server: <nfs_server>
   persistentVolumeReclaimPolicy: Recycle
 ```
 

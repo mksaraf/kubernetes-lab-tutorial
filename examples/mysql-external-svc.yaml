@@ -1,0 +1,31 @@
+# This example shows how to model an external service as an internal service in Kubernetes
+# To test external mysql service from a pod inside the cluster
+# kubectl run -it --rm ephemeral --image=mysql -- /bin/sh -l
+# sh-4.2 mysql -h external-mysql -u root -p
+# MySQL [(none)]>
+# exit
+#
+apiVersion: v1
+kind: Service
+metadata:
+  name: external-mysql
+  namespace:
+spec:
+  ports:
+  - port: 3306
+    protocol: TCP
+    targetPort: 3306
+  type: ClusterIP
+
+---
+apiVersion: v1
+kind: Endpoints
+metadata:
+  name: external-mysql
+  namespace:
+subsets:
+- addresses:
+  - ip: 10.10.10.3
+  ports:
+  - port: 3306
+    protocol: TCP

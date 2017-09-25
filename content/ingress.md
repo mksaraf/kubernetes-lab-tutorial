@@ -4,7 +4,7 @@ In kubernetes, user applications are made public by creating a service on a give
 Ingress gives the cluster admin a different way to route requests to services by centralizing multiple services into a single external load balancer. An ingress is split up into two main pieces: the first is an **Ingress Resource**, which defines how you want requests routed to the backing services. The second is an **Ingress Controller**, which listen to the kubernetes API for Ingress Resource creation and then handle requests that match them. Ingress Controllers can technically be any system capable of reverse proxying, but the most common options are Nginx and HAProxy. As additional component, a **Default Backend** service can be used to handle all requests that are no service relates, eg. *Not Found (404)* error page.
 
 ## Ingress Resource
-An ingress resource is a kubernetes abstraction to handle requests, for example, *http://www.mysite.com* and *http://blog.mysite.com* and then route them to the kubernetes services named website and blog respectively.
+An ingress resource is a kubernetes abstraction to handle requests, for example to *http://www.mysite.com* and *http://blog.mysite.com* and then route them to the kubernetes services named website and blog respectively.
 
 A file definition ``mysite-ingress.yaml`` for the Ingress resource above looks like the following
 
@@ -190,12 +190,7 @@ rs/haproxy-ingress-controller-4130110709   1         1         1                
 
 Please, note that the ingress controller service is exposed service ``type: NodePort`` and therefore, it is accessible through the kube proxy.
 
-The network layout created by an Ingress Controller is reported in the following
-
-![Ingress](../img/ingress.png)
-
-
-Having created the Ingress resource, the Ingress Controller is now able to forward requests from the kube proxy directly to the pods backing your application
+Having created the Ingress resource, the Ingress Controller is now able to forward requests from the kube proxy directly to the pods running your application
 ```bash
 curl -i kubew03:30080 -H 'Host: web.noverit.com'
 

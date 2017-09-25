@@ -485,6 +485,7 @@ In this section, we are going to create two different volume types:
 
 However, kubernetes supports more other volume types. Please, refer to official documentation for details.
 
+### Empty Dir Volume
 Here a simple example file ``nginx-volume.yaml`` of nginx pod containing a data volume
 ```yaml
 apiVersion: v1
@@ -507,9 +508,11 @@ spec:
     emptyDir: {}
 ```
 
-The file defines an nginx pod where the served html content directory ``/usr/share/nginx/html`` is mounted as volume. The volume type is ``emptyDir``. This type of volume is created when the pod is assigned to a node, and it exists as long as that pod is running on that node. As the name says, it is initially empty. When the pod is removed from the node for any reason, the data in the emptyDir volume is deleted too. However, a container crash does not remove a pod from a node, so the data in an emptyDir volume is safe across a container crash.
+The file defines an nginx pod where the served html content directory ``/usr/share/nginx/html`` is mounted as volume. The volume type is ``emptyDir``. This type of volume is created when the pod is assigned to a node, and it exists as long as that pod is running on that node. As the name says, it is initially empty. When the pod is removed from the node for any reason, the data in the emptyDir volume is deleted too.
 
-To test this, create the nginx pod above
+The Empty Dir volumes are placed on the ``/var/lib/kubelet/pods/POD_ID/volumes/volumes/kubernetes.io~empty-dir/content-data`` of the worker node where the pod is currently running. Please, note that a container crash does not remove a pod from a node, so the data in an emptyDir volume is safe across a container crash.
+
+Create the nginx pod above
 
     kubectl create -f nginx-volume.yaml
     pod "nginx" created
@@ -518,69 +521,32 @@ To test this, create the nginx pod above
     NAME      READY     STATUS    RESTARTS   AGE
     nginx     1/1       Running   0          22s
 
-Check for pod IP address and for node IP address hosting the pod
+Check for pod IP address and for the worker node hosting the pod
 
-    kubectl get po/nginx -o yaml | grep IP
-    hostIP: 10.10.10.86
-    podIP: 172.30.5.3
+    kubectl get po/nginx -o wide
+    NAME      READY     STATUS    RESTARTS   AGE       IP            NODE
+    nginx     1/1       Running   0          13m       10.38.3.167   kubew03
 
 Trying to access the nginx application
 
-     curl 172.30.5.3:80
+     curl 10.38.3.167
      403 Forbidden
 
 we get *forbidden* since the html content dir (mounted as volume) is initially empty.
 
-Login to the nginx pod and populate the volume dir
+Login to the worker node and populate the volume dir with an html file
 
-    kubectl exec -it nginx /bin/bash
-    date > /usr/share/nginx/html/index.html
-    root@nginx:/# exit
-    exit
+    [root@kubew03 ~]# cd /var/lib/kubelet/pods/<POD_ID>/volumes/kubernetes.io~empty-dir/content-data
+    echo "The emptyDir volumes are placed under" $(pwd) > index.html
 
-Now we should be able to get an answer
+Now we should be able to get an answer from the pod
 
-    curl 172.30.5.3:80
-    Wed Apr 26 08:35:53 UTC 2017
+    curl 10.38.3.167
+    The emptyDir volumes are placed under /var/lib/kubelet/pods/<POD_ID>/volumes/kubernetes.io~empty-dir/content-data
 
-Now we are going to test the volume persistance across container crash or restart.
+With the ``emptyDir`` volume type, data in the volume is removed when the pod is deleted from the node where it was running. To achieve data persistence across pod deletion or relocation, we need for a persistent shared storage alternative. 
 
-In another window terminal, login to the master and watch for nginx pod changes
-
-    kubectl get --watch pod nginx
-
-    NAME      READY     STATUS    RESTARTS   AGE
-    nginx     1/1       Running   0          8m
-
-In another terminal window, login to the worker node where pod is running and kill the nginx process running inside the container
-
-    ps -ef | grep nginx
-    root      1976 12685  0 10:29 pts/0    00:00:00 grep --color=auto nginx
-    root     25607 25592  0 10:18 ?        00:00:00 nginx: master process nginx -g daemon off;
-    101      25620 25607  0 10:18 ?        00:00:00 nginx: worker process
-
-    kill -9 25607
-
-    ps -ef | grep nginx
-    root      2321  2306  0 10:29 ?        00:00:00 nginx: master process nginx -g daemon off;
-    101       2334  2321  0 10:29 ?        00:00:00 nginx: worker process
-    root      2383 12685  0 10:30 pts/0    00:00:00 grep --color=auto nginx
-
-Since the container nginx process runs inside a pod, the container process is restarted by kubernetes as we can see from the watching window
-
-    kubectl get --watch pod nginx
-    NAME      READY     STATUS    RESTARTS   AGE
-    nginx     1/1       Running   0          8m
-    nginx     0/1       Error     0         11m
-    nginx     1/1       Running   1         11m
-
-Since the html content directory is mounted as volume inside the pod, data inside the dir is not impacted by the crash and following restart of nginx container. Trying to access the content, we'll get the same content before the container restart
-
-    curl 172.30.5.3:80
-    Wed Apr 26 08:35:53 UTC 2017
-
-Attention: with the ``emptyDir`` volume type, data in the volume is removed when the pod is deleted from the node where it was running. To achieve data persistence across pod deletion or relocation, we need for a persistent shared storage alternative. 
-
+### Host Path Volume
 The other volume type we're gooing to use is ``hostPath``. With this volume type, the volume is mount from an existing directory on the file system of the node hosting the pod. Data inside the host directory are safe to container crashes and restarts as well as to pod deletion. However, if the pod is moved from a node to another one, data on the initial node are no more accessible from the new instance of the pod.
 
 Based on the previous example, define a nginx pod using the host path ``/data/nginx/html`` as data volume for html content
@@ -601,7 +567,7 @@ spec:
     - name: content-data
       mountPath: /usr/share/nginx/html
     nodeSelector:
-    kubernetes.io/hostname: kuben05
+    kubernetes.io/hostname: kubew05
   volumes:
   - name: content-data
     hostPath:
@@ -612,7 +578,7 @@ Please, note that host dir must be present on the node hosting the pod before th
 
 Login to the worker node and create the host directory
 
-    [root@kuben05 ~]# mkdir -p /data/nginx/html
+    [root@kubew05 ~]# mkdir -p /data/nginx/html
 
 Back to the master node and schedule the pod
 
@@ -635,12 +601,12 @@ we get *forbidden* since the html content dir (mounted as volume on the host nod
 
 Login to the host node pod populate the volume dir
 
-    [root@kuben05 ~]# echo "Hello from $(hostname)"  > /data/nginx/html/index.html
+    [root@kubew05 ~]# echo "Hello from $(hostname)"  > /data/nginx/html/index.html
 
 Back to the master node and access the service
 
     curl 172.30.41.7:80
-    Hello from kuben05
+    Hello from kubew05
 
 Data in host dir volume will survive to any crash and restart of both container and pod. To test this, delete the pod and create it again
 
@@ -654,6 +620,6 @@ Data in host dir volume will survive to any crash and restart of both container 
       podIP: 172.30.41.7
 
     curl 172.30.41.7:80
-    Hello from kuben05
+    Hello from kubew05
 
 This works because we forced kubernetes to schedule the nginx pod always on the same host node.

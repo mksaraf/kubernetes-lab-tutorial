@@ -543,3 +543,53 @@ This service will be accessible from all worker nodes in the cluster thanks to t
     Length: unspecified [text/html]
     Saving to: ‘index.html’
     2017-04-25 18:01:18 (3.45 MB/s) - ‘index.html’ saved [51713]
+
+## External Services
+The service abstraction in kubernetes can be used to model also external services that are not part of the cluster. For example, a pre-existing Oracle database can be modeled as a common standard service to be accessed from an application running in the cluster as pod. In this section, we are going to model an external MySQL database running on a remote machine with a given IP address. The only requirement is the worker nodes should be able to reach the address of the external database.
+
+An external service does not use label selectors since there are no pods to bind in the cluster. An external service definition file ``mysql-external-svc.yaml`` looks like the following
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: external-mysql
+  namespace:
+spec:
+  ports:
+  - port: 3306
+    protocol: TCP
+    targetPort: 3306
+  type: ClusterIP
+```
+
+Create the service 
+
+    kubectl create -f mysql-external-svc.yaml
+    
+    kubectl get services external-mysql -o wide
+    NAME             CLUSTER-IP      EXTERNAL-IP   PORT(S)    AGE       SELECTOR
+    external-mysql   10.32.107.128   <none>        3306/TCP   41m       <none>
+
+By inspecting the service, we find that no endpoints are available since it is an headless service. The endpoints need to be manually created as in the ``mysql-external-ep.yaml`` configuration file
+```yaml
+apiVersion: v1
+kind: Endpoints
+metadata:
+  name: external-mysql
+  namespace:
+subsets:
+- addresses:
+  - ip: 10.10.10.3
+  ports:
+  - port: 3306
+    protocol: TCP
+```
+
+The IP address above is the actual IP address of the MySQL server running outside the kubernetes cluster.
+
+To test the external MySQL server is modeled as an internal service in kubernetes, start a simple MySQL client running in a pod and connect to the external database by specifying the name of the external service as it is discovered by the embedded DNS in kubernetes
+
+    kubectl run -it --rm ephemeral --image=mysql -- /bin/sh -l
+    sh-4.2 $ mysql -h external-mysql -u root -p
+    MySQL [(none)]>
+    exit

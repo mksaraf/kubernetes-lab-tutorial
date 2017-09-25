@@ -161,7 +161,12 @@ Please, note that the ingress default backend service is an internal service ``t
 ### HAProxy as Ingress Controller
 THe HAProxy is capable to act as reverse proxy to route requests from an external load balancer directly to the pods providing the service. To configure an HAProxy Ingress Controller, create first an HAProxy deploy form the ``haproxy-ingress-controller-deploy.yaml`` available [here](../examples/haproxy-ingress-controller-deploy.yaml) and then the related service from the file ``haproxy-ingress-controller-svc.yaml`` available [here](../examples/haproxy-ingress-controller-svc.yaml).
 
-Create the deploy and the service
+Assuming we want to handle TLS requests, the Ingress Controller needs to have a default TLS certificate. This will be used for requests where is not specified TLS certificate. Assuming we have a certificate and key, ``tsl.crt`` and ``tsl.key``, respectively, create a secrets as follow
+```bash
+kubectl -n kube-system create secret tls tls-certificate --key tls.key --cert tls.crt
+```
+
+Create the deploy and the service 
 ```bash
 kubectl create -f haproxy-ingress-controller-deploy.yaml
 kubectl create -f haproxy-ingress-controller-svc.yaml
@@ -189,4 +194,113 @@ The network layout created by an Ingress Controller is reported in the following
 
 ![Ingress](../img/ingress.png)
 
+
+Having created the Ingress resource, the Ingress Controller is now able to forward requests from the kube proxy directly to the pods backing your application
+```bash
+curl -i kubew03:30080 -H 'Host: web.noverit.com'
+
+HTTP/1.1 200 OK
+Date: Mon, 25 Sep 2017 00:11:37 GMT
+Content-Type: text/plain
+Transfer-Encoding: chunked
+Server: echoserver
+```
+
+And
+```bash
+curl -i kubew03:30080 -H 'Host: web.noverit.com'
+
+HTTP/1.1 200 OK
+Date: Mon, 25 Sep 2017 00:13:27 GMT
+Content-Type: text/plain
+Transfer-Encoding: chunked
+Server: echoserver
+```
+
+Unknown requests will be redirected to the default backend service
+```bash
+curl -i kubew03:30080 -H 'Host: foo.noverit.com'
+
+HTTP/1.1 404 Not Found
+Date: Mon, 25 Sep 2017 00:14:43 GMT
+Content-Length: 21
+Content-Type: text/plain; charset=utf-8
+default backend - 404
+```
+
+An Ingress Controller can be deployed also as Daemon Set resulting an HAProxy instance for each worker node in the cluster. The daemon set definition file ``haproxy-ingress-controller-daemonset.yaml`` can be found [here](../examples/haproxy-ingress-controller-daemonset.yaml). Remove the deploy and create the daemon set in the ``kube-system`` namespace
+```bash
+kubectl delete deploy haproxy-ingress-controller
+
+kubectl create -f haproxy-ingress-controller-daemonset.yaml
+
+kubectl get pods -l run=haproxy-ingress-controller -o wide
+NAME                               READY     STATUS    RESTARTS   AGE       IP           NODE
+haproxy-ingress-controller-7qjjf   1/1       Running   0          38s       10.38.3.49   kubew03
+haproxy-ingress-controller-c3nd9   1/1       Running   0          38s       10.38.5.36   kubew05
+haproxy-ingress-controller-nf1xj   1/1       Running   0          38s       10.38.4.53   kubew04
+```
+
+### NGINX as Ingress Controller
+The Nginx webserver is also able to run as Inngress Controller for kubernetes services. To configure an Nginx Ingress Controller, create first an an nginx deploy form the ``nginx-ingress-controller-deploy.yaml`` available [here](../examples/nginx-ingress-controller-deploy.yaml) and then the related service from the file ``nginx-ingress-controller-svc.yaml`` available [here](../examples/nginx-ingress-controller-svc.yaml).
+
+### TLS Termination
+An Ingress Controller is able to terminate secure TLS sessions and redirect requests to insecure HTTP applications running on the cluster. To configure TLS termination for user application, create a secret with certification and key in the user namespace pay attention to the **Common Name** used for the service.
+
+For the web service
+```
+openssl req -x509 -nodes -days 365 -newkey rsa:4096 \
+    -keyout web-tls.key \
+    -out web-tls.crt \
+    -subj "/CN=web.noverit.com"
+
+kubectl create secret tls web-tls-secret --cert=web-tls.crt --key=web-tls.key
+```
+
+And for the blog service
+```
+openssl req -x509 -nodes -days 365 -newkey rsa:4096 \
+    -keyout blog-tls.key \
+    -out blog-tls.crt \
+    -subj "/CN=blog.noverit.com"
+
+kubectl create secret tls blog-tls-secret --cert=blog-tls.crt --key=blog-tls.key
+```
+
+Create a configuration file ``mysite-ingress-tls.yaml`` as ingress for TLS termination
+```yaml
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: noverit.com
+spec:
+  tls:
+  - hosts:
+    - web.noverit.com
+    secretName: web-tls-secret
+  - hosts:
+    - blog.noverit.com
+    secretName: blog-tls-secret
+  rules:
+  - host: web.noverit.com
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: website
+          servicePort: 80
+
+  - host: blog.noverit.com
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: blog
+          servicePort: 80
+```
+
+Create the ingress in the user namespace
+```
+kubectl create -f mysite-ingress-tls.yaml
+```
 

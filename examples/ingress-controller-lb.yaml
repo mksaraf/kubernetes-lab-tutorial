@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: kube-system
+  name: ingress-controller-lb
+  annotations:
+  labels:
+    app: ingress-controller-lb
+spec:
+  loadBalancerIP: 35.195.218.241
+  type: LoadBalancer
+  ports:
+  - port: 80
+    name: http
+    targetPort: 80
+  - port: 443
+    name: https
+    targetPort: 443
+  selector:
+    k8s-app: nginx-ingress-controller

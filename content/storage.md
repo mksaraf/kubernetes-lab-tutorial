@@ -235,10 +235,10 @@ Delete the claim
 and check the status of the volume
 
     kubectl get pv
-    NAME           CAPACITY   ACCESSMODES   RECLAIMPOLICY   STATUS     CLAIM                  STORAGECLASS   REASON    AGE
-    local-retain   2Gi        RWO           Retain          Released   project/volume-claim   manual                   3m
+    NAME           CAPACITY   ACCESSMODES   RECLAIMPOLICY   STATUS     CLAIM                  STORAGECLASS     AGE
+    local-retain   2Gi        RWO           Retain          Released   project/volume-claim   manual           3m
     
-We see the volume remain in the releasd status and not becomes available since the reclaim policy is set to ``Retain``.
+We see the volume remain in the released status and not becomes available since the reclaim policy is set to ``Retain``.
 
 Login to the worker node and check data are still there
 
@@ -362,7 +362,7 @@ Login to one of these pods and create some html content
     root@nginx-pvc-3474572923-3cxnf:/usr/share/nginx/html# echo "Hello from NFS" > index.html
     root@nginx-pvc-3474572923-3cxnf:/usr/share/nginx/html# exit
 
-Since all three pods mount the same shared folder on the NFS, the just created html content is accessible from any pods
+Since all three pods mount the same shared folder on the NFS, the just created html content is accessible from any of these pods
 
     curl 10.38.5.89    
     Hello from NFS

@@ -163,6 +163,7 @@ The access modes are:
 
 Claims and volumes use the same conventions when requesting storage with specific access modes. Pods use claims as volumes. For volumes which support multiple access modes, the user specifies which mode desired when using their claim as a volume in a pod.
 
+A volume can only be mounted using one access mode at a time, even if it supports many. For example, a NFS volume can be mounted as ReadWriteOnce by a single node or ReadOnlyMany by many nodes, but not at the same time.
 
 ## Volume status
 When a pod claims for a volume, the cluster inspects the claim to find the volume meeting claim requirements and mounts that volume for the pod. Once a pod has a claim and that claim is bound, the bound volume belongs to the pod.
@@ -251,7 +252,7 @@ An administrator can manually reclaim the volume by deleteting the volume and cr
 ## NFS Persistent Volume
 In this section we're going to use a NFS storage backend. Main limit of local stoorage backend for container volumes is that storage area is tied to the host where it resides. If kubernetes moves the pod from another host, the moved pod is no more to access the storage area since local storage is not shared between multiple hosts of the cluster. To achieve a more useful storage backend we need to leverage on a shared storage technology like NFS.
 
-For this example, we'll assume a simple NFS server ``fileserver-vm``	sharing some folders.
+For this example, we'll assume a simple external NFS server ``fileserver-vm``	sharing some folders. To make worker nodes able to consume these NFS shares, install the NFS client on all the worker nodes by ``yum install -y nfs-utils`` command.
 
 Define a persistent volume as in the ``nfs-persistent-volume.yaml`` configuration file
 ```yaml
@@ -372,3 +373,38 @@ Since all three pods mount the same shared folder on the NFS, the just created h
     
     curl 10.38.3.140
     Hello from NFS
+
+## Storage Classes
+A volume can uses a storage class specified into its definition file. If the storage class is not specified, the volume has no class and can only be bound to claims that do not request any class. A claim can request a particular class by specifying the name of a storage class in its definition file. Only volumes of the requested class can be bound to the claim requesting that class.
+
+Multiple storage classes can be defined each specifying a volume provisioner to use when creating a volume of that class. This allows the cluster administrator to define multiple type of storage within a cluster, each with a custom set of parameters.
+
+Storage classes have to specify a provisioner that determines what volume plugin is used for provisioning the volume.
+
+For example, the following ``storage-class-glusterfs.yaml`` file define the provisioner of a storage class using a GlusterFS distributed file system
+```yaml
+apiVersion: storage.k8s.io/v1beta1
+kind: StorageClass
+metadata:
+  name: glusterfs-storage
+provisioner: kubernetes.io/glusterfs
+parameters:
+  resturl: "http://10.38.4.5:8080"
+```
+
+Create the storage class
+
+    kubectl create -f storage-class-glusterfs.yaml
+
+Check we now have a new storage class
+
+    kubectl get storageclass
+
+
+
+
+
+
+
+
+

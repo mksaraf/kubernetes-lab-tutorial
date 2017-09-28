@@ -7,6 +7,11 @@ This model is based on the following abstractions:
 
   * **PersistentVolumeClaim**: it is a request for storage by a user. It is similar to a pod. Pods consume node resources and persistent volume claims consume persistent volume objects. As pods can request specific levels of resources like cpu and memory, volume claimes claims can request the access modes like read-write or read-only and stoarage capacity.
 
+Kubernetes provides two different ways to provisioning storage:
+
+  * **Manual Provisioning**: the cluster administrator has to manually make calls to the storage infrastructure to create persisten volumes and then users need to create volume claims to consume storage volumes.
+  * **Dynamic Provisioning**: storage volumes are automatically created on-demand when users claim for storage avoiding the cluster administrator to pre-provision storage. 
+
 In this section we're going to introduce this model by using simple examples. Please, refer to official documentation for more details.
 
   * [Local Persistent Volume](#local-persistent-volume)
@@ -15,7 +20,7 @@ In this section we're going to introduce this model by using simple examples. Pl
   * [NFS Persistent Volume](#nfs-persistent-volume)
 
 ## Local Persistent Volume
-Start by defining a persistent volume ``local-persistent-volume.yaml`` configuration file
+Start by defining a persistent volume ``local-persistent-volume-recycle.yaml`` configuration file
 
 ```yaml
 kind: PersistentVolume
@@ -25,6 +30,7 @@ metadata:
   labels:
     type: local
 spec:
+  storageClassName: manual
   capacity:
     storage: 2Gi
   accessModes:
@@ -34,52 +40,50 @@ spec:
   persistentVolumeReclaimPolicy: Recycle
 ```
 
-The configuration file specifies that the volume is at ``/data`` on the the cluster’s node. The volume type is ``hostPath`` meaning the volume is local to the host node. The configuration also specifies a size of 2GB and the access mode of ``ReadWriteOnce``, meanings the volume can be mounted as read write by a single pod at time. The reclaim policy is ``Recycle`` meaning the volume can be used many times. 
+The configuration file specifies that the volume is at ``/data`` on the the cluster’s node. The volume type is ``hostPath`` meaning the volume is local to the host node. The configuration also specifies a size of 2GB and the access mode of ``ReadWriteOnce``, meanings the volume can be mounted as read write by a single pod at time. The reclaim policy is ``Recycle`` meaning the volume can be used many times.  It defines the Storage Class name manual for the persisten volume, which will be used to bind a claim to this volume.
 
 Create the persistent volume
 
-    kubectl create -f local-persistent-volume.yaml
-    persistentvolume "local" created
-
+    kubectl create -f local-persistent-volume-recycle.yaml
+    
 and view information about it 
 
     kubectl get pv
-    NAME                CAPACITY   ACCESSMODES   RECLAIMPOLICY   STATUS      CLAIM     REASON    AGE
-    local               2Gi        RWO           Retain          Available                       10s
+    NAME      CAPACITY   ACCESSMODES   RECLAIMPOLICY   STATUS      CLAIM     STORAGECLASS   REASON    AGE
+    local     2Gi        RWO           Recycle         Available             manual                   33m
 
 Now, we're going to use the volume above by creating a claiming for persistent storage. Create the following ``volume-claim.yaml`` configuration file
 ```yaml
----
 kind: PersistentVolumeClaim
 apiVersion: v1
 metadata:
   name: volume-claim
 spec:
+  storageClassName: manual
   accessModes:
     - ReadWriteOnce
   resources:
     requests:
-      storage: 1.5Mi
+      storage: 500Mi
 ```
 
-Note the claim is for 1.5MB of space where the the volume is 2GB. The claim will bound any volume meeting the minimum requirements specified into the claim definition. 
+Note the claim is for 500MB of space where the the volume is 2GB. The claim will bound any volume meeting the minimum requirements specified into the claim definition. 
 
 Create the claim
 
     kubectl create -f volume-claim.yaml
-    persistentvolumeclaim "volume-claim" created
 
 Check the status of persistent volume to see if it is bound
 
     kubectl get pv
-    NAME                CAPACITY   ACCESSMODES   RECLAIMPOLICY   STATUS    CLAIM                        REASON    AGE
-    local               2Gi        RWO           Retain          Bound     default/volume-claim                   12m
+    NAME      CAPACITY   ACCESSMODES   RECLAIMPOLICY   STATUS    CLAIM                  STORAGECLASS   REASON    AGE
+    local     2Gi        RWO           Recycle         Bound     project/volume-claim   manual                   37m
 
 Check the status of the claim
 
     kubectl get pvc
-    NAME                 STATUS    VOLUME              CAPACITY   ACCESSMODES   AGE
-    volume-claim         Bound     local               2Gi        RWO           6s
+    NAME           STATUS    VOLUME    CAPACITY   ACCESSMODES   STORAGECLASS   AGE
+    volume-claim   Bound     local     2Gi        RWO           manual         1m
 
 Create a ``nginx-pod-pvc.yaml`` configuration file for a nginx pod using the above claim for its html content directory
 ```yaml
@@ -113,7 +117,6 @@ Note that the pod configuration file specifies a persistent volume claim, but it
 Create the nginx pod
 
     kubectl create -f nginx-pod-pvc.yaml
-    pod "nginx" created
 
 Accessing the nginx will return *403 Forbidden* since there are no html files to serve in the data volume
 
@@ -131,7 +134,7 @@ Let's login to the worker node and populate the data volume
 Now try again to access the nginx application
 
      curl 172.30.5.2:80
-     Welcome to kuben06
+     Welcome to kubew05
 
 To test the persistence of the volume and related claim, delete the pod and recreate it
 
@@ -147,7 +150,7 @@ Locate the IP of the new nginx pod and try to access it
       podIP: 172.30.5.2
 
     curl 172.30.5.2
-    Welcome to kuben06
+    Welcome to kubew05
 
 ## Volume Access Mode
 A persistent volume can be mounted on a host in any way supported by the resource provider. Different storage providers have different capabilities and access modes are set to the specific modes supported by that particular volume. For example, NFS can support multiple read write clients, but an iSCSI volume can be support only one.
@@ -160,79 +163,95 @@ The access modes are:
 
 Claims and volumes use the same conventions when requesting storage with specific access modes. Pods use claims as volumes. For volumes which support multiple access modes, the user specifies which mode desired when using their claim as a volume in a pod.
 
-## Volume Reclaim Policy
-When a pod claims for a volume, the cluster inspects the claim to find the volume meeting claim requirements and mounts that volume for the pod. Once a pod has a claim and that claim is bound, the bound volume belongs to the pod. 
+
+## Volume status
+When a pod claims for a volume, the cluster inspects the claim to find the volume meeting claim requirements and mounts that volume for the pod. Once a pod has a claim and that claim is bound, the bound volume belongs to the pod.
 
 A volume will be in one of the following status:
 
-  * **Available**: a free resource that is not yet bound to a claim
+  * **Available**: a volume that is not yet bound to a claim
   * **Bound**: the volume is bound to a claim
-  * **Released**: the claim has been deleted, but the resource is not yet reclaimed by the cluster
-  * **Failed**: the volume has failed its automatic reclamation
+  * **Released**: the claim has been deleted, but the volume is not yet available
+  * **Failed**: the volume has failed 
 
-When a pod is removed, the claim can be removed. The volume is considered released when the claim is deleted, but it is not yet available for another claim.
+The volume is considered released when the claim is deleted, but it is not yet available for another claim. Once the volume becomes available again then it can bound to another other claim. 
 
-In our example, delete the nginx pod and its volume claim
-
-    kubectl delete pod nginx
-    pod "nginx" deleted
+In our example, delete the volume claim
 
     kubectl delete pvc volume-claim
-    persistentvolumeclaim "volume-claim" deleted
 
 See the status of the volume
 
     kubectl get pv persistent-volume
-    
-    NAME                CAPACITY   ACCESSMODES   RECLAIMPOLICY   STATUS      CLAIM     REASON    AGE
-    local               2Gi        RWO           Recycle         Available                       9m
+    NAME      CAPACITY   ACCESSMODES   RECLAIMPOLICY   STATUS      CLAIM     STORAGECLASS   REASON    AGE
+    local     2Gi        RWO           Recycle         Available             manual                   57m
 
-The volume becomes available to other claims since the claim policy is set to ``Recycle``. Volume claim policies currently supported are:
+## Volume Reclaim Policy
+When deleting a claim, the volume becomes available to other claims only when the volume claim policy is set to ``Recycle``. Volume claim policies currently supported are:
 
-  * **Retain**: manual reclamation
-  * **Recycle**: content of the volume is removed after volume unbound but volume still there, available for further bondings
-  * **Delete**: associated storage volume is deleted when the volume is unbound.
+  * **Retain**: the content of the volume still exists when the volume is unbound and the volume is released
+  * **Recycle**: the content of the volume is deleted when the volume is unbound and the volume is available
+  * **Delete**: the content and the volume are deleted when the volume is unbound. 
   
-Currently, only NFS and HostPath support recycling. 
+*Please note that, currently, only NFS and HostPath support recycling.* 
+
+When the policy is set to ``Retain`` the volume is released but it is not yet available for another claim because the previous claimant’s data are still on the volume.
+
+Define a persistent volume ``local-persistent-volume-retain.yaml`` configuration file
+
+```yaml
+kind: PersistentVolume
+apiVersion: v1
+metadata:
+  name: local-retain
+  labels:
+    type: local
+spec:
+  storageClassName: manual
+  capacity:
+    storage: 2Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: "/data"
+  persistentVolumeReclaimPolicy: Retain
+```
+
+Create the persistent volume and the claim
+
+    kubectl create -f local-persistent-volume-retain.yaml
+    kubectl create -f volume-claim.yaml
+
+Login to the pod using the claim and create some data on the volume
+
+    kubectl exec -it nginx bash
+    root@nginx:/# echo "Hello World" > /usr/share/nginx/html/index.html
+    root@nginx:/# exit
+
+Delete the claim
+
+    kubectl delete pvc volume-claim
+
+and check the status of the volume
+
+    kubectl get pv
+    NAME           CAPACITY   ACCESSMODES   RECLAIMPOLICY   STATUS     CLAIM                  STORAGECLASS   REASON    AGE
+    local-retain   2Gi        RWO           Retain          Released   project/volume-claim   manual                   3m
+    
+We see the volume remain in the releasd status and not becomes available since the reclaim policy is set to ``Retain``.
+
+Login to the worker node and check data are still there
+
+    ssh kubew05
+    cat /data/index.html 
+    Hello World
+
+An administrator can manually reclaim the volume by deleteting the volume and creating a another one.
 
 ## NFS Persistent Volume
 In this section we're going to use a NFS storage backend. Main limit of local stoorage backend for container volumes is that storage area is tied to the host where it resides. If kubernetes moves the pod from another host, the moved pod is no more to access the storage area since local storage is not shared between multiple hosts of the cluster. To achieve a more useful storage backend we need to leverage on a shared storage technology like NFS.
 
-For this example, we'll setup a simple NFS server on the master node. Please note, this is only an example and you should not implement it in production.
-
-On the master node, install NFS server
-
-    yum install -y nfs-utils
-
-Make sure there is enough space under ``/mnt`` directory. We're going to create 10 NFS shares under this directory. To make it automatically, download the script ``nfs-setup.sh`` from [here](https://github.com/kalise/Kubernetes-Lab-Tutorial/blob/master/utils/nfs-setup.sh), change its permissions and execute it.
-
-    chmod u+x nfs-setup.sh
-    ll nfs-setup.sh
-    -rwxr--r-- 1 root root 223 Apr 27 11:32 nfs-setup.sh
-
-    ./nfs-setup.sh
-    done
-
-    ls -l /mnt
-    total 0
-    drwxr-xr-x 2 nfsnobody nfsnobody 23 Apr 27 11:49 PV00
-    drwxr-xr-x 2 nfsnobody nfsnobody  6 Apr 27 11:33 PV01
-    drwxr-xr-x 2 nfsnobody nfsnobody  6 Apr 27 11:33 PV02
-    drwxr-xr-x 2 nfsnobody nfsnobody  6 Apr 27 11:33 PV03
-    drwxr-xr-x 2 nfsnobody nfsnobody  6 Apr 27 11:33 PV04
-    drwxr-xr-x 2 nfsnobody nfsnobody  6 Apr 27 11:33 PV05
-    drwxr-xr-x 2 nfsnobody nfsnobody  6 Apr 27 11:33 PV06
-    drwxr-xr-x 2 nfsnobody nfsnobody  6 Apr 27 11:33 PV07
-    drwxr-xr-x 2 nfsnobody nfsnobody  6 Apr 27 11:33 PV08
-    drwxr-xr-x 2 nfsnobody nfsnobody  6 Apr 27 11:33 PV09
-
-Start and enable the NFS server daemons
-
-    systemctl start nfs-server
-    systemctl enable nfs-server
-    systemctl status nfs-server rpcbind
-
-Now our NFS server should be ready to serve shares to worker nodes. To make worker nodes able to consume these NFS shares, we neet to install NFS libraries on all the worker nodes by ``yum install -y nfs-utils``.
+For this example, we'll assume a simple NFS server ``fileserver-vm``	sharing some folders.
 
 Define a persistent volume as in the ``nfs-persistent-volume.yaml`` configuration file
 ```yaml
@@ -241,13 +260,14 @@ kind: PersistentVolume
 metadata:
   name: nfs00
 spec:
+  storageClassName: manual
   capacity:
     storage: 1Gi
   accessModes:
   - ReadWriteOnce
   nfs:
-    path: "/mnt/PV00"
-    server: <nfs_server>
+    path: "/data/PV00"
+    server: fileserver-vm
   persistentVolumeReclaimPolicy: Recycle
 ```
 
@@ -257,41 +277,38 @@ Create the persistent volume
     persistentvolume "nfs" created
 
     kubectl get pv nfs -o wide
-    NAME      CAPACITY   ACCESSMODES   RECLAIMPOLICY   STATUS      CLAIM     REASON    AGE
-    nfs00     500Mi      RWO           Recycle         Available                       11s
+    NAME      CAPACITY   ACCESSMODES   RECLAIMPOLICY   STATUS      CLAIM     STORAGECLASS   REASON    AGE
+    nfs00     1Gi        RWO           Recycle         Available             manual                   7s
 
-To avoid manual creation of the volume for each NFS share we create before, download the ``nfspv-setup.sh`` script from [here](https://github.com/kalise/Kubernetes-Lab-Tutorial/blob/master/utils/nfspv-setup.sh), check its permissions and execute it
+Thanks to the persistent volume model, kubernetes hides the nature of storage and its complex setup to the applications. An user need only to claim volumes for their pods without deal with storage configuration and operations.
 
-    chmod u+x nfspv-setup.sh
-    ./nfspv-setup.sh
+Create the claim
+
+    kubectl create -f volume-claim.yaml
+
+Check the bound 
 
     kubectl get pv
-    NAME      CAPACITY   ACCESSMODES   RECLAIMPOLICY   STATUS      CLAIM     REASON    AGE
-    nfs00     1Gi        RWO           Recycle         Available                       8s
-    nfs01     1Gi        RWO           Recycle         Available                       8s
-    nfs02     1Gi        RWO           Recycle         Available                       7s
-    nfs03     1Gi        RWO           Recycle         Available                       7s
-    nfs04     1Gi        RWO           Recycle         Available                       7s
-    nfs05     1Gi        RWO           Recycle         Available                       6s
-    nfs06     1Gi        RWO           Recycle         Available                       6s
-    nfs07     1Gi        RWO           Recycle         Available                       6s
-    nfs08     1Gi        RWO           Recycle         Available                       6s
-    nfs09     1Gi        RWO           Recycle         Available                       5s
+    NAME      CAPACITY   ACCESSMODES   RECLAIMPOLICY   STATUS    CLAIM                  STORAGECLASS   REASON    AGE
+    nfs00     1Gi        RWO           Recycle         Bound     project/volume-claim   manual                   5m
 
-We have all persistent volumes modeling the NFS shares. Thanks to the persistent volume model, kubernetes hides the nature of storage and its complex setup to the applications. An user need only to claim volumes for their pods without deal with storage configuration and operations.
+    kubectl get pvc
+    NAME           STATUS    VOLUME    CAPACITY   ACCESSMODES   STORAGECLASS   AGE
+    volume-claim   Bound     nfs00     1Gi        RWO           manual         9s
 
-For example, create the ``nginx-pvc-template.yaml`` template for a nginx application having the html content dir on a shared storage 
+Now we are going to create more nginx pods using the same claim.
+
+For example, create the ``nginx-pvc-template.yaml`` template for a nginx application having the html content folder placed on the shared storage 
 ```yaml
----
 apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
   generation: 1
   labels:
     run: nginx
-  name: nginx
+  name: nginx-pvc
 spec:
-  replicas: 2
+  replicas: 3
   selector:
     matchLabels:
       run: nginx
@@ -322,58 +339,36 @@ spec:
           claimName: volume-claim
       dnsPolicy: ClusterFirst
       restartPolicy: Always
-
----
-kind: PersistentVolumeClaim
-apiVersion: v1
-metadata:
-  name: volume-claim
-spec:
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 500Mi
-
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: nginx
-  labels:
-    run: nginx
-spec:
-  ports:
-  - protocol: TCP
-    port: 8081
-    targetPort: 80
-    nodePort: 31000
-  selector:
-    run: nginx
-  type: NodePort
 ```
 
-The template above defines a nginx application based on a nginx deploy of 2 replicas. The nginx application requires a shared volume for its html content. This volume leverages on a volume claim of 500 MB of space with read-write-once policy. This is the only requirements for storage. The application does not have to deal with complexity of setup and admin an NFS share. In addition, the template expose the application as service to the outer world.
+The template above defines a nginx application based on a nginx deploy of 3 replicas. The nginx application requires a shared volume for its html content. The application does not have to deal with complexity of setup and admin an NFS share.
 
 Deploy the application
 
     kubectl create -f nginx-pvc-template.yaml
     
-    deployment "nginx" created
-    persistentvolumeclaim "volume-claim" created
-    service "nginx" created
+Check all pods are up and running
 
-Check everything is up and running
+    kubectl get pods -o wide
+    NAME                         READY     STATUS    RESTARTS   AGE       IP            NODE
+    nginx-pvc-3474572923-3cxnf   1/1       Running   0          2m        10.38.5.89    kubew05
+    nginx-pvc-3474572923-6cr28   1/1       Running   0          6s        10.38.3.140   kubew03
+    nginx-pvc-3474572923-z17ls   1/1       Running   0          2m        10.38.5.90    kubew05
 
-    kubectl get all -l run=nginx
+Login to one of these pods and create some html content
 
-    NAME           DESIRED   CURRENT   UP-TO-DATE   AVAILABLE   AGE
-    deploy/nginx   2         2         2            2           1m
-    NAME        CLUSTER-IP       EXTERNAL-IP   PORT(S)          AGE
-    svc/nginx   10.254.146.248   <nodes>       8081:31000/TCP   1m
-    NAME                  DESIRED   CURRENT   READY     AGE
-    rs/nginx-2480045907   2         2         2         1m
-    NAME                        READY     STATUS    RESTARTS   AGE
-    po/nginx-2480045907-r46m9   1/1       Running   0          1m
-    po/nginx-2480045907-rw5tk   1/1       Running   0          1m
+    kubectl exec -it nginx-pvc-3474572923-3cxnf bash
+    root@nginx-pvc-3474572923-3cxnf:/# cd /usr/share/nginx/html                 
+    root@nginx-pvc-3474572923-3cxnf:/usr/share/nginx/html# echo "Hello from NFS" > index.html
+    root@nginx-pvc-3474572923-3cxnf:/usr/share/nginx/html# exit
 
+Since all three pods mount the same shared folder on the NFS, the just created html content is accessible from any pods
+
+    curl 10.38.5.89    
+    Hello from NFS
+    
+    curl 10.38.5.90
+    Hello from NFS
+    
+    curl 10.38.3.140
+    Hello from NFS

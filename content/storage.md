@@ -381,30 +381,3 @@ Multiple storage classes can be defined each specifying a volume provisioner to 
 
 Storage classes have to specify a provisioner that determines what volume plugin is used for provisioning the volume.
 
-For example, the following ``storage-class-glusterfs.yaml`` file define the provisioner of a storage class using a GlusterFS distributed file system
-```yaml
-apiVersion: storage.k8s.io/v1beta1
-kind: StorageClass
-metadata:
-  name: glusterfs-storage
-provisioner: kubernetes.io/glusterfs
-parameters:
-  resturl: "http://10.38.4.5:8080"
-```
-
-Create the storage class
-
-    kubectl create -f storage-class-glusterfs.yaml
-
-Check we now have a new storage class
-
-    kubectl get storageclass
-
-
-
-
-
-
-
-
-

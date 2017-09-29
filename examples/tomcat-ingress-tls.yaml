@@ -1,0 +1,22 @@
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  namespace:
+  name: tomcat
+  annotations:
+spec:
+  tls:
+  - hosts:
+    - tomcat.noverit.com
+    secretName: tomcat-tls-secret
+  - hosts:
+    - tomcat.noverit.com
+    secretName: tomcat-tls-secret
+  rules:
+  - host: tomcat.noverit.com
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: tomcat
+          servicePort: 8080

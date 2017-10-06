@@ -2,11 +2,8 @@
 In this section we are going to deal with some advanced cluster admin tasks.
 
    * [Cluster Backup and Restore](#cluster-backup-and-restore)
-   * [APIs Server failure](#apis-server-failure)
-   * [Scheduler failure](#scheduler-failure)
-   * [Controller Manager failure](#controller-manager-failure)
-   * [Maintenance of a worker node](#maintenance-of-a-worker-node)
-   * [Failure of a worker node](#failure-of-a-worker-node)
+   * [Control Plane Failure](#control-plane-failure)
+   * [Worker Failure](#worker-failure)
 
 To show the impact of the cluster on user applications, start a simple nginx deploy of three pods and the related service
 
@@ -101,7 +98,10 @@ Check if everything is restored
     nginx-1423793266-q2nnw   1/1       Running   0          19m
 
 
-## APIs Server failure
+## Control Plane Failure
+In this section we are going to analyze the effects of a control plane failure, i.e. the master and its components.
+
+### APIs Server failure
 An APIs server failure breaks the cluster control plane preventings users and administrators to interact with it. For this reason, production envinronments should leverage on an high availability control plane.
 
 However, a failure in the control plane does not prevents user applications to work. To check this, login to the master node and stop the APIs server
@@ -123,7 +123,7 @@ Restart the APIs server
     systemctl start kube-apiserver
 
 
-## Scheduler failure
+### Scheduler failure
 A Scheduler failure prevents the users to schedule new pods to the cluster. However already running pods are still serving. To check this, login to the master node and stop the scheduler
 
     systemctl stop kube-scheduler
@@ -156,7 +156,7 @@ Restore the scheduler service and check the status of the pods
     nginx-1423793266-wjmjs   1/1       Running   0          2m
 
 
-## Controller Manager failure
+### Controller Manager failure
 Primary task of the control manager is to reconcile the actual state of the system with the desired state. A failure of the controller prevents the cluster to update the actual state with changes requested by the users.
 
 Login to the master node and stop the controller manager service
@@ -191,7 +191,10 @@ Restore the controller manager and check it does its job correctly
     nginx-1423793266-w87jh   0/1       ContainerCreating   0          1s
     nginx-1423793266-wjmjs   1/1       Running             0          15m
 
-## Maintenance of a worker node
+## Worker Failure
+In this section, we are going to see how to deal with failure of a worker node
+
+### Maintenance of a worker node
 The cluster admin can have needs to operate on a worker node for any maintenance reason. Our cluster has three worker nodes
 
     kubectl get nodes
@@ -256,7 +259,7 @@ After the node is completly restored, check where are running the pods
 
 We see pods are not moved back to the restored node.
 
-## Failure of a worker node
+### Failure of a worker node
 As in any working envinronments, a worker nodes can fail. However, the kubernetes cluster is designed to deal with that leaving user applications to be moved on other worker nodes.
 
 As in the previous example, check where user pods are running before to simulate a worker failure

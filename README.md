@@ -49,7 +49,7 @@
     * [Create TLS certificates](./content/secure.md#create-tls-certificates)
     * [Securing etcd](./content/secure.md#securing-etcd)
     * [Securing the master](./content/secure.md#securing-the-master)
-    * [Accessing the server]./content/secure.md(#accessing-the-server)   
+    * [Accessing the server](./content/secure.md#accessing-the-server)   
     * [Securing the worker](./content/secure.md#securing-the-worker)
 
 9. [Scaling the Control Plane](./content/info.md)

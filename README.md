@@ -44,6 +44,9 @@
     * [Daemon Sets](./content/additional.md#daemon-sets)
     
 7. [Cluster Healing](./content/admin.md)
+    * [Cluster Backup and Restore](./content/admin.md#cluster-backup-and-restore)
+    * [Control Plane Failure](./content/admin.md#control-plane-failure)
+    * [Worker Failure](./content/admin.md#worker-failure)
 
 8. [Securing the Cluster](./content/secure.md)
     * [Create TLS certificates](./content/secure.md#create-tls-certificates)

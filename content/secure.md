@@ -3,23 +3,15 @@ Kubernetes supports **TLS** certificates on each of its components. When set up 
 
 The Kubernetes two-way authentication requires each component to have two certificates: the Certification Authority certificate and the component certificate and a private key. In this tutorial, we are going to use a unique self signed Certification Authority to secure the following components: **etcd**, **kube-apiserver**, **kubelet**, and **kube-proxy**.
 
-   * [Create Certification Authority keys pair](#create-certification-authority-keys-pair)
-   * [Create server keys pair](#create-server-keys-pair)
-   * [Create client keys pair](#create-client-keys-pair)
-   * [Create kubelet keys pair](#create-kubelet-keys-pair)
-   * [Create proxy keys pair](#create-proxy-keys-pair)
-   * [Securing the server](#securing-the-server)
-   * [Configure the controller manager](#configure-the-controller-manager)
-   * [Configure the scheduler](#configure-the-scheduler)
-   * [Accessing the APIs server from client](#accessing-the-apis-server-from-client)   
-   * [Securing the kubelet](#securing-the-kubelet)
-   * [Securing the proxy](#securing-the-proxy)
-   * [Enable Service Accounts](#enable-service-accounts)
-   * [Complete the setup](#complete-the-setup)
+   * [Create TLS certificates](#create-tls-certificates)
+   * [Securing etcd](#securing-etcd)
+   * [Securing the master](#securing-the-master)
+   * [Accessing the server](#accessing-the-server)   
+   * [Securing the worker](#securing-the-worker)
    
 *Note: in this tutorial we are assuming to setup a secure cluster from scratch. In case of a cluster already running, remove any configuration and data before to try to implement these instructions.*
 
-## Create Certification Authority keys pair
+## Create TLS certificates
 On any Linux machine install OpenSSL, create a folder where store certificates and keys
 
     openssl version
@@ -41,6 +33,7 @@ Install the tool
     mv cfssl_linux-amd64 /usr/local/bin/cfssl
     mv cfssljson_linux-amd64 /usr/local/bin/cfssljson
 
+### Create Certification Authority keys pair
 Create a **Certification Authority** configuration file ``ca-config.json`` as following
 
 ```json
@@ -90,7 +83,7 @@ As result, we have following files
 
 They are the key and the certificate of our self signed Certification Authority. Take this files in a secure place.
 
-## Create server keys pair
+### Create server keys pair
 The master node IP addresses and names will be included in the list of subject alternative content names for the server certificate. Create the configuration file ``server-csr.json`` for server certificate signing request
 
 ```json
@@ -132,7 +125,7 @@ Move the key and certificate, along with the Certificate Authority certificate t
     scp ca.pem root@kubem00:/var/lib/kubernetes
     scp server*.pem root@kubem00:/var/lib/kubernetes
 
-## Create client keys pair
+### Create client keys pair
 Since TLS authentication in kubernetes is a two way authentication between client and server, we create the client certificate and key to authenticate users to access the APIs server. We are going to create a certificate for the admin cluster user. This user will be allowed to perform any admin operation on the cluster via kubectl command line client interface.
 
 Create the ``client-csr.json`` configuration file for the admin client.
@@ -163,7 +156,7 @@ Move the key and certificate, along with the Certificate Authority certificate t
     scp ca.pem root@kube-admin:~/.kube
     scp client*.pem root@kube-admin:~/.kube
 
-## Create kubelet keys pair
+### Create kubelet keys pair
 We need also to secure interaction between worker nodes and master node. Create the ``kubelet-csr.json`` configuration file for the kubelet component
 ```json
 {
@@ -194,7 +187,7 @@ Move the key and certificate, along with the Certificate Authority certificate t
 
 Repeat the step above for each worker node we want to add to the cluster.
 
-## Create proxy keys pair
+### Create proxy keys pair
 For the proxy component, create the ``kube-proxy-csr.json`` configuration file 
 ```json
 {
@@ -317,8 +310,11 @@ or an env file ``etcdctl-v3.rc`` to access etcd by using API v3
     etcdctl --endpoints=https://10.10.10.80:2379 member list
     1857fba22cc98a20, started, kubem00, https://10.10.10.80:2380, https://10.10.10.80:2379
 
-## Securing the server
-We are going to secure the APIs server on the master node. Set the options in the ``/etc/systemd/system/kube-apiserver.service`` startup file
+## Securing the master
+In this section, we are going to secure the master node and its components.
+
+### Configure the APIs server
+Set the options in the ``/etc/systemd/system/kube-apiserver.service`` startup file
 
       [Unit]
       Description=Kubernetes API Server
@@ -339,7 +335,6 @@ We are going to secure the APIs server on the master node. Set the options in th
         --audit-log-path=/var/lib/audit.log \
         --enable-swagger-ui=true \
         --event-ttl=1h \
-        --insecure-bind-address=0.0.0.0 \
         --bind-address=0.0.0.0 \
         --service-cluster-ip-range=10.32.0.0/16 \
         --service-node-port-range=30000-32767 \
@@ -371,7 +366,7 @@ Start and enable the service
     systemctl enable kube-apiserver
     systemctl status kube-apiserver
 
-## Configure the controller manager
+### Configure the controller manager
 Having configured TLS on the APIs server, we need to configure other components to authenticate with the server. To configure the controller manager component to communicate securely with APIs server, set the required options in the ``/etc/systemd/system/kube-controller-manager.service`` startup file
 
     [Unit]
@@ -381,14 +376,14 @@ Having configured TLS on the APIs server, we need to configure other components 
 
     [Service]
     ExecStart=/usr/bin/kube-controller-manager \
-      --address=0.0.0.0 \
+      --address=127.0.0.1 \
       --cluster-cidr=10.38.0.0/16 \
       --cluster-name=kubernetes \
       --cluster-signing-cert-file=/var/lib/kubernetes/ca.pem \
       --cluster-signing-key-file=/var/lib/kubernetes/ca-key.pem \
       --root-ca-file=/var/lib/kubernetes/ca.pem \
       --service-account-private-key-file=/var/lib/kubernetes/ca-key.pem \
-      --master=http://10.10.10.80:8080 \
+      --master=http://127.0.0.1:8080 \
       --leader-elect=true \
       --service-cluster-ip-range=10.32.0.0/16 \
       --v=2
@@ -407,7 +402,7 @@ Start and enable the service
     systemctl enable kube-controller-manager
     systemctl status kube-controller-manager
 
-## Configure the scheduler
+### Configure the scheduler
 Finally, configure the sceduler by setting the required options in the ``/etc/systemd/system/kube-scheduler.service`` startup file
 
     [Unit]
@@ -417,7 +412,8 @@ Finally, configure the sceduler by setting the required options in the ``/etc/sy
 
     [Service]
     ExecStart=/usr/bin/kube-scheduler \
-      --master=http://10.10.10.80:8080 \
+      --address=127.0.0.1 \
+      --master=http://127.0.0.1:8080 \
       --v=2
     Restart=on-failure
     RestartSec=5
@@ -433,7 +429,7 @@ Start and enable the service
     systemctl enable kube-scheduler
     systemctl status kube-scheduler
 
-## Accessing the APIs server from client
+## Accessing the server
 We just configured TLS on the APIs server. So, any interaction with it will require authentication. Kubernetes supports different types of authentication, please, refer to the documentation for details. In this section, we are going to use the **X.509** certificates based authentication.
 
 All the users, including the cluster admin, have to authenticate against the APIs server before to access it. For now, we are not going to configure any authorization, so once a user is authenticated, he is enabled to operate on the cluster.
@@ -499,9 +495,10 @@ Now it is possible to query and operate with the cluster in a secure way
     scheduler            Healthy   ok
     etcd-0               Healthy   {"health": "true"}
 
-## Securing the kubelet
+## Securing the worker
 In a kubernetes cluster, each worker node run both the kubelet and the proxy components. Since worker nodes can be placed on a remote location, we are going to secure the communication between these components and the APIs server.
 
+### Configure the kubelet
 First, configure docker on worker node as reported [here](../content/setup.md#configure-docker) and then configure the network plugins as reported [here](../content/setup.md#setup-the-cni-network-plugins).
 
 Login to the worker node and configure the kubelet by setting the required options in the ``/etc/systemd/system/kubelet.service`` startup file
@@ -586,7 +583,7 @@ Start and enable the kubelet service
     systemctl enable kubelet
     systemctl status kubelet    
     
-## Securing the proxy
+### Configure the proxy
 Lastly, configure the proxy by setting the required options in the ``/etc/systemd/system/kube-proxy.service`` startup file
 
     [Unit]
@@ -658,16 +655,3 @@ Start and enable the service
     systemctl start kube-proxy
     systemctl enable kube-proxy
     systemctl status kube-proxy
-
-## Complete the setup
-Now configure the network routes as reported [here](../content/setup.md#define-the-containers-network-routes).
-
-The cluster should be now running. Check to make sure the cluster can see the nodes, by logging to the master
-
-    kubectl get nodes
-    NAME      STATUS    AGE       VERSION
-    kubew03   Ready     12m       v1.7.0
-    kubew04   Ready     1m        v1.7.0
-    kubew05   Ready     1m        v1.7.0
-
-To complete the setup, install the DNS service on the cluster as reported [here](../content/setup.md#configure-dns-service).

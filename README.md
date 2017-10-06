@@ -30,7 +30,7 @@
     * [Exposing services](./content/network.md#exposing-services)
     * [Service discovery](./content/network.md#service-discovery)
     * [Accessing services](./content/network.md#accessing-services)
-    * [Ingress controller](./content/info.md)
+    * [Ingress controller](./content/ingress.md)
 
 5. [Storage](./content/storage.md)
     * [Local Persistent Volume](./content/storage.md#local-persistent-volume)
@@ -46,6 +46,11 @@
 7. [Cluster Healing](./content/admin.md)
 
 8. [Securing the Cluster](./content/secure.md)
+    * [Create TLS certificates](./content/secure.md#create-tls-certificates)
+    * [Securing etcd](./content/secure.md#securing-etcd)
+    * [Securing the master](./content/secure.md#securing-the-master)
+    * [Accessing the server]./content/secure.md(#accessing-the-server)   
+    * [Securing the worker](./content/secure.md#securing-the-worker)
 
 9. [Scaling the Control Plane](./content/info.md)
 

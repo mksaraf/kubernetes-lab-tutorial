@@ -117,7 +117,7 @@ The Nginx application is capable to act as reverse proxy to route requests from 
 
 Assuming we want to handle TLS requests, the Ingress Controller needs to have a default TLS certificate. This will be used for requests where is not specified TLS certificate. Assuming we have a certificate and key, ``tsl.crt`` and ``tsl.key``, respectively, create a secrets as follow
 ```bash
-kubectl -n kube-system create secret tls tls-certificate --key tls.key --cert tls.crt
+kubectl -n kube-system create secret tls tls-secret --key tls.key --cert tls.crt
 ```
 
 Create the deploy and the service 

@@ -195,4 +195,4 @@ Create the ingress in the user namespace
 kubectl create -f website-ingress-tls.yaml
 ```
 
-Now the Ingress controller acts as TLS terminator for requests to "https://web.cloud.noverit.com".
+Now the Ingress controller acts also as TLS terminator.

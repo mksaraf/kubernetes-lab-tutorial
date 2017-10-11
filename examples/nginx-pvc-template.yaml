@@ -7,7 +7,7 @@ metadata:
     run: nginx
   name: nginx
 spec:
-  replicas: 2
+  replicas: 3
   selector:
     matchLabels:
       run: nginx
@@ -35,7 +35,7 @@ spec:
       volumes:
       - name: html
         persistentVolumeClaim:
-          claimName: volume-claim
+          claimName: nginx-volume-claim
       dnsPolicy: ClusterFirst
       restartPolicy: Always
 
@@ -43,13 +43,14 @@ spec:
 kind: PersistentVolumeClaim
 apiVersion: v1
 metadata:
-  name: volume-claim
+  name: nginx-volume-claim
 spec:
   accessModes:
-    - ReadWriteOnce
+    - ReadWriteMany
   resources:
     requests:
       storage: 500Mi
+  storageClassName: gluster-dyn
 
 ---
 apiVersion: v1
@@ -63,7 +64,20 @@ spec:
   - protocol: TCP
     port: 8081
     targetPort: 80
-    nodePort: 31000
   selector:
     run: nginx
-  type: NodePort
+
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: nginx
+spec:
+  rules:
+  - host: nginx.cloud.noverit.com
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: nginx
+          servicePort: 8081

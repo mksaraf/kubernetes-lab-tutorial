@@ -14,12 +14,15 @@ Kubernetes provides two different ways to provisioning storage:
 
 In this section we're going to introduce this model by using simple examples. Please, refer to official documentation for more details.
 
-  * [Local Persistent Volume](#local-persistent-volume)
+  * [Local Persistent Volumes](#local-persistent-volumes)
   * [Volume Access Mode](#volume-access-mode)
+  * [Volume State](#volume-state)
   * [Volume Reclaim Policy](#volume-reclaim-policy)
-  * [NFS Persistent Volume](#nfs-persistent-volume)
+  * [NFS Persistent Volumes](#nfs-persistent-volumes)
+  * [Storage Classes](#storage-classes)
+  * [GlusterFS Persistent Volumes](#glusterfs-persistent-volumes)
 
-## Local Persistent Volume
+## Local Persistent Volumes
 Start by defining a persistent volume ``local-persistent-volume-recycle.yaml`` configuration file
 
 ```yaml
@@ -165,10 +168,10 @@ Claims and volumes use the same conventions when requesting storage with specifi
 
 A volume can only be mounted using one access mode at a time, even if it supports many. For example, a NFS volume can be mounted as ReadWriteOnce by a single node or ReadOnlyMany by many nodes, but not at the same time.
 
-## Volume status
+## Volume state
 When a pod claims for a volume, the cluster inspects the claim to find the volume meeting claim requirements and mounts that volume for the pod. Once a pod has a claim and that claim is bound, the bound volume belongs to the pod.
 
-A volume will be in one of the following status:
+A volume will be in one of the following state:
 
   * **Available**: a volume that is not yet bound to a claim
   * **Bound**: the volume is bound to a claim
@@ -243,7 +246,7 @@ We see the volume remain in the released status and not becomes available since 
 
 An administrator can manually reclaim the volume by deleteting the volume and creating a another one.
 
-## NFS Persistent Volume
+## NFS Persistent Volumes
 In this section we're going to use a NFS storage backend. Main limit of local stoorage backend for container volumes is that storage area is tied to the host where it resides. If kubernetes moves the pod from another host, the moved pod is no more to access the storage area since local storage is not shared between multiple hosts of the cluster. To achieve a more useful storage backend we need to leverage on a shared storage technology like NFS.
 
 For this example, we'll assume a simple external NFS server ``fileserver``	sharing some folders. To make worker nodes able to consume these NFS shares, install the NFS client on all the worker nodes by ``yum install -y nfs-utils`` command.
@@ -412,8 +415,16 @@ parameters:
   resturl: "http://heketi:8080"
 ```
 
+Check the storage classes
+
+    kubectl get sc
+    NAME                              PROVISIONER
+    default-storage-class (default)   kubernetes.io/glusterfs
+    glusterfs-storage-class           kubernetes.io/glusterfs
+
 If the cluster administrator defines a default storage class, all claims that do not require any class will be dynamically bound to volumes having the default storage class. 
 
+## GlusterFS Persistent Volumes
 
 
 

@@ -239,27 +239,21 @@ and check the status of the volume
     NAME           CAPACITY   ACCESSMODES   RECLAIMPOLICY   STATUS     CLAIM                  STORAGECLASS     AGE
     local-retain   2Gi        RWO           Retain          Released   project/volume-claim   manual           3m
     
-We see the volume remain in the released status and not becomes available since the reclaim policy is set to ``Retain``.
-
-Login to the worker node and check data are still there
-
-    ssh kubew05
-    cat /data/index.html 
-    Hello World
+We see the volume remain in the released status and not becomes available since the reclaim policy is set to ``Retain``. Now login to the worker node and check data are still there.
 
 An administrator can manually reclaim the volume by deleteting the volume and creating a another one.
 
 ## NFS Persistent Volume
 In this section we're going to use a NFS storage backend. Main limit of local stoorage backend for container volumes is that storage area is tied to the host where it resides. If kubernetes moves the pod from another host, the moved pod is no more to access the storage area since local storage is not shared between multiple hosts of the cluster. To achieve a more useful storage backend we need to leverage on a shared storage technology like NFS.
 
-For this example, we'll assume a simple external NFS server ``fileserver-vm``	sharing some folders. To make worker nodes able to consume these NFS shares, install the NFS client on all the worker nodes by ``yum install -y nfs-utils`` command.
+For this example, we'll assume a simple external NFS server ``fileserver``	sharing some folders. To make worker nodes able to consume these NFS shares, install the NFS client on all the worker nodes by ``yum install -y nfs-utils`` command.
 
 Define a persistent volume as in the ``nfs-persistent-volume.yaml`` configuration file
 ```yaml
 apiVersion: v1
 kind: PersistentVolume
 metadata:
-  name: nfs00
+  name: nfs-volume
 spec:
   storageClassName: manual
   capacity:
@@ -267,8 +261,8 @@ spec:
   accessModes:
   - ReadWriteOnce
   nfs:
-    path: "/data/PV00"
-    server: fileserver-vm
+    path: "/data"
+    server: fileserver
   persistentVolumeReclaimPolicy: Recycle
 ```
 
@@ -278,8 +272,8 @@ Create the persistent volume
     persistentvolume "nfs" created
 
     kubectl get pv nfs -o wide
-    NAME      CAPACITY   ACCESSMODES   RECLAIMPOLICY   STATUS      CLAIM     STORAGECLASS   REASON    AGE
-    nfs00     1Gi        RWO           Recycle         Available             manual                   7s
+    NAME        CAPACITY   ACCESSMODES   RECLAIMPOLICY   STATUS      CLAIM     STORAGECLASS   REASON    AGE
+    nfs-volume  1Gi        RWO           Recycle         Available             manual                   7s
 
 Thanks to the persistent volume model, kubernetes hides the nature of storage and its complex setup to the applications. An user need only to claim volumes for their pods without deal with storage configuration and operations.
 
@@ -290,12 +284,12 @@ Create the claim
 Check the bound 
 
     kubectl get pv
-    NAME      CAPACITY   ACCESSMODES   RECLAIMPOLICY   STATUS    CLAIM                  STORAGECLASS   REASON    AGE
-    nfs00     1Gi        RWO           Recycle         Bound     project/volume-claim   manual                   5m
+    NAME        CAPACITY   ACCESSMODES   RECLAIMPOLICY   STATUS    CLAIM                  STORAGECLASS   REASON    AGE
+    nfs-volume  1Gi        RWO           Recycle         Bound     project/volume-claim   manual                   5m
 
     kubectl get pvc
-    NAME           STATUS    VOLUME    CAPACITY   ACCESSMODES   STORAGECLASS   AGE
-    volume-claim   Bound     nfs00     1Gi        RWO           manual         9s
+    NAME           STATUS    VOLUME      CAPACITY   ACCESSMODES   STORAGECLASS   AGE
+    volume-claim   Bound     nfs-volume  1Gi        RWO           manual         9s
 
 Now we are going to create more nginx pods using the same claim.
 
@@ -363,7 +357,7 @@ Login to one of these pods and create some html content
     root@nginx-pvc-3474572923-3cxnf:/usr/share/nginx/html# echo "Hello from NFS" > index.html
     root@nginx-pvc-3474572923-3cxnf:/usr/share/nginx/html# exit
 
-Since all three pods mount the same shared folder on the NFS, the just created html content is accessible from any of these pods
+Since all three pods mount the same shared folder on the NFS, the just created html content is placed on the NFS share and it is accessible from any of the three pods
 
     curl 10.38.5.89    
     Hello from NFS

@@ -481,37 +481,179 @@ Start and enable the Heketi service
     systemctl restart heketi
     systemctl enable heketi
 
-Check the connection to Heketi
+Make sure the Heketi server hostname is resolved and check the connection
 
-    curl http://gluster00:8080/hello
+    curl http://heketi:8080/hello
     Hello from Heketi
 
-A topology file is used to tell Heketi about the environment and what nodes and devices it has to manage. Create a ``/etc/heketi/topology.json`` configuration file describing all nodes in the cluster topology
+A topology file is used to tell Heketi about the environment and what nodes and devices it has to manage. Create a ``topology.json`` configuration file describing all nodes in the cluster topology
 ```json
-{"clusters":
-    [
-		{
-			"nodes":
-			[
-				{"node": {"hostnames": {"manage": ["gluster00"], "storage": ["10.10.10.120"]}, "zone": 1}, "devices": ["/dev/vg00/brick00", "/dev/vg01/brick01"]},
-				{"node": {"hostnames": {"manage": ["gluster01"], "storage": ["10.10.10.121"]}, "zone": 1}, "devices": ["/dev/vg00/brick00", "/dev/vg01/brick01"]},
-				{"node": {"hostnames": {"manage": ["gluster02"], "storage": ["10.10.10.122"]}, "zone": 1}, "devices": ["/dev/vg00/brick00", "/dev/vg01/brick01"]}
-			]
-		}
-    ]
-}
+{
+   "clusters":[
+      {
+         "nodes":[
+            {
+               "node":{
+                  "hostnames":{
+                     "manage":[
+                        "gluster00"
+                     ],
+                     "storage":[
+                        "10.10.10.120"
+                     ]
+                  },
+                  "zone":1
+               },
+               "devices":[
+                  "/dev/vg00/brick00",
+                  "/dev/vg01/brick01"
+               ]
+            },
+// add other nodes here
+...
 ```
 
-Now we're going to load the cluster topology into Heketi.
+Load the cluster topology into Heketi by the Heketi cli
+
+	Creating cluster ... ID: 88fa719937edf4b3b3822b4abf825c6b
+        Creating node gluster00 ... ID: db2f0baad1bbb5868f8e65f82e7ca905
+                Adding device /dev/vg00/brick00 ... OK
+                Adding device /dev/vg01/brick01 ... OK
+        Creating node gluster01 ... ID: 43fa07bc2c2156c98c1f959860cf94b1
+                Adding device /dev/vg00/brick00 ... OK
+                Adding device /dev/vg01/brick01 ... OK
+        Creating node gluster02 ... ID: e93ba25f09c74938064bfaca0d5697fe
+                Adding device /dev/vg00/brick00 ... OK
+                Adding device /dev/vg01/brick01 ... OK
 
 
+Check the cluster has been created
 
-To make the worker nodes able to consume GlusterFS volumes, install the gluster client by the ``yum install -y glusterfs-fuse`` command.
+	heketi-cli --server http://heketi:8080 cluster list
+	Clusters: 88fa719937edf4b3b3822b4abf825c6b
+	
+	heketi-cli --server http://heketi:8080 node list
+	Id:43fa07bc2c2156c98c1f959860cf94b1     Cluster:88fa719937edf4b3b3822b4abf825c6b
+	Id:db2f0baad1bbb5868f8e65f82e7ca905     Cluster:88fa719937edf4b3b3822b4abf825c6b
+	Id:e93ba25f09c74938064bfaca0d5697fe     Cluster:88fa719937edf4b3b3822b4abf825c6b
 
 
+Create a gluster volume to verify Heketi:
+
+	heketi-cli --server http://heketi:8080 volume create --size=1
+	Name: vol_7ce4d0cbc77fe36b84ca26a5e4172dbe
+	Size: 1
+	Volume Id: 7ce4d0cbc77fe36b84ca26a5e4172dbe
+	Cluster Id: 88fa719937edf4b3b3822b4abf825c6b
+	Mount: 10.10.10.120:vol_7ce4d0cbc77fe36b84ca26a5e4172dbe
+	Mount Options: backup-volfile-servers=10.10.10.121,10.10.10.122
+	Durability Type: replicate
+	Distributed+Replica: 3
 
 
+### Dynamically Provision a GlusterFS volume
+Define a storage class for the gluster provisioner
+```yaml
+kind: StorageClass
+apiVersion: storage.k8s.io/v1beta1
+metadata:
+  name: glusterfs-storage-class
+  labels:
+provisioner: kubernetes.io/glusterfs
+reclaimPolicy: Delete
+parameters:
+  resturl: "http://heketi:8080"
+  volumetype: "replicate:3"
+```
+
+Make sure the ``resturl`` parameter is reporting the Heketi server and port.
+
+Create the storage class
+
+	kubectl create -f gluster-storage-class.yaml
+
+To make the kubernetes worker nodes able to consume GlusterFS volumes, install the gluster client on all worker nodes
+
+	yum install -y glusterfs-fuse
+
+Define a volume claim in the gluster storage class
+
+```yaml
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: apache-volume-claim
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 500Mi
+  storageClassName: glusterfs-storage-class
+```
+
+and an apache pod that is using that volume claim for its static html repository
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: apache-gluster-pod
+  labels:
+    name: apache-gluster-pod
+spec:
+  containers:
+  - name: apache-gluster-pod
+    image: centos/httpd:latest
+    ports:
+    - name: web
+      containerPort: 80
+      protocol: TCP
+    volumeMounts:
+    - mountPath: "/var/www/html"
+      name: html
+  volumes:
+  - name: html
+    persistentVolumeClaim:
+      claimName: apache-volume-claim
+  dnsPolicy: ClusterFirst
+  restartPolicy: Always
+```
+
+Create the storage class, the volume claim and the apache pod
+
+	kubectl create -f glusterfs-storage-class.yaml
+	kubectl create -f pvc-gluster.yaml
+	kubectl create -f apache-pod-pvc.yaml
+
+Check the volume claim
+
+	kubectl get pvc
+	NAME                  STATUS    VOLUME         CAPACITY   ACCESS MODES   STORAGECLASS              AGE
+	apache-volume-claim   Bound     pvc-4af76e0f   1Gi        RWX            glusterfs-storage-class   7m
+
+The volume claim is bound to a dynamically created volume on the gluster storage backend
+
+	kubectl get pv
+	NAME           CAPACITY   ACCESS MODES   RECLAIM POLICY   STATUS    CLAIM                 STORAGECLASS
+	pvc-4af76e0f   1Gi        RWX            Delete           Bound     apache-volume-claim   glusterfs-storage-class
+
+Cross check through the Heketi
+
+ 	heketi-cli --server http://heketi:8080 volume list
+	Id:7ce4d0cbc77fe36b84ca26a5e4172dbe    Cluster:88fa719937edf4b3b3822b4abf825c6b    Name:vol_7ce4d0cbc77fe36b84ca26a5e4172dbe
+
+In the same way, the gluster volume is dynamically removed when the claim is removed
+
+	kubectl delete pvc apache-volume-claim
+	kubectl get pvc,pv
+	No resources found.
 
 
-
-
+	
+	
+	
+	
+	
+	
+	

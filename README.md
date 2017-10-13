@@ -33,10 +33,13 @@
     * [Ingress controller](./content/ingress.md)
 
 5. [Storage](./content/storage.md)
-    * [Local Persistent Volume](./content/storage.md#local-persistent-volume)
+    * [Local Persistent Volumes](./content/storage.md#local-persistent-volumes)
     * [Volume Access Mode](./content/storage.md#volume-access-mode)
+    * [Volume State](./content/storage.md#volume-state)
     * [Volume Reclaim Policy](./content/storage.md#volume-reclaim-policy)
-    * [NFS Persistent Volume](./content/storage.md#nfs-persistent-volume)
+    * [Manual volumes provisioning](./content/storage.md#manual-volumes-provisioning)
+    * [Storage Classes](./content/storage.md#storage-classes)
+    * [Dynamic volumes provisioning](./content/storage.md#dynamic-volumes-provisioning)
     
 6. [Additional Concepts](./content/additional.md)
     * [Namespaces](./content/additional.md#namespaces)

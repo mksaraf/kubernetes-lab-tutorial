@@ -58,7 +58,7 @@
 
 9. [Multitenancy](./content/multitenancy.md)
    * [Namespaces](./content/multitenancy.md#namespaces)
-   * [Quotas and Limits](./content/multitenancy.md#squotas-and-limits)
+   * [Quotas and Limits](./content/multitenancy.md#quotas-and-limits)
 
 ## Disclaimer
 This tutorial is for personal use only. This is just a lab guide, not a documentation for Kubernets, please go to their online

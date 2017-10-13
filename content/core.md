@@ -7,6 +7,7 @@ In this section we're going through core concepts of Kubernetes:
    * [Deployments](#deployments)
    * [Services](#services)
    * [Volumes](#volumes)
+   * [Daemon Sets](#daemon-sets)
       
 ## Pods    
 In Kubernetes, a group of one or more containers is called a pod. Containers in a pod are deployed together, and are started, stopped, and replicated as a group. The simplest pod definition describes the deployment of a single container. For example, an nginx web server pod might be defined as such
@@ -623,3 +624,118 @@ Data in host dir volume will survive to any crash and restart of both container 
     Hello from kubew05
 
 This works because we forced kubernetes to schedule the nginx pod always on the same host node.
+
+## Daemon Sets
+A Daemon Set is a special controller type. It ensures that all nodes in the cluster run a pod. As new node is added to the cluster, a new pod is added to the node. As the node is removed from the cluster, the pod running on it is removed and not scheduled on another node. Deleting a Daemon Set will clean up all the pods it created.
+
+The configuration file ``nginx-daemon-set.yaml`` defines a daemon set for the nginx application
+```yaml
+apiVersion: extensions/v1beta1
+kind: DaemonSet
+metadata:
+  labels:
+    run: nginx
+  name: nginx-ds
+  namespace:
+spec:
+  selector:
+    matchLabels:
+      run: nginx-ds
+  template:
+    metadata:
+      labels:
+        run: nginx-ds
+    spec:
+      containers:
+      - image: nginx:latest
+        imagePullPolicy: Always
+        name: nginx
+        ports:
+        - containerPort: 80
+          protocol: TCP
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 30
+```
+
+Create the daemon set and get information about id 
+
+    kubectl create -f nginx-daemon-set.yaml
+    
+    kubectl get ds nginx-ds -o wide
+    NAME     DESIRED CURRENT READY UP-TO-DATE AVAILABLE NODE-SELECTOR  AGE CONTAINER(S) IMAGE(S)     SELECTOR
+    nginx-ds 3       3       3     3          3         <none>         4m  nginx        nginx:latest run=nginx-ds
+
+There are exactly three pods since we have three nodes
+
+    kubectl get pods -o wide
+    NAME                     READY     STATUS    RESTARTS   AGE       IP           NODE
+    nginx-ds-b9rnc           1/1       Running   0          7m        10.38.0.20   kubew05
+    nginx-ds-k5898           1/1       Running   0          7m        10.38.1.25   kubew04
+    nginx-ds-nfr32           1/1       Running   0          7m        10.38.2.17   kubew03
+
+and each pod is running on a different node.
+
+Trying to delete a node from the cluster, the running pod on it is removed and not scheduled on other nodes as happens with other types of controllers
+
+    kubectl delete node kubew03
+
+    kubectl get pods -o wide
+    NAME                     READY     STATUS    RESTARTS   AGE       IP           NODE
+    nginx-ds-b9rnc           1/1       Running   0          7m        10.38.0.20   kubew05
+    nginx-ds-k5898           1/1       Running   0          7m        10.38.1.25   kubew04
+
+Adding back the node to the cluster, we can see a new pod scheduled on that node.
+
+    kubectl get pods -o wide
+    NAME                     READY     STATUS    RESTARTS   AGE       IP           NODE
+    nginx-ds-b9rnc           1/1       Running   0          7m        10.38.0.20   kubew05
+    nginx-ds-k5898           1/1       Running   0          7m        10.38.1.25   kubew04
+    nginx-ds-61swl           1/1       Running   0          3s        10.38.2.18   kubew03
+
+To delete a daemon set
+
+    kubectl delete ds nginx-ds
+
+A daemon set object is not controlled by the kubernetes scheduler since there is only a pod for each node. As a test, login to the master node and stop the scheduler
+
+    systemctl stop kube-scheduler
+
+Now create the daemon set
+
+    kubectl create -f nginx-daemon-set.yaml
+
+We can see pods scheduled on each node
+
+    kubectl get pods -o wide
+    NAME                     READY     STATUS    RESTARTS   AGE       IP           NODE
+    nginx-ds-b9rnc           1/1       Running   0          7m        10.38.0.20   kubew05
+    nginx-ds-k5898           1/1       Running   0          7m        10.38.1.25   kubew04
+    nginx-ds-nfr32           1/1       Running   0          7m        10.38.2.17   kubew03
+    
+It is possible to esclude some nodes from the daemon set by forcing the node selector. For example to run a nginx pod only on the ``worker03`` node, set the node selecto in the ``nginx-daemon-set.yaml`` configuration file above
+
+```yaml
+...
+    spec:
+      containers:
+      - image: nginx:latest
+        imagePullPolicy: Always
+        name: nginx
+        ports:
+        - containerPort: 80
+          protocol: TCP
+...
+      nodeSelector:
+        kubernetes.io/hostname: kubew03
+
+```
+
+Create the new daemon set and cjeck the pods running on the nodes
+
+    kubectl create -f nginx-daemon-set.yaml
+    
+    kubectl get pods -o wide
+    NAME                     READY     STATUS    RESTARTS   AGE       IP           NODE
+    nginx-ds-vwm8w           1/1       Running   0          2m        10.38.2.20   kubew03
+

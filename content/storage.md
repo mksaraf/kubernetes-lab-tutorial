@@ -642,19 +642,10 @@ The volume claim is bound to a dynamically created volume on the gluster storage
 Cross check through the Heketi
 
  	heketi-cli --server http://heketi:8080 volume list
-	Id:7ce4d0cbc77fe36b84ca26a5e4172dbe Cluster:88fa719937edf4b3b3822b4abf825c6b Name:vol_7ce4d0cbc77fe36b84ca26a5e4172dbe
+	Id:7ce4d0cbc77fe36b84ca26a5e4172dbe Name:vol_7ce4d0cbc77fe36b84ca26a5e4172dbe ...
 
 In the same way, the gluster volume is dynamically removed when the claim is removed
 
 	kubectl delete pvc apache-volume-claim
 	kubectl get pvc,pv
 	No resources found.
-
-
-	
-	
-	
-	
-	
-	
-	

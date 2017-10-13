@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: apache-gluster-pod
+  labels:
+    name: apache-gluster-pod
+spec:
+  containers:
+  - name: apache-gluster-pod
+    image: centos/httpd:latest
+    ports:
+    - name: web
+      containerPort: 80
+      protocol: TCP
+    volumeMounts:
+    - mountPath: "/var/www/html"
+      name: html
+  volumes:
+  - name: html
+    persistentVolumeClaim:
+      claimName: apache-volume-claim
+  dnsPolicy: ClusterFirst
+  restartPolicy: Always

@@ -24,6 +24,7 @@
     * [Deployments](./content/core.md#deployments)
     * [Services](./content/core.md#services)
     * [Volumes](./content/core.md#volumes)
+    * [Daemon Sets](./content/core.md#daemon-sets)
     
 4. [Networking](./content/network.md)
     * [Pod Networking](./content/network.md#pod-networking)
@@ -41,26 +42,22 @@
     * [Storage Classes](./content/storage.md#storage-classes)
     * [Dynamic volumes provisioning](./content/storage.md#dynamic-volumes-provisioning)
     
-6. [Additional Concepts](./content/additional.md)
-    * [Namespaces](./content/additional.md#namespaces)
-    * [Quotas and Limits](./content/additional.md#quotas-and-limits)
-    * [Daemon Sets](./content/additional.md#daemon-sets)
-    
-7. [Cluster Healing](./content/admin.md)
+6. [Cluster Healing](./content/admin.md)
     * [Cluster Backup and Restore](./content/admin.md#cluster-backup-and-restore)
     * [Control Plane Failure](./content/admin.md#control-plane-failure)
     * [Worker Failure](./content/admin.md#worker-failure)
 
-8. [Securing the Cluster](./content/secure.md)
+7. [Securing the Cluster](./content/secure.md)
     * [Create TLS certificates](./content/secure.md#create-tls-certificates)
     * [Securing etcd](./content/secure.md#securing-etcd)
     * [Securing the master](./content/secure.md#securing-the-master)
     * [Accessing the server](./content/secure.md#accessing-the-server)   
     * [Securing the worker](./content/secure.md#securing-the-worker)
 
-9. [Scaling the Control Plane](./content/info.md)
+8. [Scaling the Control Plane](./content/info.md)
 
-10. [Users Management](./content/info.md)
+9. [Users Management](./content/info.md)
+    * [Namespaces](./content/additional.md#namespaces)
 
 ## Disclaimer
 This tutorial is for personal use only. This is just a lab guide, not a documentation for Kubernets, please go to their online

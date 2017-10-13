@@ -247,7 +247,7 @@ We see the volume remain in the released status and not becomes available since 
 An administrator can manually reclaim the volume by deleteting the volume and creating a another one.
 
 ## Manual volumes provisioning
-In this section we're going to use a NFS storage backend for manual provisioning of shared volumes. Main limit of local storage for container volumes is that storage area is tied to the host where it resides. If kubernetes moves the pod from another host, the moved pod is no more to access the data since local storage is not shared between multiple hosts of the cluster. To achieve a more useful storage backend we need to leverage on a shared storage technology like NFS.
+In this section we're going to use a **Network File System** storage backend for manual provisioning of shared volumes. Main limit of local storage for container volumes is that storage area is tied to the host where it resides. If kubernetes moves the pod from another host, the moved pod is no more to access the data since local storage is not shared between multiple hosts of the cluster. To achieve a more useful storage backend we need to leverage on a shared storage technology like NFS.
 
 We'll assume a simple external NFS server ``fileserver``	sharing some folders. To make worker nodes able to consume these NFS shares, install the NFS client on all the worker nodes by ``yum install -y nfs-utils`` command.
 
@@ -425,7 +425,7 @@ Check the storage classes
 If the cluster administrator defines a default storage class, all claims that do not require any class will be dynamically bound to volumes having the default storage class. 
 
 ## Dynamic volumes provisioning
-In this section we're going to use a GlusterFS storage backend for dynamic provisioning of shared volumes. We'll assume an external GlusterFS cluster made of three nodes providing a distributed and high available file system. Details on GlusterFS can be found [here](https://www.gluster.org/).
+In this section we're going to use a **GlusterFS** distributed storage backend for dynamic provisioning of shared volumes. We'll assume an external GlusterFS cluster made of three nodes providing a distributed and high available file system. Details on **GlusterFS** can be found [here](https://www.gluster.org/).
 
 ### Setup the GlusterFS environment
 The GlusterFS cluster is made of three nodes:
@@ -438,7 +438,7 @@ each one exposing two row devices: ``/dev/vg00/brick00`` and ``/dev/vg01/brick01
 
 To manage the Gluster cluster storage, i.e. adding volumes, removing volumes, etc., we are going to install an additional **Heketi** server on one of the gluster node. As alternative, the **Heketi** can be installed on a stand-alone machine as system service or it can be deployed as container based service running on the same kubernetes cluster.
 
-Install the Heketi service on one of the gluster node
+Install the Heketi server and the cli client on one of the gluster node
 
     yum install heketi heketi-client -y
 
@@ -486,26 +486,25 @@ Check the connection to Heketi
     curl http://gluster00:8080/hello
     Hello from Heketi
 
-Now we're going to load the cluster topology into Heketi. Topology is used to tell Heketi about the environment and what nodes and devices it has to manage. Create a ``/etc/heketi/topology.json`` configuration file describing all nodes in the cluster topology
+A topology file is used to tell Heketi about the environment and what nodes and devices it has to manage. Create a ``/etc/heketi/topology.json`` configuration file describing all nodes in the cluster topology
 ```json
-                {
-                    "node": {
-                        "hostnames": {
-                            "manage": [
-                                "gluster00"
-                            ],
-                            "storage": [
-                                "10.10.10.120"
-                            ]
-                        },
-                        "zone": 1
-                    },
-                    "devices": [
-                        "/dev/vg00/brick00",
-                        "/dev/vg01/brick01"
-                    ]
-                }
+{"clusters":
+    [
+		{
+			"nodes":
+			[
+				{"node": {"hostnames": {"manage": ["gluster00"], "storage": ["10.10.10.120"]}, "zone": 1}, "devices": ["/dev/vg00/brick00", "/dev/vg01/brick01"]},
+				{"node": {"hostnames": {"manage": ["gluster01"], "storage": ["10.10.10.121"]}, "zone": 1}, "devices": ["/dev/vg00/brick00", "/dev/vg01/brick01"]},
+				{"node": {"hostnames": {"manage": ["gluster02"], "storage": ["10.10.10.122"]}, "zone": 1}, "devices": ["/dev/vg00/brick00", "/dev/vg01/brick01"]}
+			]
+		}
+    ]
+}
 ```
+
+Now we're going to load the cluster topology into Heketi.
+
+
 
 To make the worker nodes able to consume GlusterFS volumes, install the gluster client by the ``yum install -y glusterfs-fuse`` command.
 

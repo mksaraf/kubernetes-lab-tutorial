@@ -509,12 +509,13 @@ A topology file is used to tell Heketi about the environment and what nodes and 
                   "/dev/vg01/brick01"
                ]
             },
-// add other nodes here
-...
+// other nodes here ...
 ```
 
 Load the cluster topology into Heketi by the Heketi cli
 
+	heketi-cli --server http://heketi:8080 topology load --json=topology.json
+	
 	Creating cluster ... ID: 88fa719937edf4b3b3822b4abf825c6b
         Creating node gluster00 ... ID: db2f0baad1bbb5868f8e65f82e7ca905
                 Adding device /dev/vg00/brick00 ... OK
@@ -641,7 +642,7 @@ The volume claim is bound to a dynamically created volume on the gluster storage
 Cross check through the Heketi
 
  	heketi-cli --server http://heketi:8080 volume list
-	Id:7ce4d0cbc77fe36b84ca26a5e4172dbe    Cluster:88fa719937edf4b3b3822b4abf825c6b    Name:vol_7ce4d0cbc77fe36b84ca26a5e4172dbe
+	Id:7ce4d0cbc77fe36b84ca26a5e4172dbe Cluster:88fa719937edf4b3b3822b4abf825c6b Name:vol_7ce4d0cbc77fe36b84ca26a5e4172dbe
 
 In the same way, the gluster volume is dynamically removed when the claim is removed
 

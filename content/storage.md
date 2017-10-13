@@ -457,7 +457,7 @@ set the ownership of the key pair
     chown heketi:heketi /etc/heketi/heketi_key*
 
 Now configure the Heketi server by editing the ``/etc/heketi/heketi.json`` configuration file as following
-```json
+```
 ...
   "_port_comment": "Heketi Server Port Number",
   "port": "8080",

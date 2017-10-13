@@ -371,7 +371,7 @@ Since all three pods mount the same shared folder on the NFS, the just created h
     Hello from NFS!
 
 ### Volume selectors
-A volume claim can define a label selector to bound a specific volume. For example, define a claim as in the pvc-volume-selector.yaml configuration file
+A volume claim can define a label selector to bound a specific volume. For example, define a claim as in the ``pvc-volume-selector.yaml`` configuration file
 ```yaml
 kind: PersistentVolumeClaim
 apiVersion: v1

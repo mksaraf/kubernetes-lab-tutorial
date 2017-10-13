@@ -2,7 +2,7 @@
 In this section we are going to cover additional concepts related to the sharing of a kubernetes cluster across multiple teams, projects and users.
 
    * [Namespaces](#namespaces)
-   * [Quotas and Limits](#squotas-and-limits)
+   * [Quotas and Limits](#quotas-and-limits)
 
 ## Namespaces
 Kubernetes supports multiple virtual clusters backed by the same physical cluster. These virtual clusters are called namespaces. Within the same namespace, kubernetes objects name should be unique. Different objects in different namespaces may have the same name.

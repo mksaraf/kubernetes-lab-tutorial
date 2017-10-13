@@ -1,12 +1,11 @@
-# Additional Concepts
-In this section, we are going to explore additional objects in Kubernetes.
+# Multitenancy
+In this section we are going to cover additional concepts related to the sharing of a kubernetes cluster across multiple teams, projects and users.
 
    * [Namespaces](#namespaces)
-   * [Quotas and Limits](#quotas-and-limits)
-   * [Daemon Sets](#daemon-sets)
-      
+   * [Quotas and Limits](#squotas-and-limits)
+
 ## Namespaces
-Kubernetes supports multiple virtual clusters backed by the same physical cluster. These virtual clusters are called namespaces. Namespaces are intended for use in environments with many users spread across multiple teams, or projects. Within the same namespace, kubernetes objects name should be unique. Different objects in different namespaces may have the same name.
+Kubernetes supports multiple virtual clusters backed by the same physical cluster. These virtual clusters are called namespaces. Within the same namespace, kubernetes objects name should be unique. Different objects in different namespaces may have the same name.
 
 Kubernetes comes with two initial namespaces
 
@@ -36,7 +35,7 @@ To see objects belonging to a specific namespace
     po/nginx-2480045907-56t21   1/1       Running   0          52s
     po/nginx-2480045907-8n2t5   1/1       Running   0          52s
 
-or objects belonging to all nemespaces
+or objects belonging to all namespaces
 
     kubectl get service --all-namespaces
     NAMESPACE     NAME                   CLUSTER-IP       EXTERNAL-IP   PORT(S)          AGE

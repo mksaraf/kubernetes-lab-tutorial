@@ -18,9 +18,9 @@ In this section we're going to introduce this model by using simple examples. Pl
   * [Volume Access Mode](#volume-access-mode)
   * [Volume State](#volume-state)
   * [Volume Reclaim Policy](#volume-reclaim-policy)
-  * [NFS Persistent Volumes](#nfs-persistent-volumes)
+  * [Manual volumes provisioning](#manual-volumes-provisioning)
   * [Storage Classes](#storage-classes)
-  * [GlusterFS Persistent Volumes](#glusterfs-persistent-volumes)
+  * [Dynamic volumes provisioning](#dynamic-volumes-provisioning)
 
 ## Local Persistent Volumes
 Start by defining a persistent volume ``local-persistent-volume-recycle.yaml`` configuration file
@@ -427,7 +427,7 @@ If the cluster administrator defines a default storage class, all claims that do
 ## Dynamic volumes provisioning
 In this section we're going to use a GlusterFS storage backend for dynamic provisioning of shared volumes. We'll assume an external GlusterFS cluster made of three nodes providing a distributed and high available file system. Details on GlusterFS can be found [here](https://www.gluster.org/).
 
-### Setup the environment
+### Setup the GlusterFS environment
 The GlusterFS cluster is made of three nodes:
 
    * gluster00 with IP 10.10.10.120

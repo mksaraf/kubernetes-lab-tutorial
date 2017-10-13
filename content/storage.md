@@ -356,20 +356,67 @@ Check all pods are up and running
 Login to one of these pods and create some html content
 
     kubectl exec -it nginx-pvc-3474572923-3cxnf bash
-    root@nginx-pvc-3474572923-3cxnf:/# cd /usr/share/nginx/html                 
-    root@nginx-pvc-3474572923-3cxnf:/usr/share/nginx/html# echo "Hello from NFS" > index.html
-    root@nginx-pvc-3474572923-3cxnf:/usr/share/nginx/html# exit
+    root@nginx-pvc-3474572923-3cxnf:/# echo 'Hello from NFS!' > /usr/share/nginx/html/index.html                
+    root@nginx-pvc-3474572923-3cxnf:/# exit
 
 Since all three pods mount the same shared folder on the NFS, the just created html content is placed on the NFS share and it is accessible from any of the three pods
 
     curl 10.38.5.89    
-    Hello from NFS
+    Hello from NFS!
     
     curl 10.38.5.90
-    Hello from NFS
+    Hello from NFS!
     
     curl 10.38.3.140
-    Hello from NFS
+    Hello from NFS!
+
+### Volume selectors
+A volume claim can define a label selector to bound a specific volume. For example, define a claim as in the pvc-volume-selector.yaml configuration file
+```yaml
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: pvc-volume-selector
+spec:
+  storageClassName: manual
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 500Mi
+  selector:
+    matchLabels:
+      volumeName: "share00"
+```
+
+Create the claim
+
+	kubectl create -f pvc-volume-selector.yaml
+
+The claim remains pending because there are no matching volumes
+
+	kubectl get pvc
+	NAME                  STATUS    VOLUME    CAPACITY   ACCESS MODES   STORAGECLASS   AGE
+	pvc-volume-selector   Pending                                       manual         5s
+	
+	kubectl get pv
+	NAME      CAPACITY   ACCESS MODES   RECLAIM POLICY   STATUS      CLAIM     
+	share00   1Gi        RWX            Recycle          Available             
+	share01   1Gi        RWX            Recycle          Available             
+	share02   1Gi        RWX            Recycle          Available             
+
+Pick the volume named ``share00`` and label it
+
+	kubectl label pv share00 volumeName="share00"
+	persistentvolume "share00" labeled
+	
+And check if the claim bound the volume
+
+	kubectl get pv
+	NAME      CAPACITY   ACCESS MODES   RECLAIM POLICY   STATUS      CLAIM                         
+	share00   1Gi        RWX            Recycle          Bound       project/pvc-volume-selector   
+	share01   1Gi        RWX            Recycle          Available                                 
+	share02   1Gi        RWX            Recycle          Available                                 
 
 ## Storage Classes
 A Persistent Volume uses a given storage class specified into its definition file. A claim can request a particular class by specifying the name of a storage class in its definition file. Only volumes of the requested class can be bound to the claim requesting that class.

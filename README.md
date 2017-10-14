@@ -24,7 +24,7 @@
     * [Deployments](./content/core.md#deployments)
     * [Services](./content/core.md#services)
     * [Volumes](./content/core.md#volumes)
-    * [Daemon Sets](./content/core.md#daemon-sets)
+    * [Daemons](./content/core.md#daemons)
     
 4. [Networking](./content/network.md)
     * [Pod Networking](./content/network.md#pod-networking)

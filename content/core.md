@@ -7,7 +7,7 @@ In this section we're going through core concepts of Kubernetes:
    * [Deployments](#deployments)
    * [Services](#services)
    * [Volumes](#volumes)
-   * [Daemon Sets](#daemon-sets)
+   * [Daemons](#daemons)
       
 ## Pods    
 In Kubernetes, a group of one or more containers is called a pod. Containers in a pod are deployed together, and are started, stopped, and replicated as a group. The simplest pod definition describes the deployment of a single container. For example, an nginx web server pod might be defined as such
@@ -538,12 +538,12 @@ we get *forbidden* since the html content dir (mounted as volume) is initially e
 Login to the worker node and populate the volume dir with an html file
 
     [root@kubew03 ~]# cd /var/lib/kubelet/pods/<POD_ID>/volumes/kubernetes.io~empty-dir/content-data
-    echo "The emptyDir volumes are placed under" $(pwd) > index.html
+    echo "Hello World from " $(pwd) > index.html
 
 Now we should be able to get an answer from the pod
 
     curl 10.38.3.167
-    The emptyDir volumes are placed under /var/lib/kubelet/pods/<POD_ID>/volumes/kubernetes.io~empty-dir/content-data
+    Hello World from /var/lib/kubelet/pods/<POD_ID>/volumes/kubernetes.io~empty-dir/content-data
 
 With the ``emptyDir`` volume type, data in the volume is removed when the pod is deleted from the node where it was running. To achieve data persistence across pod deletion or relocation, we need for a persistent shared storage alternative. 
 
@@ -625,8 +625,8 @@ Data in host dir volume will survive to any crash and restart of both container 
 
 This works because we forced kubernetes to schedule the nginx pod always on the same host node.
 
-## Daemon Sets
-A Daemon Set is a special controller type. It ensures that all nodes in the cluster run a pod. As new node is added to the cluster, a new pod is added to the node. As the node is removed from the cluster, the pod running on it is removed and not scheduled on another node. Deleting a Daemon Set will clean up all the pods it created.
+## Daemons
+A Daemon Set is a controller type ensuring each node in the cluster runs a pod. As new node is added to the cluster, a new pod is added to the node. As the node is removed from the cluster, the pod running on it is removed and not scheduled on another node. Deleting a Daemon Set will clean up all the pods it created.
 
 The configuration file ``nginx-daemon-set.yaml`` defines a daemon set for the nginx application
 ```yaml

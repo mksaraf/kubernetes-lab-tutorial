@@ -211,7 +211,120 @@ Clone the repo
     cd consul-sts
 
 ### Bootstrap the cluster
-Create first the headless service for the Stateful Set
+First define a headless service for the Stateful Set as in the ``consul-svc.yaml`` configuration file
+```yaml
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: consul
+  labels:
+    app: consul
+spec:
+  ports:
+  - name: rpc
+    port: 8300
+    targetPort: 8300
+  - name: lan
+    port: 8301
+    targetPort: 8301
+  - name: wan
+    port: 8302
+    targetPort: 8302
+  - name: http
+    port: 8500
+    targetPort: 8500
+  - name: dns
+    targetPort: 8600
+    port: 8600
+  clusterIP: None
+  selector:
+    app: consul
+```
+
+Then define a Stateful Set for the Consul cluster as in the ``consul-sts.yaml`` configuration file
+```yaml
+---
+apiVersion: apps/v1beta2
+kind: StatefulSet
+metadata:
+  name: consul
+  namespace:
+  labels:
+    type: statefulset
+spec:
+  serviceName: consul
+  replicas: 3
+  selector:
+    matchLabels:
+      app: consul
+  template:
+    metadata:
+      labels:
+        app: consul
+    spec:
+      containers:
+      - name: consul
+        image: consul:latest
+        env:
+          - name: POD_IP
+            valueFrom:
+              fieldRef:
+                fieldPath: status.podIP
+          - name: POD_NAMESPACE
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.namespace
+        ports:
+        - name: rpc
+          containerPort: 8300
+        - name: lan
+          containerPort: 8301
+        - name: wan
+          containerPort: 8302
+        - name: http
+          containerPort: 8500
+        - name: dns
+          containerPort: 8600
+        volumeMounts:
+        - name: consuldata
+          mountPath: /consul/data
+        - name: configdata
+          mountPath: /consul/config
+        args:
+        - agent
+        - -server
+        - -datacenter=kubernetes
+        - -data-dir=/consul/data
+        - -log-level=trace
+        - -config-file=/consul/config/consul.json
+        - -client=0.0.0.0
+        - -advertise=$(POD_IP)
+        - -advertise-wan=127.0.0.1
+        - -serf-wan-bind=127.0.0.1
+        - -bootstrap-expect=3
+        - -retry-join=consul-0.consul.$(POD_NAMESPACE).svc.cluster.local
+        - -retry-join=consul-1.consul.$(POD_NAMESPACE).svc.cluster.local
+        - -retry-join=consul-2.consul.$(POD_NAMESPACE).svc.cluster.local
+        - -domain=cluster.local
+        - -ui
+      volumes:
+        - name: configdata
+          configMap:
+            name: consulconfigdata
+  volumeClaimTemplates:
+  - metadata:
+      name: consuldata
+    spec:
+      accessModes:
+        - ReadWriteOnce
+      resources:
+        requests:
+          storage: 1Gi
+      storageClassName: default
+```
+
+Create the headless service
 
     kubectl create -f consul-svc.yaml
 

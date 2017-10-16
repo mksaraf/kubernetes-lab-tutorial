@@ -122,7 +122,6 @@ Start a busybox shell and check the service resolution
 The example above does not provide storage persistence across pod deletions and restarts. To achieve persistance of data, as required in a stateful application, the Stateful Set leverages on the Persistant Volume Claim model on a shared storage environment. Here the ``apache-sts-pvc.yaml`` configuration file adding data persistance to the example above
 
 ```yaml
-
 ---
 apiVersion: apps/v1beta2
 kind: StatefulSet
@@ -153,7 +152,7 @@ spec:
       name: www
     spec:
       accessModes:
-        - ReadWriteMany
+        - ReadWriteOnce
       resources:
         requests:
           storage: 1Gi
@@ -177,9 +176,9 @@ Each pod in the stateful set will claim for a volume where to store its persiste
 
     kubectl get pvc
     NAME                  STATUS    VOLUME          CAPACITY   ACCESS MODES   STORAGECLASS 
-    www-apache-0          Bound     pvc-1789513b2   2Gi        RWX            default  
-    www-apache-1          Bound     pvc-306a1f362   2Gi        RWX            default 
-    www-apache-2          Bound     pvc-484a031f2   2Gi        RWX            default 
+    www-apache-0          Bound     pvc-1789513b2   2Gi        RWO            default  
+    www-apache-1          Bound     pvc-306a1f362   2Gi        RWO            default 
+    www-apache-2          Bound     pvc-484a031f2   2Gi        RWO            default 
 
 For each pod, write the index.html file and check that the pod serves its own page
 
@@ -193,4 +192,155 @@ For each pod, write the index.html file and check that the pod serves its own pa
     Welcome from apache-1
     Welcome from apache-2
 
+The example above can be scaled up and down preserving the identity of each pod along with their persistant data.
 
+## Deploy a Consul cluster
+HashiCorp Consul is a distributed key-value store with service discovery. Consul is based on the Raft alghoritm for distributed consensus. Details about Consul and how to configure and use it can be found on the product documentation.
+
+The most difficult part to run a Consul cluster on Kubernetes is how to form a cluster having Consul strict requirements about instance names of nodes being part of it. In this section we are going to deploy a three node Consul cluster by using the stateful set controller.
+
+### Prerequisites
+We assume a persistent shared storage environment is available to the kubernetes cluster. This is because each Consul node uses a data directory where to store the status of the cluster and this directory needs to be preserved across pod deletions and restarts. A default storage class needs to be created before to try to implement this example.
+
+### Configuration files
+Configuration files for this example are available [here](https://github.com/kalise/consul-sts).
+
+Clone the repo
+
+    git clone https://github.com/kalise/consul-sts
+    cd consul-sts
+
+### Bootstrap the cluster
+Create first the headless service for the Stateful Set
+
+    kubectl create -f consul-svc.yaml
+
+    kubectl get svc -o wide
+    NAME    TYPE       CLUSTER-IP EXTERNAL-IP PORT(S)                                        AGE  SELECTOR
+    consul  ClusterIP  None       <none>      8300/TCP,8301/TCP,8302/TCP,8500/TCP,8600/TCP   25s  app=consul
+
+The presence of headless service, ensure node discovery for the Consul cluster.
+
+Create a Config Map for Consul configuration file
+
+    kubectl create configmap consulconfigdata --from-file=consul.json
+    
+Create a Stateful Set of three nodes
+
+    kubectl create -f consul-sts.yaml
+
+The Consul pods will be created in a strict order with a predictable name
+
+    kubectl get pods -o wide
+    NAME            READY     STATUS    RESTARTS   AGE       IP           NODE
+    consul-0        1/1       Running   0          7m        10.38.5.95   kubew05
+    consul-1        1/1       Running   0          6m        10.38.3.88   kubew03
+    consul-2        1/1       Running   0          5m        10.38.5.96   kubew05
+
+Each pod creates its own volume where to store its data
+
+    kubectl get pvc
+    NAME                  STATUS    VOLUME         CAPACITY   ACCESS MODES   STORAGECLASS 
+    consuldata-consul-0   Bound     pvc-7bf6c16e   2Gi        RWO            default 
+    consuldata-consul-1   Bound     pvc-951e3b17   2Gi        RWO            default
+    consuldata-consul-2   Bound     pvc-adfbf7ce   2Gi        RWO            default
+    
+Consul cluster should be formed
+
+    kubectl exec -it consul-0 -- consul members
+    Node      Address          Status  Type    Build  Protocol  DC          Segment
+    consul-0  10.38.5.95:8301  alive   server  0.9.3  2         kubernetes  <all>
+    consul-1  10.38.3.88:8301  alive   server  0.9.3  2         kubernetes  <all>
+    consul-2  10.38.5.96:8301  alive   server  0.9.3  2         kubernetes  <all>
+
+and ready to be used by any other pod in the kubernetes cluster.
+
+Also each pod creates its own storage volume where to store its own copy of the distributed database
+
+    kubectl get pvc
+    NAME                  STATUS    VOLUME         CAPACITY   ACCESS MODES   STORAGECLASS   AGE
+    consuldata-consul-0   Bound     pvc-e975189c   2Gi        RWO            default        1h
+    consuldata-consul-1   Bound     pvc-02461605   2Gi        RWO            default        1h
+    consuldata-consul-2   Bound     pvc-1ac2d8d5   2Gi        RWO            default        1h
+
+### Access the cluster from pods
+Create a simple curl shell in a pod from the ``curl.yaml`` file
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: curl
+  namespace:
+spec:
+  containers:
+  - image: kalise/curl:latest
+    command:
+      - sleep
+      - "3600"
+    name: curl
+  restartPolicy: Always
+```
+
+Attach to the curl shell, create and retrieve a key/value pair in the Consul cluster
+
+    kubectl exec -it curl sh
+    / # curl --request PUT --data my-data http://consul:8500/v1/kv/my-key
+    true
+    / # curl --request GET http://consul:8500/v1/kv/my-key
+    [{"LockIndex":0,"Key":"my-key","Flags":0,"Value":"bXktZGF0YQ==","CreateIndex":336,"ModifyIndex":349}]
+    / # exit
+
+### Expose the cluster
+Consul provides a simple HTTP graphical interface on port 8500 for interact with it. To expose this interface to the external of the kubernetes cluster, define an service as in the ``consul-svc-ext.yaml`` configuration file
+```yaml
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: consul-ext
+  labels:
+    app: consul
+spec:
+  type: ClusterIP
+  ports:
+  - name: ui
+    port: 8500
+    targetPort: 8500
+  selector:
+    app: consul
+```
+
+Assuming we have an Ingress Controller in place, define the ingress as in the ``consul-ingress.yaml`` configuration file
+```yaml
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: consul
+spec:
+  rules:
+  - host: consul.cloud.example.com
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: consul-ext
+          servicePort: 8500
+```
+
+Create the service and expose it
+
+    kubectl create -f consul-svc-ext.yaml
+    kubectl create -f consul-ingress.yaml
+
+Point the browser to the http://consul.cloud.example.com/ui to access the GUI.
+
+### Cleanup everything
+Remove every object create in the previous steps
+
+    kubectl delete -f consul-ingress.yaml
+    kubectl delete -f consul-svc-ext.yaml
+    kubectl delete -f consul-sts.yaml
+    kubectl delete -f consul-svc.yaml
+    kubectl delete pvc consuldata-consul-0 consuldata-consul-1 consuldata-consul-2
+    kubectl delete configmap consulconfigdata

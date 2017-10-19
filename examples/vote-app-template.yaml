@@ -71,6 +71,15 @@ spec:
         volumeMounts:
           - name: seeds
             mountPath: /app/seeds
+        livenessProbe:
+          failureThreshold: 5
+          httpGet:
+            path: /index.html
+            port: 5000
+            scheme: HTTP
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5      
       dnsPolicy: ClusterFirst
       volumes:
       - name: seeds

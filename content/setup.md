@@ -399,7 +399,6 @@ To configure the proxy component, edit the ``/etc/systemd/system/kube-proxy.serv
       --master=http://10.10.10.80:8080 \
       --cluster-cidr=10.38.0.0/16 \
       --proxy-mode=iptables \
-      --masquerade-all=true \
       --v=2
 
     Restart=on-failure

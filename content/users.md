@@ -100,7 +100,9 @@ we see that a service account token has automatically been created
     default-token-xr7kb   kubernetes.io/service-account-token   3         3d
     nginx-token-9dx47     kubernetes.io/service-account-token   3         22m
 
-This token is used to authenticate the service account against the API server. To achieve token creation, we have to pass a service account private key file to the token controller in the controller-manager via the ``--service-account-private-key-file`` option to sign generated service account tokens. Similarly, we have to pass the corresponding public key to the API server using the ``--service-account-key-file`` option.
+Service accounts are tied to a set of credentials stored as secrets which are mounted into pods allowing in cluster processes to authenticate the service account against the API server.
+
+To achieve token creation for service accounts, we have to pass a private key file to the controller-manager via the ``--service-account-private-key-file`` option to sign generated service account tokens. Similarly, we have to pass the corresponding public key to the API server using the ``--service-account-key-file`` option.
 
 *Please, note that each time the public and private certificate keys change, we have to delete the service accounts, including the default service account for each namespace.*
 
@@ -142,4 +144,8 @@ Create the pod above and access the pod
     <html><head></head><body>Hello project from 10.38.4.9</body></html>
 
 we get an answer from the pod being in the namespace name ``project``.
+
+## Authentication
+
+
 

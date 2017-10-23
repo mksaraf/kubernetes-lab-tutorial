@@ -25,6 +25,8 @@
     * [Services](./content/core.md#services)
     * [Volumes](./content/core.md#volumes)
     * [Daemons](./content/core.md#daemons)
+    * [Namespaces](./content/core.md#namespaces)
+    * [Quotas and Limits](./content/core.md#quotas-and-limits)
     
 4. [Networking](./content/network.md)
     * [Pod Networking](./content/network.md#pod-networking)
@@ -56,9 +58,10 @@
 
 8. [Scaling the Control Plane](./content/info.md)
 
-9. [Multitenancy](./content/multitenancy.md)
-   * [Namespaces](./content/multitenancy.md#namespaces)
-   * [Quotas and Limits](./content/multitenancy.md#quotas-and-limits)
+9. [User Management](./content/users.md)
+   * [Service Accounts](./content/users.md)
+   * [Authentication](./content/users.md)
+   * [Authorization](./content/users.md)
 
 ## Disclaimer
 This tutorial is for personal use only. This is just a lab guide, not a documentation for Kubernets, please go to their online

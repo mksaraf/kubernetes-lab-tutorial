@@ -315,3 +315,176 @@ Create the certificates
       ${nodename}-csr.json | cfssljson -bare ${nodename}
 
 This will produce the ``${nodename}.pem`` certificate file containing the public key and the ``${nodename}-key.pem`` file, containing the private key. Move the key and certificate, along with the Certificate Authority certificate ``ca.pem`` to the kubelet proper location on the worker node and create the ``kubeconfig`` file as reported [here](./secure.md#securing-the-worker).
+
+The Node authorizer allows a kubelet to perform API operations, including read and write on the kubernetes objects. To limit the API objects kubelet are able to write, enable the Node Restriction admission control plugin by starting the apiserver with the ``--admission-control=NodeRestriction`` option.
+
+### RBAC
+The Role Based Access Control Authorization is enabled by passing the ``--authorization-mode=RBAC`` option to API server. It is general-purpose authorizer that regulates a given type of access, i.e. get, update, list, delete, to a given resource based on the roles of the individual user or the group the user is belonging to.
+
+#### Roles
+In RBAC, a role contains rules that represent a set of permissions. A role can be defined within a namespace with a **Role** object, granting access to resources within that single namespace. For example, the ``kube-system-viewer-role.yaml`` configuration file defines a role for pods viewer in the ``kube-system`` namespace
+```yaml
+kind: Role
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  namespace: kube-system
+  name: kube-system-pod-viewer
+rules:
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get", "watch", "list"]
+```
+
+A role is bound to a particular user or group of users by creating a **RoleBinding** object. For example, the ``kube-system-viewer-role-binding.yaml`` configuration file gives the user ``adriano`` the role of pod viewer in the ``kube-system`` namespace
+```yaml
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: kube-system-pod-viewer
+  namespace: kube-system
+subjects:
+- kind: User
+  name: adriano
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: Role
+  name: kube-system-pod-viewer
+  apiGroup: rbac.authorization.k8s.io
+```
+
+Create the role and role binding logged as admin user with cluster admin powers
+
+    kubectl create -f kube-system-viewer-role.yaml
+    kubectl create -f kube-system-viewer-role-binding.yaml
+
+Login as ``adriano`` user and list the pods in the ``kube-system`` namespace
+
+    kubectl get pods -n kube-system
+    NAME                                        READY     STATUS    RESTARTS   AGE
+    kube-dns-7797cb8758-5nxm2                   3/3       Running   0          3d
+    kube-dns-7797cb8758-7w8tr                   3/3       Running   0          3d
+    kube-dns-7797cb8758-nxmzr                   3/3       Running   0          3d
+ 
+Try to delete one of these pods
+
+      kubectl delete pod kube-dns-7797cb8758-5nxm2 -n kube-system
+      
+      Error from server (Forbidden): pods "kube-dns-7797cb8758-5nxm2" is forbidden:
+      User "adriano" cannot delete pods in the namespace "kube-system"
+
+Deleting a pod is not allowed.
+
+A role can be bound to all users belonging to a given group. For example, the following ``kube-system-viewer-role-binding-all-authenticated.yaml`` configuration file gives all authenticad users to be pod viewer in the ``kube-system`` namespace
+```yaml
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: kube-system-pod-viewer-all
+  namespace: kube-system
+subjects:
+- kind: Group
+  name: system:authenticated
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: Role
+  name: kube-system-pod-viewer
+  apiGroup: rbac.authorization.k8s.io
+```
+
+#### Cluster Roles
+A **ClusterRole** object can be used to grant the permissions at cluster level, instead of single namespace. They can also be used to grant access to cluster-scoped resources, like nodes, or namespaced resources, like pods, across all namespaces as in ``kubectl get pods --all-namespaces`` command.
+
+For example, the following ``nodes-viewer-cluster-role.yaml`` configuration file create a cluster-scoped role for getting worker nodes in the cluster
+```yaml
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  # "namespace" omitted since ClusterRoles are not namespaced
+  name: cluster:nodes-viewer
+rules:
+- apiGroups: [""]
+  resources: ["nodes"]
+  verbs: ["get", "watch", "list"]
+```
+
+The role above can be assigned, for example, to all authenticated users as defined in the ``nodes-viewer-cluster-role-binding.yaml`` configuration file
+```yaml
+kind: ClusterRoleBinding
+metadata:
+  name: cluster:nodes-viewer
+subjects:
+- kind: Group
+  name: system:authenticated
+roleRef:
+  kind: ClusterRole
+  name: cluster:nodes-viewer
+  apiGroup: rbac.authorization.k8s.io
+```
+
+Create the cluster role and the binding logged as admin user with cluster admin powers
+
+    kubectl create -f nodes-viewer-cluster-role.yaml
+    kubectl create -f nodes-viewer-cluster-role-binding.yaml
+
+Login as ``adriano`` user and list the worker nodes
+
+    kubectl get nodes
+    NAME      STATUS    ROLES     AGE       VERSION
+    kubew03   Ready     <none>    3d        v1.8.0
+    kubew04   Ready     <none>    22h       v1.8.0
+    kubew05   Ready     <none>    22h       v1.8.0
+ 
+Try to delete one of these nodes
+
+      kubectl delete node kubew03
+      
+      Error from server (Forbidden): nodes "kubew03" is forbidden:
+      User "adriano" cannot delete nodes at the cluster scope
+
+Deleting a node is not allowed.
+
+In any kubernetes cluster, there are some roles and bindings already set
+
+    kubectl get clusterroles
+    NAME                                                                   AGE
+    admin                                                                  3d
+    cluster-admin                                                          3d
+    edit                                                                   3d
+    viewer                                                                 3d
+    system:kube-controller-manager                                         3d
+    system:kube-dns                                                        3d
+    system:kube-scheduler                                                  3d
+    system:node                                                            3d
+    ...
+
+    kubectl get clusterrolebindings
+    NAME                                           AGE
+    cluster-admin                                  3d
+    system:kube-controller-manager                 3d
+    system:kube-dns                                3d
+    system:kube-scheduler                          3d
+    system:node                                    3d
+    ...
+
+The ``cluster-admin`` cluster scoped role above defines the cluster admin powers. It is bound by default to all users belonging to the ``system:masters`` group. This means that any authenticated user belonging to that group will have cluster admin powers.
+
+The ``cluster-admin`` role above can be used also to define a namespace admin user by bounding it to a given namespace and a given user, as in the following ``tenant-admin-role-binding.yaml`` configuration file
+```yaml
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: RoleBinding
+metadata:
+  name: tenant:admin
+  namespace: project
+subjects:
+- kind: User
+  name: adriano
+  namespace: project
+roleRef:
+  kind: ClusterRole
+  name: admin
+  apiGroup: rbac.authorization.k8s.io
+```
+
+In the above, the user ``adriano`` will have admin powers only for the ``project`` namespace. It gives full control over every resource in that namespace, including the namespace itself.
+
+Details on the other system roles and bindings can be found on the product documentation.

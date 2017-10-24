@@ -318,7 +318,7 @@ This will produce the ``${nodename}.pem`` certificate file containing the public
 
 The Node authorizer allows a kubelet to perform API operations, including read and write on the kubernetes objects. To limit the API objects kubelet are able to write, enable the Node Restriction admission control plugin by starting the apiserver with the ``--admission-control=NodeRestriction`` option.
 
-### RBAC
+### Role Based Admission Control
 The Role Based Access Control Authorization is enabled by passing the ``--authorization-mode=RBAC`` option to API server. It is general-purpose authorizer that regulates a given type of access, i.e. get, update, list, delete, to a given resource based on the roles of the individual user or the group the user is belonging to.
 
 #### Roles
@@ -488,3 +488,8 @@ roleRef:
 In the above, the user ``adriano`` will have admin powers only for the ``project`` namespace. It gives full control over every resource in that namespace, including the namespace itself.
 
 Details on the other system roles and bindings can be found on the product documentation.
+
+## Admission Control
+Many advanced features in Kubernetes require an **Admission Control** plugin to be enabled in order to properly support the feature. An admission control plugin intercepts requests to the API server after the request is authenticated and authorized. Each admission control plugin is run in sequence before a request is accepted by the API server. If any of the plugins in the sequence reject the request, the entire request is rejected.
+
+The admission control plugins are enabled by starting the apiserver with the ``--admission-control`` option. A complete list of admission control plugins are available on the product documentation.

@@ -59,9 +59,9 @@
 8. [Scaling the Control Plane](./content/info.md)
 
 9. [User Management](./content/users.md)
-   * [Service Accounts](./content/users.md)
-   * [Authentication](./content/users.md)
-   * [Authorization](./content/users.md)
+   * [Service Accounts](./content/users.md#service-accounts)
+   * [Authentication](./content/users.md#authentication)
+   * [Authorization](./content/users.md#authorization)
 
 ## Disclaimer
 This tutorial is for personal use only. This is just a lab guide, not a documentation for Kubernets, please go to their online

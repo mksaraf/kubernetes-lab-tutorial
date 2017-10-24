@@ -180,7 +180,7 @@ For example, to create a certificate for an ``admin`` user belonging the the ``s
 ```
 The group ``system:masters`` membership will give the admin user the power to act as cluster admin when the authorization is enabled.
 
-Create the certificate
+Create the certificates
 
     cfssl gencert \
        -ca=ca.pem \
@@ -267,14 +267,51 @@ Str0ngPa55word789!,joe,10002
 When using basic authentication from an http client, the API server expects an authorization header with a value of encoded user and password
 
     BASIC=$(echo -n 'admin:Str0ngPa55word123!' | base64)
-    curl -k -H "Authorization:Basic "$BASIC https://kubernetes:443
+    curl -k -H "Authorization:Basic "$BASIC https://kubernetes:6443
 
 *Note: the passwords file cannot be changed without restarting API server.*
 
 ### Other methods
 Please, see the kubernetes documentation for other authentication methods. 
 
+## Authorization
+In kubernetes, all requests to the API server are evaluated against authorization policies and then allowed or denied. All parts of an API request must be allowed by some policy in order to proceed. This means that permissions are denied by default with HTTP status code 403.
 
+Multiple methods can be used at same time, depending on the use case. Most used authorization modes are
 
+  * **Node Authorization**: special-purpose authorizer that grants permissions to kubelet instances running on the worker nodes
+  * **Role Based Access Control**: a general-purpose authorizer that regulates access to cluster resources based on the roles of individual users
+  
+## Node Authorization
+The Node Authorization is enabled by passing the ``--authorization-mode=Node`` option to API server. In order to be authorized by the Node authorizer, kubelets must use an authentication credential that identifies them as being in the ``system:nodes`` group, with a username of ``system:node:<nodename>``.
 
+Once a kubelet is authorized by the Node authorizer, it can join the cluster. For kubelets outside the ``system:nodes`` group or without the ``system:node:<nodename>`` name format, the authorization is not performed by the Node authorizer and it will be authorized via other authorize methods, if any. In case the kubelet is not authorized, it cannot join the cluster.
 
+For example, for each worker node identified by ``${nodename}``, create an authentication signing request ``${nodename}-csr.json`` file
+```json
+{
+  "CN": "system:node:${nodename}",
+  "key": {
+    "algo": "rsa",
+    "size": 4096
+  },
+  "names": [
+    {
+      "O": "system:nodes"
+    }
+  ]
+}
+```
+The group ``system:nodes`` membership will give the outhorization by the Node authorizer when the authorization is enabled.
+
+Create the certificates
+
+    cfssl gencert \
+      -ca=ca.pem \
+      -ca-key=ca-key.pem \
+      -config=ca-config.json \
+      -profile=custom \
+      -hostname=${nodename},${nodeipaddr} \
+      ${nodename}-csr.json | cfssljson -bare ${nodename}
+
+This will produce the ``${nodename}.pem`` certificate file containing the public key and the ``${nodename}-key.pem`` file, containing the private key. Move the key and certificate, along with the Certificate Authority certificate ``ca.pem`` to the kubelet proper location on the worker node and create the ``kubeconfig`` file as reported [here](./secure.md#securing-the-worker).

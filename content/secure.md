@@ -344,7 +344,7 @@ Set the options in the ``/etc/systemd/system/kube-apiserver.service`` startup fi
         --etcd-cafile=/var/lib/kubernetes/ca.pem \
         --etcd-certfile=/var/lib/kubernetes/server.pem \
         --etcd-keyfile=/var/lib/kubernetes/server-key.pem \
-        --service-account-key-file=/var/lib/kubernetes/ca-key.pem \
+        --service-account-key-file=/var/lib/kubernetes/ca.pem \
         --v=2
 
       Restart=on-failure

@@ -4,6 +4,13 @@ In this section we are going to cover additional concepts related to the authent
    * [Service Accounts](#service-accounts)
    * [Authentication](#authentication)
    * [Authorization](#authorization)
+   * [Admission Control](#admission-control)
+
+In kubernetes, users access the API server via HTTP(S) requests. When a request reaches the API, it goes through several stages:
+
+  1. **Authentication**: who can access?
+  2. **Authorization**: what can be accessed?
+  3. **Admission Control**: cluster wide policy
 
 ## Service Accounts
 In kubernetes we have two kind of users:
@@ -108,7 +115,6 @@ To achieve token creation for service accounts, we have to pass a private key fi
 
 Service accounts are useful when the pod needs to access the API server. For example, the following ``nodejs-pod-namespace.yaml`` definition file implements an API call to read the pod namespace and put it into a pod env variable
 ```yaml
-
 apiVersion: v1
 kind: Pod
 metadata:
@@ -146,6 +152,129 @@ Create the pod above and access the pod
 we get an answer from the pod being in the namespace name ``project``.
 
 ## Authentication
+Kubernetes uses different ways to authenticate users: certificates, tokens, passwords as long enhanced methods as OAuth. Multiple methods can be used at same time, depending on the use case. At least two methods:
+
+  * tokens for service accounts
+  * at least one of the following methods for user accounts
+  
+When multiple authenticator modules are enabled, the first module to successfully authenticate the request applies since the API server does not guarantee the order authenticators. See the official documentation for all details.
+
+### Certificates
+Client certificate authentication is enabled by passing the ``--client-ca-file`` option to API server. The file contains one or more certificates authorities to use to validate client certificates presented to the API server. When a client certificate is presented and verified, the common name field in the subject certificate is used as the user name for the request and the organization fields in the certificate can indicate the group memberships. To include multiple group memberships for a user, include multiple organization fields in the certificate.
+
+For example, to create a certificate for an ``admin`` user belonging the the ``system:masters`` group create a signing request ``admin-csr.json`` file
+```json
+{
+  "CN": "admin",
+  "hosts": [],
+  "key": {
+    "algo": "rsa",
+    "size": 4096
+  },
+  "names": [
+    {
+      "O": "system:masters"
+    }
+  ]
+}
+```
+The group ``system:masters`` membership will give the admin user the power to act as cluster admin when the authorization is enabled.
+
+Create the certificate
+
+    cfssl gencert \
+       -ca=ca.pem \
+       -ca-key=ca-key.pem \
+       -config=ca-config.json \
+       -profile=custom \
+       admin-csr.json | cfssljson -bare admin
+
+This will produce the ``admin.pem`` certificate file containing the public key and the ``admin-key.pem`` file, containing the private key. Move the key and certificate, along with the Certificate Authority certificate ``ca.pem`` to the client proper location on the client machine and create the ``kubeconfig`` file to access via the ``kubectl`` client
+```yaml
+apiVersion: v1
+clusters:
+- cluster:
+    certificate-authority: ca.pem
+    server: https://kubernetes:6443
+  name: kubernetes
+contexts:
+- context:
+    cluster: kubernetes
+    namespace: default
+    user: admin
+  name: default/kubernetes/admin
+current-context: default/kubernetes/admin
+kind: Config
+preferences: {}
+users:
+- name: admin
+  user:
+    client-certificate: admin.pem
+    client-key: admin-key.pem
+    username: admin
+```
+
+### Tokens
+Bearer token authentication is enabled by passing the ``--token-auth-file`` option to API server. The file contains one or more tokens to authenticate user requests presented to the API server. The token file is a csv file with a minimum of 3 columns: token, user name, user uid, followed by optional group names.
+
+For example
+```csv
+aaaabbbbccccdddd000000000000000a,admin,10000,system:masters
+aaabbbbccccdddd0000000000000000b,alice,10001
+aaabbbbccccdddd0000000000000000c,joe,10002
+```
+
+Move on the client machine and create the ``kubeconfig`` file to access via the ``kubectl`` client
+```yaml
+apiVersion: v1
+clusters:
+- cluster:
+    certificate-authority: ca.pem
+    server: https://kubernetes:6443
+  name: kubernetes
+contexts:
+- context:
+    cluster: kubernetes
+    namespace: default
+    user: admin
+  name: default/kubernetes/admin
+current-context: default/kubernetes/admin
+kind: Config
+preferences: {}
+users:
+- name: admin
+  user:
+    token: aaaabbbbccccdddd000000000000000a
+    username: admin
+```
+
+When using a token authentication fron an HTTP(S) client, put the token in the request header
+
+    curl -k -H "Authorization:Bearer aaaabbbbccccdddd000000000000000a" https://kubernetes:6443
+
+*Note: the token file cannot be changed without restarting API server.*
+
+### Password
+Basic password authentication is enabled by passing the ``--basic-auth-file`` option to API server. The password file is a csv file with a minimum of 3 columns: password, user name, user id and an optional fourth column containing group names. 
+
+For example
+```csv
+Str0ngPa55word123!,admin,10000,system:masters
+Str0ngPa55word456!,alice,10001
+Str0ngPa55word789!,joe,10002
+```
+
+When using basic authentication from an http client, the API server expects an authorization header with a value of encoded user and password
+
+    BASIC=$(echo -n 'admin:Str0ngPa55word123!' | base64)
+    curl -k -H "Authorization:Basic "$BASIC https://kubernetes:443
+
+*Note: the passwords file cannot be changed without restarting API server.*
+
+### Other methods
+Please, see the kubernetes documentation for other authentication methods. 
+
+
 
 
 

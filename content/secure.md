@@ -345,6 +345,9 @@ Set the options in the ``/etc/systemd/system/kube-apiserver.service`` startup fi
         --etcd-certfile=/var/lib/kubernetes/server.pem \
         --etcd-keyfile=/var/lib/kubernetes/server-key.pem \
         --service-account-key-file=/var/lib/kubernetes/ca.pem \
+        --kubelet-certificate-authority=/var/lib/kubernetes/ca.pem \
+        --kubelet-client-certificate=/var/lib/kubernetes/server.pem \
+        --kubelet-client-key=/var/lib/kubernetes/server-key.pem \
         --v=2
 
       Restart=on-failure
@@ -353,11 +356,6 @@ Set the options in the ``/etc/systemd/system/kube-apiserver.service`` startup fi
 
       [Install]
       WantedBy=multi-user.target
-      
-      # --kubelet-https=true \
-      # --kubelet-certificate-authority=/var/lib/kubernetes/ca.pem \
-      # --kubelet-client-certificate=/var/lib/kubernetes/server.pem \
-      # --kubelet-client-key=/var/lib/kubernetes/server-key.pem \
 
 Start and enable the service
 

@@ -13,7 +13,7 @@ In the following sections we're going into a walk-through in kubernetes networki
    * [Accessing services](#accessing-services)
 
 ## Pod Networking
-In a kubernetes cluster, when a pod is deployed, it gets an IP address from the cluster IP addresse range defined in the inital setup.
+In a kubernetes cluster, when a pod is deployed, it gets an IP address from the cluster IP address range defined in the inital setup.
 
 Starting form the ``nginx-pod1.yaml`` file
 ```yaml
@@ -39,47 +39,65 @@ Create a nginx pod
 
 To get the IP address of the pod
 
-    kubectl get pod nginx1 -o yaml | grep podIP
-    podIP: 172.30.41.2
+    kubectl get pod nginx1 -o wide
+    NAME          READY     STATUS    RESTARTS   AGE       IP           NODE
+    nginx1        1/1       Running   2          21s       10.38.3.29   kubew03
+
 
 Thanks to the kubernetes networking model, we can access pod IP from any node in the cluster
 
-      [root@kubem00 ~]# curl 172.30.41.2:80
-      
-      <!DOCTYPE html>
-      <html>
-      <head>
-      <title>Welcome to nginx!</title>
-      </head>
-      <body>
-      <h1>Welcome to nginx!</h1>
-      <p><em>Thank you for using nginx.</em></p>
-      </body>
-      </html>
+      curl 10.38.3.29:80
+      Welcome to nginx!
 
-Please that the containers are not using port 80 on the host node whee the container is running. This means we can run multiple nginx pods on the same node all using the same container port 80 and access them from any other pod or node in the cluster using their IP. Start a second nginx pod
+Please that the containers are not using port 80 on the host node where the container is running. This means we can run multiple nginx pods on the same node all using the same container port 80 and access them from any other pod or node in the cluster using their IP. Start a second nginx pod
 
     kubectl create -f nginx-pod2.yaml
     pod "nginx2" created
 
-    kubectl get pods
-    NAME      READY     STATUS    RESTARTS   AGE
-    nginx1    1/1       Running   0          12s
-    nginx2    1/1       Running   0          8s
-
-    kubectl get pods -l run=nginx -o yaml | grep podIP
-    podIP: 172.30.41.2
-    podIP: 172.30.41.3
+    kubectl get pods -o wide
+    NAME          READY     STATUS    RESTARTS   AGE       IP           NODE
+    nginx1        1/1       Running   0          21s       10.38.3.29   kubew03
+    nginx2        1/1       Running   0          21s       10.38.3.30   kubew03
 
 Both pods run on the same host node, as we see from their IP address. We can still access both pods from any other node in the cluster
 
-    [root@kubem00 ~]# curl 172.30.41.2:80
-    Welcome to nginx!
+      curl 10.38.3.29:80
+      Welcome to nginx!
     
-    [root@kubem00 ~]# curl 172.30.41.3:80
-    Welcome to nginx!
+      curl 10.38.3.30:80
+      Welcome to nginx!
 
-We do not need to expose container port on host to access nginx application as it is required in standard docker networking model. However we are not able to access nginx application from outside the kubernetes cluster. To achieve this we need to define a ngix service and expose the service to the external world.
+We do not need to expose container port on host to access nginx application as it is required in standard docker networking model.
+
+### Host Networking
+As alternative, we can define pods to use the same host IP address as defined in the ``nodejs-pod-hostnet.yaml`` configuration file
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nodejs
+  namespace:
+  labels:
+spec:
+  containers:
+  - name: nodejs
+    image: kalise/nodejs-web-app:latest
+    ports:
+    - containerPort: 8080
+  hostNetwork: true
+``` 
+
+Create the pod and check the IP address
+
+    kubectl create -f nodejs-pod-hostnet.yaml
+    
+    kubectl get pods -o wide
+    NAME          READY     STATUS    RESTARTS   AGE       IP           NODE
+    nginx1        1/1       Running   0          10m       10.38.3.29   kubew03
+    nginx2        1/1       Running   0          10m       10.38.3.30   kubew03
+    nodejs        1/1       Running   0          5m        10.10.10.83  kubew03
+
+However, with the ``hostNetwork: true`` we cannot start more than one pod listening on the same host port. In general, pods with host network are only used for system or daemon applications that do not need to be scaled.
 
 ## Exposing services
 In kubernetes, services are used not only to provides access to other pods inside the same cluster but also to clients outside the cluster. In this section, we're going to create a deploy of two nginx replicas and expose them to the external world via nginx service.

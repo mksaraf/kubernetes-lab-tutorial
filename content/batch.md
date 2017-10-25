@@ -1,8 +1,8 @@
 # Batch Processing
 In this section we are going to explore kubernetes support for batch processing.
 
-    * [Jobs](#jobs)
-    * [Cron Jobs](#cron-jobs)
+   * [Jobs](#jobs)
+   * [Cron Jobs](#cron-jobs)
   
 ## Jobs
 In kubernetes, a **Job** is an abstraction for create batch processes. A job creates one or more pods and ensures that a given number of them successfully complete. When all pod complete, the job itself is complete. 

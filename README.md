@@ -66,6 +66,7 @@
 10. [Additional Concepts](./content/info.md)
     * [Stateful Applications](./content/stateful.md)
     * [Batch Processes](./content/batch.md)
+    * [Static Pods](./content/static.md)
    
 
 ## Disclaimer

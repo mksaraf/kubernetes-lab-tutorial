@@ -68,9 +68,9 @@ Deleting a job will remove all the pods it created
 
 There are three ways to use jobs:
 
-    1. **Single Jobs**
-    2. **Parallel Jobs**
-    3. **Work Queue Jobs**
+   1. *Single Jobs*
+   2. *Parallel Jobs*
+   3. *Work Queue Jobs*
     
 For single jobs, only one pod is started unless it fails and the job completes when pod completes successfully. To create a single job, leave both the options ``completions`` and ``parallelism`` unset or set both them to 1.
 

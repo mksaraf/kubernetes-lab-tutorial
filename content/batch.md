@@ -1,4 +1,4 @@
-# Batch Processing
+# Batch Processes
 In this section we are going to explore kubernetes support for batch processing.
 
    * [Jobs](#jobs)

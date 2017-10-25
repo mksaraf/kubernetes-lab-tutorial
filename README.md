@@ -63,6 +63,10 @@
    * [Authentication](./content/users.md#authentication)
    * [Authorization](./content/users.md#authorization)
 
+10. [Additional Concepts](./content/info.md)
+   * [Stateful Applications](./content/stateful.md)
+   
+
 ## Disclaimer
 This tutorial is for personal use only. This is just a lab guide, not a documentation for Kubernets, please go to their online
 documentation sites for more details about what Kubernets is and how does it work.

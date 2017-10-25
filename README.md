@@ -64,7 +64,7 @@
    * [Authorization](./content/users.md#authorization)
 
 10. [Additional Concepts](./content/info.md)
-   * [Stateful Applications](./content/stateful.md)
+    * [Stateful Applications](./content/stateful.md)
    
 
 ## Disclaimer

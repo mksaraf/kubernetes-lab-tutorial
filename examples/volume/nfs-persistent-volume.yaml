@@ -1,0 +1,15 @@
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: share-00
+spec:
+  storageClassName: manual
+  capacity:
+    storage: 3Gi
+  accessModes:
+  - ReadWriteMany
+  nfs:
+    path: "/data_storage/kubernetes/share-00"
+    server: centos
+  persistentVolumeReclaimPolicy: Recycle

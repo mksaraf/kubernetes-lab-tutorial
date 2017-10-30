@@ -12,10 +12,10 @@ Our initial cluster will be made of 1 Master node and 3 Workers nodes. All machi
 
 Here the hostnames:
 
-   * kubem00 10.10.10.80 (master)
-   * kubew03 10.10.10.83 (worker)
-   * kubew04 10.10.10.84 (worker)
-   * kubew05 10.10.10.85 (worker)
+   * kubem00 -> 10.10.10.80 (master)
+   * kubew03 -> 10.10.10.83 (worker)
+   * kubew04 -> 10.10.10.84 (worker)
+   * kubew05 -> 10.10.10.85 (worker)
 
 Make sure to enable DNS resolution for the above hostnames or set the ``/etc/hosts`` file on all the machines.
 
@@ -299,16 +299,23 @@ However, we're not going to use it since Kubernetes networking is based on the *
 ### Setup the CNI network plugins
 In this tutorial we are not going to provision any overlay networks for containers networking. Instead we'll rely on the simpler routing networking between the nodes. That means we need to add some static routes to our hosts.
 
-First, make sure the IP forwarding kernel option is enabled on all hosts
+First, make sure the IP forwarding kernel option and is enabled on all worker nodes
 
     echo "net.ipv4.ip_forward = 1" > /etc/sysctl.conf
+    
+Since we are going to use Linux bridge for pod networking, make sure that packets traversing the Linux bridge are sent to iptables for processing
+
+    echo "net.bridge.bridge-nf-call-iptables=1" >> /etc/sysctl.conf
+    
+Load the ``br_netfilter`` kernel module and make sure it is loaded at system startup
+
+    modprobe br_netfilter
+    echo br_netfilter > /etc/modules-load.d/bridge.conf
+    
+Load the above kernel settings and restart the network service on all the worker nodes
+
+    sysctl -p /etc/sysctl.conf
     systemctl restart network
-
-The IP address space for containers will be allocated from the ``10.38.0.0/16`` cluster range assigned to each Kubernetes worker through the node registration process. Based on the above configuration each worker will be set with a 24-bit subnet
-
-    * kubew03 10.38.3.0/24
-    * kubew04 10.38.4.0/24
-    * kubew05 10.38.5.0/24
 
 On all the worker nodes, download and install the CNI network plugin
 
@@ -316,7 +323,13 @@ On all the worker nodes, download and install the CNI network plugin
     mkdir -p /etc/cni/bin
     tar -xvf cni-plugins-amd64-v0.6.0.tgz -C /etc/cni/bin
 
-Then configure the CNI networking according to the subnets above. For example, on the kubew03 worker node
+The IP address space for containers will be allocated from the ``10.38.0.0/16`` cluster range assigned to each Kubernetes worker through the node registration process. Based on the above configuration each worker will be set with a 24-bit subnet
+
+    * kubew03 10.38.3.0/24
+    * kubew04 10.38.4.0/24
+    * kubew05 10.38.5.0/24
+
+Then configure the CNI networking according to the subnets above
 
     mkdir -p /etc/cni/config
     
@@ -435,6 +448,8 @@ Now that each worker node is online we need to add routes to make sure that cont
     
     # The pod network 10.38.2.0/24 is reachable through the worker node kubew05
     10.38.5.0/24 via 10.10.10.85
+
+*Make sure to use the IP address as gateway and not the hostname!*
 
 Restart the network service and check the master routing table
 

@@ -34,7 +34,7 @@ Install the tool
     mv cfssljson_linux-amd64 /usr/local/bin/cfssljson
 
 ### Create Certification Authority keys pair
-Create a **Certification Authority** configuration file ``ca-config.json`` as following
+Create a **Certificates** configuration file ``cert-config.json`` as following
 
 ```json
 {
@@ -43,8 +43,12 @@ Create a **Certification Authority** configuration file ``ca-config.json`` as fo
       "expiry": "8760h"
     },
     "profiles": {
-      "custom": {
-        "usages": ["signing", "key encipherment", "server auth", "client auth"],
+      "server-authentication": {
+        "usages": ["signing", "key encipherment", "server auth"],
+        "expiry": "8760h"
+      },
+      "client-authentication": {
+        "usages": ["signing", "key encipherment", "client auth"],
         "expiry": "8760h"
       }
     }
@@ -56,17 +60,16 @@ Create the configuration file ``ca-csr.json`` for the **Certification Authority*
 
 ```json
 {
-  "CN": "NoverIT",
+  "CN": "Clastix.io CA",
   "key": {
     "algo": "rsa",
-    "size": 4096
+    "size": 2048
   },
   "names": [
     {
       "C": "IT",
       "ST": "Italy",
-      "L": "Milan",
-      "O": "My Own Certification Authority"
+      "L": "Milan"
     }
   ]
 }
@@ -88,37 +91,43 @@ The master node IP addresses and names will be included in the list of subject a
 
 ```json
 {
-  "CN": "kubernetes",
+  "CN": "apiserver",
   "hosts": [
-    "10.10.10.80",
-    "kubem00",
     "127.0.0.1",
-    "localhost",
     "10.32.0.1",
+    "10.32.0.10",
     "kubernetes",
     "kubernetes.default",
     "kubernetes.default.svc",
-    "kubernetes.default.svc.cluster.local"
+    "kubernetes.default.svc.cluster.local",
+    "kubernetes.clastix.io"
   ],
   "key": {
     "algo": "rsa",
-    "size": 4096
+    "size": 2048
   }
 }
 ```
 
-We included public IP addresses and names as long as internal IP addresses of the master node and related names. If we have a cluster of master nodes, we have to add addresses and names for each of the master nodes.
+We included public IP addresses and names as long as internal IP addresses of the master node and related names.
 
-Create the key pair
+Create the server key pair
 
     cfssl gencert \
        -ca=ca.pem \
        -ca-key=ca-key.pem \
-       -config=ca-config.json \
-       -profile=custom \
+       -config=cert-config.json \
+       -profile=server-authentication \
        server-csr.json | cfssljson -bare server
 
-This will produce the ``server.pem`` certificate file containing the public key and the ``server-key.pem`` file, containing the private key.
+This will produce the ``server.pem`` certificate file containing the public key and the ``server-key.pem`` file, containing the private key. Just as reference, to verify that a certificate was issued by a specific CA, given that CA's certificate
+
+    openssl x509 -in server.pem -noout -issuer -subject
+      issuer= /C=IT/ST=Italy/L=Milan/CN=Clastix.io CA
+      subject= /CN=apiserver
+    
+    openssl verify -verbose -CAfile ca.pem  server.pem
+      server.pem: OK
 
 Move the key and certificate, along with the Certificate Authority certificate to the master node proper location ``/var/lib/kubernetes``
 

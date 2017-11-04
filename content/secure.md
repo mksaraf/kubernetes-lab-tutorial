@@ -129,22 +129,21 @@ This will produce the ``server.pem`` certificate file containing the public key 
     openssl verify -verbose -CAfile ca.pem  server.pem
       server.pem: OK
 
-Move the key and certificate, along with the Certificate Authority certificate to the master node proper location ``/var/lib/kubernetes``
+Move the key and certificate, along with the Certificate Authority certificate to the master node proper location ``/etc/kubernetes/pki``
 
-    scp ca.pem root@kubem00:/var/lib/kubernetes
-    scp server*.pem root@kubem00:/var/lib/kubernetes
+    scp ca*.pem root@kubem00:/etc/kubernetes/pki
+    scp server*.pem root@kubem00:/etc/kubernetes/pki
 
 ### Create client keys pair
-Since TLS authentication in kubernetes is a two way authentication between client and server, we create the client certificate and key to authenticate users to access the APIs server. We are going to create a certificate for the admin cluster user. This user will be allowed to perform any admin operation on the cluster via kubectl command line client interface.
+Since TLS authentication in kubernetes is a two way authentication between client and server, we create the client certificate and key. We are going to create a certificate for the admin cluster user. This user will be allowed to perform any admin operation on the cluster via kubectl command line client interface.
 
-Create the ``client-csr.json`` configuration file for the admin client.
+Create the ``admin-csr.json`` configuration file for the admin client.
 ```json
 {
   "CN": "admin",
-  "hosts": [],
   "key": {
     "algo": "rsa",
-    "size": 4096
+    "size": 2048
   }
 }
 ```
@@ -154,16 +153,16 @@ Create the admin client key and certificate
     cfssl gencert \
       -ca=ca.pem \
       -ca-key=ca-key.pem \
-      -config=ca-config.json \
-      -profile=custom \
-      client-csr.json | cfssljson -bare client
+      -config=cert-config.json \
+      -profile=client-authentication \
+      admin-csr.json | cfssljson -bare admin
 
-This will produce the ``client.pem`` certificate file containing the public key and the ``client-key.pem`` file, containing the private key.
+This will produce the ``admin.pem`` certificate file containing the public key and the ``admin-key.pem`` file, containing the private key.
 
 Move the key and certificate, along with the Certificate Authority certificate to the client proper location ``~/.kube`` on the client admin node. *Note: this could be any machine*
 
     scp ca.pem root@kube-admin:~/.kube
-    scp client*.pem root@kube-admin:~/.kube
+    scp admin*.pem root@kube-admin:~/.kube
 
 ### Create kubelet keys pair
 We need also to secure interaction between worker nodes and master node. Create the ``kubelet-csr.json`` configuration file for the kubelet component

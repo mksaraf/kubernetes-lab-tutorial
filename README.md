@@ -49,12 +49,16 @@
     * [Control Plane Failure](./content/admin.md#control-plane-failure)
     * [Worker Failure](./content/admin.md#worker-failure)
 
-7. [Securing the Cluster](./content/secure.md)
-    * [Create TLS certificates](./content/secure.md#create-tls-certificates)
-    * [Securing etcd](./content/secure.md#securing-etcd)
-    * [Securing the master](./content/secure.md#securing-the-master)
-    * [Accessing the server](./content/secure.md#accessing-the-server)   
-    * [Securing the worker](./content/secure.md#securing-the-worker)
+7. [Setup a Secure Cluster](./content/setup.md)
+   * [Requirements](./content/setup.md#requirements)
+   * [Install binaries](./content/setup.md#install-binaries)
+   * [Create TLS certificates](./content/setup.md#create-tls-certificates)
+   * [Configure etcd](./content/setup.md#configure-etcd)
+   * [Configure the Control Plane](./content/setup.md#configure-the-control-plane)
+   * [Configure the clients](./content/setup.md#configure-the-clients)
+   * [Configure the Compute Plane](./content/setup.md#configure-the-compute-plane)
+   * [Define the Network Routes](./content/setup.md#define-the-network-routes)
+   * [Configure DNS service](./content/setup.md#configure-dns-service)
 
 8. [Scaling the Control Plane](./content/info.md)
 

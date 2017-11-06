@@ -166,10 +166,9 @@ For example, to create a certificate for an ``admin`` user belonging the the ``s
 ```json
 {
   "CN": "admin",
-  "hosts": [],
   "key": {
     "algo": "rsa",
-    "size": 4096
+    "size": 2048
   },
   "names": [
     {
@@ -185,8 +184,8 @@ Create the certificates
     cfssl gencert \
        -ca=ca.pem \
        -ca-key=ca-key.pem \
-       -config=ca-config.json \
-       -profile=custom \
+       -config=cert-config.json \
+       -profile=client-authentication \
        admin-csr.json | cfssljson -bare admin
 
 This will produce the ``admin.pem`` certificate file containing the public key and the ``admin-key.pem`` file, containing the private key. Move the key and certificate, along with the Certificate Authority certificate ``ca.pem`` to the client proper location on the client machine and create the ``kubeconfig`` file to access via the ``kubectl`` client
@@ -293,7 +292,7 @@ For example, for each worker node identified by ``${nodename}``, create an authe
   "CN": "system:node:${nodename}",
   "key": {
     "algo": "rsa",
-    "size": 4096
+    "size": 2048
   },
   "names": [
     {
@@ -309,9 +308,8 @@ Create the certificates
     cfssl gencert \
       -ca=ca.pem \
       -ca-key=ca-key.pem \
-      -config=ca-config.json \
-      -profile=custom \
-      -hostname=${nodename},${nodeipaddr} \
+      -config=cert-config.json \
+      -profile=client-authentication \
       ${nodename}-csr.json | cfssljson -bare ${nodename}
 
 This will produce the ``${nodename}.pem`` certificate file containing the public key and the ``${nodename}-key.pem`` file, containing the private key. Move the key and certificate, along with the Certificate Authority certificate ``ca.pem`` to the kubelet proper location on the worker node and create the ``kubeconfig`` file as reported [here](./secure.md#securing-the-worker).

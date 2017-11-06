@@ -223,28 +223,46 @@ aaabbbbccccdddd0000000000000000b,alice,10001
 aaabbbbccccdddd0000000000000000c,joe,10002
 ```
 
-Move on the client machine and create the ``kubeconfig`` file to access via the ``kubectl`` client
+Move on the client machine and create the ``~/.kube/conf`` file to access via the ``kubectl`` client
+
+    kubectl config set-credentials alice \
+      --token=aaaabbbbccccdddd000000000000000b
+
+    kubectl config set-cluster kubernetes \
+      --server=https://kubernetes:6443 \
+      --certificate-authority=/etc/kubernetes/pki/ca.pem \
+      --embed-certs=true
+
+    kubectl config set-context default/kubernetes/alice \
+      --cluster=kubernetes \
+      --namespace=default \
+      --user=alice
+	
+kubectl config use-context default/kubernetes/alice
+
+The context file will look like this
+
 ```yaml
 apiVersion: v1
 clusters:
 - cluster:
-    certificate-authority: ca.pem
+    certificate-authority-data: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS ...
     server: https://kubernetes:6443
   name: kubernetes
 contexts:
 - context:
     cluster: kubernetes
     namespace: default
-    user: admin
-  name: default/kubernetes/admin
-current-context: default/kubernetes/admin
+    user: alice
+  name: default/kubernetes/alice
+current-context: default/kubernetes/alice
 kind: Config
 preferences: {}
 users:
-- name: admin
+- name: alice
   user:
     token: aaaabbbbccccdddd000000000000000a
-    username: admin
+    username: alice
 ```
 
 When using a token authentication fron an HTTP(S) client, put the token in the request header

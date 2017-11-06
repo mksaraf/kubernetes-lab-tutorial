@@ -821,3 +821,85 @@ Restart the network service and check the master routing table
     172.17.0.0      0.0.0.0         255.255.0.0     U         0 0          0 docker0
 
 Repeat the steps for all workers paying attention to set the routes correctly.
+
+## Configure DNS service
+To enable service name discovery in our kubernetes cluster, we need to configure an embedded DNS service. To do so, we need to deploy DNS pod and service having configured kubelet to resolve all DNS queries from this local DNS service.
+
+Login to the master node and download the DNS template ``kube-dns.yaml`` from [here](https://github.com/kalise/Kubernetes-Lab-Tutorial/blob/master/examples/addons/kube-dns.yaml)
+
+This template defines a Replica Controller and a DNS service. The controller defines three containers running on the same pod: a DNS server, a dnsmasq for caching, and a sidecar container for health and liveness probe:
+```yaml
+...
+    spec:
+      containers:
+      - name: kubedns
+...
+      - name: dnsmasq
+...
+      - name: sidecar
+```
+
+Make sure the file above has the cluster IP address parameter ``clusterIP: 10.32.0.10`` as we have specified in ``--cluster-dns`` option of the kubelet startup configuration 
+```yaml
+...
+apiVersion: v1
+kind: Service
+metadata:
+  name: kube-dns
+  namespace: kube-system
+...
+spec:
+  clusterIP: 10.32.0.10
+...
+```
+
+Create the DNS setup from the template
+
+    kubectl create -f kube-dns.yaml
+
+and check if it works in the dedicated namespace
+
+    kubectl get svc -n kube-system
+    NAME       TYPE        CLUSTER-IP   EXTERNAL-IP   PORT(S)         AGE
+    kube-dns   ClusterIP   10.32.0.10   <none>        53/UDP,53/TCP   1m
+
+
+To test if it works, create a file named ``busybox.yaml`` with the following contents:
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: busybox
+  namespace: default
+spec:
+  containers:
+  - image: busybox
+    command:
+      - sleep
+      - "3600"
+    imagePullPolicy: IfNotPresent
+    name: busybox
+  restartPolicy: Always
+```
+
+Then create a pod using this file
+
+    kubectl create -f busybox.yaml
+    
+wait for pod is running and validate that DNS is working by resolving the kubernetes service
+
+    kubectl exec -ti busybox -- nslookup kubernetes.default.svc.cluster.local
+    
+    Server:    10.32.0.10
+    Address 1: 10.32.0.10 kube-dns.kube-system.svc.cluster.local
+    Name:      kubernetes.default.svc.cluster.local
+    Address 1: 10.32.0.1 kubernetes.default.svc.cluster.local
+
+Take a look inside the ``resolv.conf file`` of the busybox container
+    
+    kubectl exec busybox cat /etc/resolv.conf
+    nameserver 10.32.0.10
+    search kube-system.svc.cluster.local svc.cluster.local cluster.local clastix.io
+    options ndots:5
+
+Each time a new service starts on the cluster, it will register with the DNS letting all the pods to reach the new service.

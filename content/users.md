@@ -237,8 +237,8 @@ Move on the client machine and create the ``~/.kube/conf`` file to access via th
       --cluster=kubernetes \
       --namespace=default \
       --user=alice
-	
-kubectl config use-context default/kubernetes/alice
+      
+    kubectl config use-context default/kubernetes/alice
 
 The context file will look like this
 

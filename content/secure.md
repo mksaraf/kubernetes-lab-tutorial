@@ -84,7 +84,15 @@ As result, we have following files
     ca-key.pem
     ca.pem
 
-They are the key and the certificate of our self signed Certification Authority. Take this files in a secure place.
+They are the key and the certificate of our self signed Certification Authority. Move the key and certificate to master node proper location ``/etc/kubernetes/pki``
+
+    scp ca*.pem root@kubem00:/etc/kubernetes/pki
+
+Move the certificate to all worker nodes in the proper location ``/etc/kubernetes/pki``
+
+    for instance in kubew03 kubew04 kubew05; do
+      scp ca.pem ${instance}:/etc/kubernetes/pki
+    done
 
 ### Create server keys pair
 The master node IP addresses and names will be included in the list of subject alternative content names for the server certificate. Create the configuration file ``server-csr.json`` for server certificate signing request
@@ -129,9 +137,8 @@ This will produce the ``server.pem`` certificate file containing the public key 
     openssl verify -verbose -CAfile ca.pem  server.pem
       server.pem: OK
 
-Move the key and certificate, along with the Certificate Authority certificate to the master node proper location ``/etc/kubernetes/pki``
+Move the key and certificate to master node proper location ``/etc/kubernetes/pki``
 
-    scp ca*.pem root@kubem00:/etc/kubernetes/pki
     scp server*.pem root@kubem00:/etc/kubernetes/pki
 
 ### Create client keys pair
@@ -169,154 +176,91 @@ We need also to secure interaction between worker nodes and master node. Create 
 ```json
 {
   "CN": "kubelet",
-  "hosts": [],
   "key": {
     "algo": "rsa",
-    "size": 4096
+    "size": 2048
   }
 }
 ```
 
-Create the admin client key and certificate
+Create the key and certificate
 
     cfssl gencert \
       -ca=ca.pem \
       -ca-key=ca-key.pem \
-      -config=ca-config.json \
-      -profile=custom \
+      -config=cert-config.json \
+      -profile=client-authentication \
       kubelet-csr.json | cfssljson -bare kubelet
 
 This will produce the ``kubelet.pem`` certificate file containing the public key and the ``kubelet-key.pem`` file, containing the private key.
 
-Move the key and certificate, along with the Certificate Authority certificate to the kubelet proper location ``/var/lib/kubelet`` on the worker node
+Move the keys pair to all worker nodes in the proper location ``/var/lib/kubelet/pki``
 
-    scp ca.pem root@kubew03:/var/lib/kubernetes
-    scp kubelet*.pem root@kubew03:/var/lib/kubelet
+    for instance in kubew03 kubew04 kubew05; do
+      scp kubelet*.pem ${instance}:/var/lib/kubelet/pki
+    done
 
-Repeat the step above for each worker node we want to add to the cluster.
 
 ### Create proxy keys pair
 For the proxy component, create the ``kube-proxy-csr.json`` configuration file 
 ```json
 {
   "CN": "kube-proxy",
-  "hosts": [],
   "key": {
     "algo": "rsa",
-    "size": 4096
+    "size": 2048
   }
 }
 ```
 
-Create the admin client key and certificate
+Create the key and certificate
 
     cfssl gencert \
       -ca=ca.pem \
       -ca-key=ca-key.pem \
-      -config=ca-config.json \
-      -profile=custom \
+      -config=cert-config.json \
+      -profile=client-authentication \
       kube-proxy-csr.json | cfssljson -bare kube-proxy
 
 This will produce the ``kube-proxy.pem`` certificate file containing the public key and the ``kube-proxy-key.pem`` file, containing the private key.
 
-Move the key and certificate, along with the Certificate Authority certificate to the kube-proxy proper location ``/var/lib/kube-proxy`` on the worker node
+Move the keys pair to all worker nodes in the proper location ``/var/lib/kube-proxy/pki``
 
-    scp ca.pem root@kubew03:/var/lib/kubernetes
-    scp kube-proxy*.pem root@kubew03:/var/lib/kube-proxy
+    for instance in kubew03 kubew04 kubew05; do
+      scp kube-proxy*.pem ${instance}:/var/lib/kube-proxy/pki
+    done
 
-Repeat the step above for each worker node we want to add to the cluster.
+### Create kubelet client keys pair
+We'll also secure the communication between the API server and kubelet when requests are initiated by the API server (i.e. when it acts as client) to the kubelet services listening on TCP port 10255 of the worker nodes. 
 
-## Securing etcd
-We are going to secure the communication between etcd and APIs server. For simplicity, we assume the etcd is installed on the same master node where api server will run.
+Create the ``kubelet-client-csr.json`` configuration file 
+```json
+{
+  "CN": "kubelet-client",
+  "key": {
+    "algo": "rsa",
+    "size": 2048
+  }
+}
+```
 
-Create the etcd directory data
+Create the key and certificate
 
-    mkdir /var/lib/etcd
+    cfssl gencert \
+      -ca=ca.pem \
+      -ca-key=ca-key.pem \
+      -config=cert-config.json \
+      -profile=client-authentication \
+      kubelet-client-csr.json | cfssljson -bare kubelet-client
 
-Copy the server certificate and key along with the Certification Authority certificate in a dedicatd directory
+This will produce the ``kubelet-client`` certificate file containing the public key and the ``kubelet-client-key.pem`` file, containing the private key.
 
-    mkdir /etc/etcd
-    cp /var/lib/kubernetes/ca.pem /etc/etcd
-    cp /var/lib/kubernetes/server*.pem /etc/etcd
+Move the keys pair to the master node in the proper location ``/etc/kubernetes/pki``
 
-Set etcd options in the ``/etc/systemd/system/etcd.service`` startup file
+    scp kubelet-client*.pem kubem00:/etc/kubernetes/pki
 
-    [Unit]
-    Description=etcd
-    Documentation=https://github.com/coreos
-    After=network.target
-    After=network-online.target
-    Wants=network-online.target
-
-    [Service]
-    Type=notify
-    ExecStart=/usr/bin/etcd \
-      --name kubem00 \
-      --cert-file=/etc/etcd/server.pem \
-      --key-file=/etc/etcd/server-key.pem \
-      --peer-cert-file=/etc/etcd/server.pem \
-      --peer-key-file=/etc/etcd/server-key.pem \
-      --trusted-ca-file=/etc/etcd/ca.pem \
-      --peer-trusted-ca-file=/etc/etcd/ca.pem \
-      --peer-client-cert-auth \
-      --client-cert-auth \
-      --initial-advertise-peer-urls https://10.10.10.80:2380 \
-      --listen-peer-urls https://10.10.10.80:2380 \
-      --listen-client-urls https://10.10.10.80:2379,http://127.0.0.1:2379 \
-      --advertise-client-urls https://10.10.10.80:2379 \
-      --initial-cluster-token etcd-cluster-token \
-      --initial-cluster kubem00=https://10.10.10.80:2380 \
-      --initial-cluster-state new \
-      --data-dir=/var/lib/etcd
-    
-    Restart=on-failure
-    RestartSec=5
-    LimitNOFILE=65536
-
-    [Install]
-    WantedBy=multi-user.target
-
-Start and enable the service
-
-    systemctl daemon-reload
-    systemctl start etcd
-    systemctl enable etcd
-    systemctl status etcd
-
-To query the etcd, use the ``etcdctl`` command utlity. Since we configured TLS on etcd, any client needs to present a certificate to be authenticad by the etcd service. Create an env file ``etcdctl-v2.rc`` to access etcd by using API v2 
-
-    cat etcdctl-v2.rc
-
-    export PS1='[\W(etcdctl-v2)]\$ '
-    unset  ETCDCTL_API
-    export ETCDCTL_CA_FILE=/etc/etcd/ca.pem
-    export ETCDCTL_CERT_FILE=/etc/etcd/server.pem
-    export ETCDCTL_KEY_FILE=/etc/etcd/server-key.pem
-
-    source etcdctl-v2.rc
-
-    etcdctl --endpoints=https://10.10.10.80:2379 member list
-
-    1857fba22cc98a20: name=kubem00
-    peerURLs=https://10.10.10.80:2380
-    clientURLs=https://10.10.10.80:2379
-    isLeader=true
-
-or an env file ``etcdctl-v3.rc`` to access etcd by using API v3
-
-    cat etcdctl-v3.rc
-
-    export PS1='[\W(etcdctl-v3)]\$ '
-    export ETCDCTL_API=3
-    export ETCDCTL_CACERT=/etc/etcd/ca.pem
-    export ETCDCTL_CERT=/etc/etcd/server.pem
-    export ETCDCTL_KEY=/etc/etcd/server-key.pem
-    export ENDPOINTS=10.10.10.80:2379
-
-    source etcdctl-v3.rc
-
-    etcdctl --endpoints=https://10.10.10.80:2379 member list
-    1857fba22cc98a20, started, kubem00, https://10.10.10.80:2380, https://10.10.10.80:2379
+## Configure etcd
+For now, we'll not secure the communication between etcd and APIs server because we assume the etcd is installed on the same master node where the api server is running. In case of API server and etcd instance running on different machines or in case of multiple etcd instances, we'll have to secure the etcd.
 
 ## Securing the master
 In this section, we are going to secure the master node and its components.

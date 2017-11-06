@@ -2,8 +2,15 @@
 This tutorial refers to a cluster of nodes (virtual, physical or a mix of both) running CentOS 7 Operating System. We'll set Kubernetes components as system processes managed by systemd.
 
    * [Requirements](#requirements)
+   * [Install binaries](#install-binaries)
+   * [Create TLS certificates](#create-tls-certificates)
+   * [Configure etcd](#configure-etcd)
+   * [Configure the Control Plane](#configure-the-control-plane)
+   * [Configure the clients](#configure-the-clients)
+   * [Configure the Compute Plane](#configure-the-compute-plane)
+   * [Define the Network Routes](#define-the-network-routes)
+   * [Configure DNS service](#configure-dns-service)
 
-   
 ## Requirements
 Our initial cluster will be made of 1 Master node and 3 Workers nodes. All machines can be virtual or physical or a mix of both. Minimum hardware requirements are: 1 vCPUs, 2GB of RAM, 16GB HDD for OS. All machines will be installed with a minimal Linux CentOS 7. Firewall and Selinux will be disabled. An NTP server is installed and running on all machines. On worker nodes, Docker is installed with a Device Mapper on a separate 10GB HDD. Internet access.
 
@@ -324,7 +331,7 @@ and move it to the master node in the proper location
 
     scp sa.key kubem00:/etc/kubernetes/pki
 
-## Configure the etcd
+## Configure etcd
 In this section, we'll install a single instance of etcd running on the same machine of the API server. For this reason, we'll not secure the communication between etcd and APIs server because of this assumption.
 
 On the master node, create the etcd data directory

@@ -11,13 +11,7 @@
     * [Proxy](./content/architecture.md#proxy)
     * [CLI](./content/architecture.md#command-line-client)
 
-2. [Setup](./content/setup.md)
-    * [Requirements](./content/setup.md#requirements)
-    * [Configure Master](./content/setup.md#configure-masters)
-    * [Configure Workers](./content/setup.md#configure-workers)
-    * [Configure DNS service](./content/setup.md#configure-dns-service)
-
-3. [Core Concepts](./content/core.md)
+2. [Core Concepts](./content/core.md)
     * [Pods](./content/core.md#core)
     * [Labels](./content/core.md#labels)
     * [Controllers](./content/core.md#controllers)
@@ -28,14 +22,14 @@
     * [Namespaces](./content/core.md#namespaces)
     * [Quotas and Limits](./content/core.md#quotas-and-limits)
     
-4. [Networking](./content/network.md)
+3. [Networking](./content/network.md)
     * [Pod Networking](./content/network.md#pod-networking)
     * [Exposing services](./content/network.md#exposing-services)
     * [Service discovery](./content/network.md#service-discovery)
     * [Accessing services](./content/network.md#accessing-services)
     * [Ingress controller](./content/ingress.md)
 
-5. [Storage](./content/storage.md)
+4. [Storage](./content/storage.md)
     * [Local Persistent Volumes](./content/storage.md#local-persistent-volumes)
     * [Volume Access Mode](./content/storage.md#volume-access-mode)
     * [Volume State](./content/storage.md#volume-state)
@@ -44,12 +38,12 @@
     * [Storage Classes](./content/storage.md#storage-classes)
     * [Dynamic volumes provisioning](./content/storage.md#dynamic-volumes-provisioning)
     
-6. [Cluster Healing](./content/admin.md)
+5. [Cluster Healing](./content/admin.md)
     * [Cluster Backup and Restore](./content/admin.md#cluster-backup-and-restore)
     * [Control Plane Failure](./content/admin.md#control-plane-failure)
     * [Worker Failure](./content/admin.md#worker-failure)
 
-7. [Setup a Secure Cluster](./content/setup.md)
+6. [Setup a Secure Cluster](./content/setup.md)
    * [Requirements](./content/setup.md#requirements)
    * [Install binaries](./content/setup.md#install-binaries)
    * [Create TLS certificates](./content/setup.md#create-tls-certificates)
@@ -60,14 +54,14 @@
    * [Define the Network Routes](./content/setup.md#define-the-network-routes)
    * [Configure DNS service](./content/setup.md#configure-dns-service)
 
-8. [Scaling the Control Plane](./content/info.md)
+7. [Scaling the Control Plane](./content/info.md)
 
-9. [User Management](./content/users.md)
+8. [User Management](./content/users.md)
    * [Service Accounts](./content/users.md#service-accounts)
    * [Authentication](./content/users.md#authentication)
    * [Authorization](./content/users.md#authorization)
 
-10. [Additional Concepts](./content/info.md)
+9. [Additional Concepts](./content/info.md)
     * [Stateful Applications](./content/stateful.md)
     * [Batch Processes](./content/batch.md)
     * [Static Pods](./content/static.md)

@@ -1,11 +1,11 @@
 apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: RoleBinding
 metadata:
-  name: tenant:admin
+  name: project:admin
   namespace: project
 subjects:
 - kind: User
-  name: adriano
+  name: user
   namespace: project
 roleRef:
   kind: ClusterRole

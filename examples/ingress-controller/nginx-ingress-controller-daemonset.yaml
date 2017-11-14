@@ -47,6 +47,7 @@ spec:
                 fieldPath: metadata.namespace
         args:
         # We assume a default secret is already configured on the kube-system namespace
+        # openssl req -x509 -nodes -days 3650 -newkey rsa:2048 -keyout tls.key -out tls.crt -subj "/CN=kubernetes.clastix.io"
         # kubectl create secret tls tls-secret --key tls.key --cert tls.crt
         - /nginx-ingress-controller
         - --default-backend-service=$(POD_NAMESPACE)/ingress-default-backend

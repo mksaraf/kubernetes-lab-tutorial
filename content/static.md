@@ -20,8 +20,8 @@ spec:
 
 Copy the pod configuration file on the worker node
 
-mkdir -p /etc/kubernetes/manifest
-cp nodejs-pod.yaml /etc/kubernetes/manifest
+    mkdir -p /etc/kubernetes/manifest
+    cp nodejs-pod.yaml /etc/kubernetes/manifest
 
 Configure the kubelet on the worker node to use the above directory as place for static pods by editing the systemd configuration file ``/etc/systemd/system/kubelet.service`` for kubelet
 ```

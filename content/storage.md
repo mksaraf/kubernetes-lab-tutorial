@@ -493,15 +493,15 @@ Create a ssh key pair
 
     ssh-keygen -f /etc/heketi/heketi_key -t rsa -N ''
 
+set the ownership of the key pair
+
+    chown heketi:heketi /etc/heketi/heketi_key*
+    
 and install the public key on each gluster node
 
     ssh-copy-id -i /etc/heketi/heketi_key.pub root@gluster00
     ssh-copy-id -i /etc/heketi/heketi_key.pub root@gluster01
     ssh-copy-id -i /etc/heketi/heketi_key.pub root@gluster02
-
-set the ownership of the key pair
-
-    chown heketi:heketi /etc/heketi/heketi_key*
 
 Now configure the Heketi server by editing the ``/etc/heketi/heketi.json`` configuration file as following
 ```

@@ -10,7 +10,7 @@ A Kubernetes system is made of many nodes (both physical or virtual hosts) formi
 
 Here a picture about Kubernetes Architecture:
 
-![](../img/architecture.png?raw=true)
+![](../img/architecture.jpg?raw=true)
 
 Main components of a Kubernetes cluster are:
 

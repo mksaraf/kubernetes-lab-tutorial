@@ -569,7 +569,7 @@ spec:
     volumeMounts:
     - name: content-data
       mountPath: /usr/share/nginx/html
-    nodeSelector:
+  nodeSelector:
     kubernetes.io/hostname: kubew05
   volumes:
   - name: content-data

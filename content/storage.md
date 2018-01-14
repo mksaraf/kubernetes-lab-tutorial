@@ -33,7 +33,7 @@ metadata:
   labels:
     type: local
 spec:
-  storageClassName: manual
+  storageClassName: ""
   capacity:
     storage: 2Gi
   accessModes:
@@ -53,7 +53,7 @@ and view information about it
 
     kubectl get pv
     NAME      CAPACITY   ACCESSMODES   RECLAIMPOLICY   STATUS      CLAIM     STORAGECLASS   REASON    AGE
-    local     2Gi        RWO           Recycle         Available             manual                   33m
+    local     2Gi        RWO           Recycle         Available                                      33m
 
 Now, we're going to use the volume above by creating a claiming for persistent storage. Create the following ``volume-claim.yaml`` configuration file
 ```yaml
@@ -62,15 +62,15 @@ apiVersion: v1
 metadata:
   name: volume-claim
 spec:
-  storageClassName: manual
+  storageClassName: ""
   accessModes:
     - ReadWriteOnce
   resources:
     requests:
-      storage: 500Mi
+      storage: 1Gi
 ```
 
-Note the claim is for 500MB of space where the the volume is 2GB. The claim will bound any volume meeting the minimum requirements specified into the claim definition. 
+Note the claim is for 1GB of space where the the volume is 2GB. The claim will bound any volume meeting the minimum requirements specified into the claim definition. 
 
 Create the claim
 
@@ -80,13 +80,13 @@ Check the status of persistent volume to see if it is bound
 
     kubectl get pv
     NAME      CAPACITY   ACCESSMODES   RECLAIMPOLICY   STATUS    CLAIM                  STORAGECLASS   REASON    AGE
-    local     2Gi        RWO           Recycle         Bound     project/volume-claim   manual                   37m
+    local     2Gi        RWO           Recycle         Bound     project/volume-claim                            37m
 
 Check the status of the claim
 
     kubectl get pvc
     NAME           STATUS    VOLUME    CAPACITY   ACCESSMODES   STORAGECLASS   AGE
-    volume-claim   Bound     local     2Gi        RWO           manual         1m
+    volume-claim   Bound     local     2Gi        RWO                          1m
 
 Create a ``nginx-pod-pvc.yaml`` configuration file for a nginx pod using the above claim for its html content directory
 ```yaml
@@ -190,7 +190,7 @@ See the status of the volume
 
     kubectl get pv persistent-volume
     NAME      CAPACITY   ACCESSMODES   RECLAIMPOLICY   STATUS      CLAIM     STORAGECLASS   REASON    AGE
-    local     2Gi        RWO           Recycle         Available             manual                   57m
+    local     2Gi        RWO           Recycle         Available                                      57m
 
 ## Volume Reclaim Policy
 When deleting a claim, the volume becomes available to other claims only when the volume claim policy is set to ``Recycle``. Volume claim policies currently supported are:
@@ -213,7 +213,7 @@ metadata:
   labels:
     type: local
 spec:
-  storageClassName: manual
+  storageClassName: ""
   capacity:
     storage: 2Gi
   accessModes:
@@ -242,7 +242,7 @@ and check the status of the volume
 
     kubectl get pv
     NAME           CAPACITY   ACCESSMODES   RECLAIMPOLICY   STATUS     CLAIM                  STORAGECLASS     AGE
-    local-retain   2Gi        RWO           Retain          Released   project/volume-claim   manual           3m
+    local-retain   2Gi        RWO           Retain          Released   project/volume-claim                    3m
     
 We see the volume remain in the released status and not becomes available since the reclaim policy is set to ``Retain``. Now login to the worker node and check data are still there.
 
@@ -251,7 +251,7 @@ An administrator can manually reclaim the volume by deleteting the volume and cr
 ## Manual volumes provisioning
 In this section we're going to use a **Network File System** storage backend for manual provisioning of shared volumes. Main limit of local storage for container volumes is that storage area is tied to the host where it resides. If kubernetes moves the pod from another host, the moved pod is no more to access the data since local storage is not shared between multiple hosts of the cluster. To achieve a more useful storage backend we need to leverage on a shared storage technology like NFS.
 
-We'll assume a simple external NFS server ``fileserver``	sharing some folders. To make worker nodes able to consume these NFS shares, install the NFS client on all the worker nodes by ``yum install -y nfs-utils`` command.
+We'll assume a simple external NFS server ``fileserver`` sharing some folders. To make worker nodes able to consume these NFS shares, install the NFS client on all the worker nodes by ``yum install -y nfs-utils`` command.
 
 Define a persistent volume as in the ``nfs-persistent-volume.yaml`` configuration file
 ```yaml
@@ -260,13 +260,13 @@ kind: PersistentVolume
 metadata:
   name: nfs-volume
 spec:
-  storageClassName: manual
+  storageClassName: ""
   capacity:
     storage: 1Gi
   accessModes:
   - ReadWriteOnce
   nfs:
-    path: "/data"
+    path: "/mnt/nfs"
     server: fileserver
   persistentVolumeReclaimPolicy: Recycle
 ```
@@ -278,7 +278,7 @@ Create the persistent volume
 
     kubectl get pv nfs -o wide
     NAME        CAPACITY   ACCESSMODES   RECLAIMPOLICY   STATUS      CLAIM     STORAGECLASS   REASON    AGE
-    nfs-volume  1Gi        RWO           Recycle         Available             manual                   7s
+    nfs-volume  1Gi        RWO           Recycle         Available                                      7s
 
 Thanks to the persistent volume model, kubernetes hides the nature of storage and its complex setup to the applications. An user need only to claim volumes for their pods without deal with storage configuration and operations.
 
@@ -290,11 +290,11 @@ Check the bound
 
     kubectl get pv
     NAME        CAPACITY   ACCESSMODES   RECLAIMPOLICY   STATUS    CLAIM                  STORAGECLASS   REASON    AGE
-    nfs-volume  1Gi        RWO           Recycle         Bound     project/volume-claim   manual                   5m
+    nfs-volume  1Gi        RWO           Recycle         Bound     project/volume-claim                            5m
 
     kubectl get pvc
     NAME           STATUS    VOLUME      CAPACITY   ACCESSMODES   STORAGECLASS   AGE
-    volume-claim   Bound     nfs-volume  1Gi        RWO           manual         9s
+    volume-claim   Bound     nfs-volume  1Gi        RWO                          9s
 
 Now we are going to create more nginx pods using the same claim.
 
@@ -380,12 +380,12 @@ apiVersion: v1
 metadata:
   name: pvc-volume-selector
 spec:
-  storageClassName: manual
+  storageClassName: ""
   accessModes:
     - ReadWriteMany
   resources:
     requests:
-      storage: 500Mi
+      storage: 1Gi
   selector:
     matchLabels:
       volumeName: "share00"
@@ -399,7 +399,7 @@ The claim remains pending because there are no matching volumes
 
 	kubectl get pvc
 	NAME                  STATUS    VOLUME    CAPACITY   ACCESS MODES   STORAGECLASS   AGE
-	pvc-volume-selector   Pending                                       manual         5s
+	pvc-volume-selector   Pending                                                      5s
 	
 	kubectl get pv
 	NAME      CAPACITY   ACCESS MODES   RECLAIM POLICY   STATUS      CLAIM     

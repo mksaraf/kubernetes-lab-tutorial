@@ -190,7 +190,7 @@ List and describe a replica controller
     Pods Status:    3 Running / 0 Waiting / 0 Succeeded / 0 Failed
     No volumes.
 
-The Replication Controller makes it easy to scale the number of replicas up or down, either manually or by an auto-scaling control agent, by simply updating the replicas field. For example, scale dow to zero replicas in order to delete all pods controlled by a given replica controller
+The Replication Controller makes it easy to scale the number of replicas up or down, either manually or by an auto-scaling control agent, by simply updating the replicas field. For example, scale down to zero replicas in order to delete all pods controlled by a given replica controller
 
     [root@kubem00 ~]# kubectl scale rc nginx --replicas=0
     replicationcontroller "nginx" scaled
@@ -214,6 +214,14 @@ To delete a replica controller
 
     [root@kubem00 ~]# kubectl delete rc/nginx
     replicationcontroller "nginx" deleted
+    
+Deleting a replica controller deletes all pods managed by that replica. But, because pods created by a replication controller are not actually an integral part of the replication controller, but only managed by it, we can delete only the replication controller and leave the pods running.
+
+    [root@kubem00 ~]# kubectl delete rc/nginx --cascade=false
+    replicationcontroller "nginx" deleted
+
+Now there is nothing managing pods, but we can always create a new replication controller with the proper label selector and make them managed again.
+
 
 ## Deployments
 A Deployment provides declarative updates for pods and replicas. You only need to describe the desired state in a Deployment object, and it will change the actual state to the desired state. The Deployment object defines the following details:

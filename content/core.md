@@ -287,7 +287,13 @@ The deployment creates the following objects
     po/nginx-664452237-ncsh1   1/1       Running   0          4m
     po/nginx-664452237-vts63   1/1       Running   0          4m
 
-According to the definitions set in the file, above, there are three pods and a replica set. The replica set object is very similar to the replica controller object we saw before. You may notice that the name of the replica set is always ``<name-of-deployment>-<hash value of the pod template>``
+According to the definitions set in the file, above, there are three pods and a replica set. The replica set object is very similar to the replica controller object we saw before. You may notice that the name of the replica set is always ``<name-of-deployment>-<hash value of the pod template>``.
+
+A replica set behaves exactly like a replication controller, but it has more powerful pod selectors. Whereas a replication controller label selector only allows matching pods that include a certain label, the replica set pod selector also allows matching pods that lack a certain label or pods that include a certain label key, regardless of its value.
+
+For example, a single replication controller can’t match pods with the label ``env=production`` and those with the label ``env=dev`` at the same time. It can only match either pods with the first label or pods with the second one. A replica set is able to match both sets of pods and treat them as a single group.
+
+Similarly, a replication controller can’t match pods simply based on the presence of a label key, regardless of its value, while a replica set does. For example, we can match all pods that include a label with the key ``mykey``, whatever its actual value is, acting as some similar to ``mykey=*``.
 
 A deployment - as a replica controller, can be scaled up and down
 

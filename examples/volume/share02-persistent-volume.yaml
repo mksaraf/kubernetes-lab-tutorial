@@ -8,10 +8,10 @@ metadata:
 spec:
   capacity:
     storage: 1Gi
-  storageClassName: manual
+  storageClassName: ""
   accessModes:
   - ReadWriteMany
   nfs:
-    path: "/data_storage/kubernetes/share-02"
-    server: centos
+    path: "/mnt/share-02"
+    server: fileserver
   persistentVolumeReclaimPolicy: Recycle

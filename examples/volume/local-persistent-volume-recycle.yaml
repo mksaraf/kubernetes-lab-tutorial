@@ -5,11 +5,11 @@ metadata:
   labels:
     type: local
 spec:
-  storageClassName: manual
+  storageClassName: ""
   capacity:
     storage: 2Gi
   accessModes:
     - ReadWriteOnce
   hostPath:
-    path: "/data"
+    path: "/mnt/nfs"
   persistentVolumeReclaimPolicy: Recycle

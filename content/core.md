@@ -3,7 +3,8 @@ In this section we're going through core concepts of Kubernetes:
 
    * [Pods](#core)
    * [Labels](#labels)
-   * [Controllers](#controllers)
+   * [Replica Controllers](#replica-controllers)
+   * [Replica Sets](#replica-sets)
    * [Deployments](#deployments)
    * [Services](#services)
    * [Volumes](#volumes)
@@ -222,37 +223,37 @@ Deleting a replica controller deletes all pods managed by that replica. But, bec
 
 Now there is nothing managing pods, but we can always create a new replication controller with the proper label selector and make them managed again.
 
-## Replica Setss
+## Replica Sets
 A Replica Set object is very similar to the replica controller object we practiced before.
 
 The ``nginx-rs.yaml`` configuration file defines a replica set for the nginx pod
 ```yaml
-    ---
-    apiVersion: extensions/v1beta1
-    kind: ReplicaSet
+---
+apiVersion: extensions/v1beta1
+kind: ReplicaSet
+metadata:
+  labels:
+    run: nginx
+  namespace:
+  name: nginx-rs
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      run: nginx
+  template:
     metadata:
       labels:
         run: nginx
-      namespace:
-      name: nginx-rs
     spec:
-      replicas: 3
-      selector:
-        matchLabels:
-          run: nginx
-      template:
-        metadata:
-          labels:
-            run: nginx
-        spec:
-          containers:
-          - image: nginx:1.12
-            imagePullPolicy: Always
-            name: nginx
-            ports:
-            - containerPort: 80
-              protocol: TCP
-          restartPolicy: Always
+      containers:
+      - image: nginx:1.12
+        imagePullPolicy: Always
+        name: nginx
+        ports:
+        - containerPort: 80
+          protocol: TCP
+      restartPolicy: Always
 ```
 
 Create the replica set
@@ -282,7 +283,17 @@ selector:
 ```
 
 ## Deployments
-A Deployment provides declarative updates for pods and replicas. The Deployment object defines the strategy for transitioning between deployments of the same application with a zero-downtime update process.
+A Deployment provides declarative updates for pods and replicas. The Deployment object defines the strategy for transitioning between deployments of the same application.
+
+There are basically two ways of updating an application:
+
+  * delete all existing pods first and then start the new ones or
+  * start new ones and once they are up, delete the old ones
+  
+The latter, can be done with two different approach:
+
+  * add all the new pods and then deleting all the old ones at once
+  * add new pods and then removing old ones one by one
 
 To create a deployment for our nginx webserver, edit the ``nginx-deploy.yaml`` file as
 ```yaml
@@ -350,7 +361,7 @@ A deployment, can be scaled up and down
     NAME      DESIRED   CURRENT   UP-TO-DATE   AVAILABLE   AGE
     nginx     6         6         6            3           11m
 
-Pods are controlled by the replica set. However, because the replica set is controlled by the deploy, if we try to scale the replica set instead of the deploy, the deploy will take priority and the number of pods will be reported to the number requested by the deploy.
+In a deploy, pods are always controlled by the replica set. However, because the replica set is controlled by the deploy, if we try to scale the replica set instead of the deploy, the deploy will take priority and the number of pods will be reported to the number requested by the deploy.
 
 For example, try to scale up the replica set from the previous example to have 10 replicas
 
@@ -368,39 +379,34 @@ A deployment also defines the strategy for updates pods
     type: RollingUpdate
 ```
 
-In the snippet above, we set the update strategy as rolling update. During the lifetime of an application, some services need to be update, for example because the image changed. To update a service without an outage, Kubernetes updates one or more pod at a time, rather than taking down the entire application.
+In the snippet above, we set the update strategy as rolling update. During the lifetime of an application, some pods need to be update, for example because the image changed. To update pods without an outage, Kubernetes updates one or more pod at a time, rather than taking down the entire application.
 
 For example, to update the pods with a different version of nginx image
 
-    [root@kubem00 ~]# kubectl set image deploy nginx nginx=nginx:1.9.1
+    [root@kubem00 ~]# kubectl set image deploy nginx nginx=nginx:1.13
     deployment "nginx" image updated
 
-Check the rollout status
+On a separate terminal window, check the rollout status
 
     [root@kubem00 ~]# kubectl rollout status deploy nginx
-    Waiting for rollout to finish: 4 out of 6 new replicas have been updated...
-    Waiting for rollout to finish: 4 out of 6 new replicas have been updated...
-    Waiting for rollout to finish: 4 out of 6 new replicas have been updated...
-    ...
     deployment "nginx" successfully rolled out
 
-    [root@kubem00 ~]# kubectl get deploy
-    NAME      DESIRED   CURRENT   UP-TO-DATE   AVAILABLE   AGE
-    nginx     6         6         6            6           40m
-    
-    [root@kubem00 ~]# kubectl get rs
-    NAME               DESIRED   CURRENT   READY     AGE
-    nginx-2148973303   6         6         6         1m
-    nginx-664452237    0         0         0         40m
-    
-    [root@kubem00 ~]# kubectl get pods
-    NAME                     READY     STATUS    RESTARTS   AGE
-    nginx-2148973303-29hff   1/1       Running   0          2m
-    nginx-2148973303-91xt9   1/1       Running   0          1m
-    nginx-2148973303-cnnt0   1/1       Running   0          2m
-    nginx-2148973303-f2hr1   1/1       Running   0          1m
-    nginx-2148973303-g5h4f   1/1       Running   0          1m
-    nginx-2148973303-xcdlw   1/1       Running   0          1m
+Check the status of the deploy
+
+    [root@kubem00 ~]# kubectl get all -l run=nginx -o wide
+    NAME           DESIRED   CURRENT   UP-TO-DATE   AVAILABLE   AGE       CONTAINERS   IMAGES       SELECTOR
+    deploy/nginx   3         3         3            3           4m        nginx        nginx:1.13   run=nginx
+
+    NAME                  DESIRED   CURRENT   READY     AGE       CONTAINERS   IMAGES       SELECTOR
+    rs/nginx-698d6b8c9f   0         0         0         4m        nginx        nginx:1.12   pod-template-hash=2548264759,run=nginx
+    rs/nginx-76b7c8fff4   3         3         3         2m        nginx        nginx:1.13   pod-template-hash=3263749990,run=nginx
+
+    NAME                        READY     STATUS    RESTARTS   AGE       IP            NODE
+    po/nginx-76b7c8fff4-cx9gw   1/1       Running   0          2m        10.38.3.128   kubew03
+    po/nginx-76b7c8fff4-grkj9   1/1       Running   0          2m        10.38.4.203   kubew04
+    po/nginx-76b7c8fff4-pm5rp   1/1       Running   0          2m        10.38.5.140   kubew05
+
+Now there is a new replica set now taking control of the pods. This replica set control new pods having image ``nginx:1.13``.
 
 Deployment can ensure that only a certain number of pods may be down while they are being updated. By default, it ensures that at least 25% less than the desired number of pods are up. Deployment can also ensure that only a certain number of pods may be created above the desired number of pods. By default, it ensures that at most 25% more than the desired number of pods are up.
 

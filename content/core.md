@@ -293,7 +293,7 @@ There are basically two ways of updating an application:
 The latter, can be done with two different approach:
 
   * add all the new pods and then deleting all the old ones at once
-  * add new pods and then removing old ones one by one
+  * add new pods at time and then removing old ones one by one
 
 To create a deployment for our nginx webserver, edit the ``nginx-deploy.yaml`` file as
 ```yaml
@@ -379,9 +379,11 @@ A deployment also defines the strategy for updates pods
     type: RollingUpdate
 ```
 
-In the snippet above, we set the update strategy as rolling update. During the lifetime of an application, some pods need to be update, for example because the image changed. The Rolling Update strategy removes old pods one by one, while adding new ones at the same time, keeping the application available during the process and ensuring there is no drop in its capacity to handle requests. This is the default strategy.
+In the snippet above, we set the update strategy as rolling update. During the lifetime of an application, some pods need to be update, for example because the image changed. The Rolling Update strategy removes some old pods, while adding new ones at the same time, keeping the application available during the process and ensuring there is no lack of handle the user's requests. This is the default strategy.
 
-The upper and lower limit for the number of pods above or below the desired replica count are configurable. By default, it ensures that at least 25% less than the desired number of pods are up. Deployment can also ensure that only a certain number of pods may be created above the desired number of pods. By default, it ensures that at most 25% more than the desired number of pods are up.
+The upper and lower limit for the number of pods above or below the desired replica count are configurable by the ``maxSurge`` and ``maxUnavailable`` parameters. The first one controls how many pod instances exist above the desired replica count configured on the deployment. It defaults to 1, which means there can be at most one pod instance more than the desired count. For example, if the desired replica count is set to 3, there will never be more than 4 pod instances running during the update at the same time.
+
+The second parameter controls how many pods can be unavailable below to the desired replica count during the update. It also defaults to 1, which means the number of available pod instances must never fall below 1 less than the desired replica count. For example, if the desired replica count is set to 3, there will always be at least 2 pod instances available to serve requests during the whole rollout.
 
 For example, to update the pods with a different version of nginx image
 

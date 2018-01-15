@@ -31,7 +31,7 @@ spec:
     - containerPort: 80
 ```
 
-A pod definition is a declaration of a desired state. Desired state is a very important concept in the Kubernetes model. Many things present a desired state to the system, and it is Kubernetes’ responsibility to make sure that the current state matches the desired state. For example, when you create a Pod, you declare that you want the containers in it to be running. If the containers happen to not be running (e.g. program failure, …), Kubernetes will continue to (re-)create them for you in order to drive them to the desired state. This process continues until the Pod is deleted.
+A pod definition is a declaration of a desired state. Desired state is a very important concept in the Kubernetes model. Many things present a desired state to the system, and it is Kubernetes’ responsibility to make sure that the current state matches the desired state. For example, when you create a Pod, you declare that you want the containers in it to be running. If the containers happen to not be running (e.g. program failure), Kubernetes will continue to (re-)create them for you in order to drive them to the desired state. This process continues until the Pod is deleted.
 
 Create a pod containing an nginx server from the pod-nginx.yaml file
 
@@ -86,9 +86,18 @@ Delete the pod:
     [root@kubem00 ~]# kubectl delete pod mynginx
     pod "mynginx" deleted
 
-In the example above, we had a pod with a single container nginx running inside.
 
-Kubernetes let's user to have multiple containers running in a pod. All containers inside the same pod share the same resources, e.g. network and volumes and are always scheduled togheter on the same node. The primary reason that Pods can have multiple containers is to support helper applications that assist a primary application. Typical examples of helper applications are data pullers, data pushers, and proxies. Helper and primary applications often need to communicate with each other, typically through a shared filesystem or loopback network interface.
+A pod can be in one of the following phases:
+
+  * **Pending**: the API Server has created a pod resource and stored it in etcd, but the pod has not been scheduled yet, nor have container images been pulled from the registry.
+  * **Running**: the pod has been scheduled to a node and all containers have been created by the kubelet.
+  * **Succeeded**: all containers in the pod have terminated successfully and will not be restarted.
+  * **Failed**: all containers in the pod have terminated and, at least one container has terminated in failure.
+  * **Unknown**: The API Server was unable to query the state of the pod, typically due to an error in communicating with the kubelet.
+
+In the example above, we had a pod with a single container nginx running inside. Kubernetes let's user to have multiple containers running in a pod. All containers inside the same pod share the same resources, e.g. network and volumes and are always scheduled togheter on the same node.
+
+The primary reason that Pods can have multiple containers is to support helper applications that assist a primary application. Typical examples of helper applications are data pullers, data pushers, and proxies. Helper and primary applications often need to communicate with each other, typically through a shared filesystem or loopback network interface.
 
 ## Labels
 In Kubernetes, labels are a system to organize objects into groups. Labels are key-value pairs that are attached to each object. Label selectors can be passed along with a request to the apiserver to retrieve a list of objects which match that label selector.

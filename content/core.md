@@ -379,7 +379,9 @@ A deployment also defines the strategy for updates pods
     type: RollingUpdate
 ```
 
-In the snippet above, we set the update strategy as rolling update. During the lifetime of an application, some pods need to be update, for example because the image changed. To update pods without an outage, Kubernetes updates one or more pod at a time, rather than taking down the entire application.
+In the snippet above, we set the update strategy as rolling update. During the lifetime of an application, some pods need to be update, for example because the image changed. The Rolling Update strategy removes old pods one by one, while adding new ones at the same time, keeping the application available during the process and ensuring there is no drop in its capacity to handle requests. This is the default strategy.
+
+The upper and lower limit for the number of pods above or below the desired replica count are configurable. By default, it ensures that at least 25% less than the desired number of pods are up. Deployment can also ensure that only a certain number of pods may be created above the desired number of pods. By default, it ensures that at most 25% more than the desired number of pods are up.
 
 For example, to update the pods with a different version of nginx image
 
@@ -406,11 +408,9 @@ Check the status of the deploy
     po/nginx-76b7c8fff4-grkj9   1/1       Running   0          2m        10.38.4.203   kubew04
     po/nginx-76b7c8fff4-pm5rp   1/1       Running   0          2m        10.38.5.140   kubew05
 
-Now there is a new replica set now taking control of the pods. This replica set control new pods having image ``nginx:1.13``.
+Now there is a new replica set now taking control of the pods. This replica set control new pods having image ``nginx:1.13``. The old replica set is still there and can be used in case of downgrade.
 
-Deployment can ensure that only a certain number of pods may be down while they are being updated. By default, it ensures that at least 25% less than the desired number of pods are up. Deployment can also ensure that only a certain number of pods may be created above the desired number of pods. By default, it ensures that at most 25% more than the desired number of pods are up.
-
-When the strategy update is set to ``type: Recreate``, all existing Pods are killed before new ones are created.
+When the strategy update is set to ``type: Recreate``, all existing Pods are killed before new ones are created. The Recreate strategy causes all old pods to be deleted first and then the new ones are created. This strategy should be used only when the application does not support running multiple versions in parallel and requires the old version to be stopped completely before the new one is started.
 
 ## Services
 Kubernetes pods, as containers, are ephemeral. Replication Controllers create and destroy pods dynamically, e.g. when scaling up or down or when doing rolling updates. While each pod gets its own IP address, even those IP addresses cannot be relied upon to be stable over time. This leads to a problem: if some set of pods provides functionality to other pods inside the Kubernetes cluster, how do those pods find out and keep track of which other?

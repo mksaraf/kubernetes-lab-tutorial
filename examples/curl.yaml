@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: curl
+  namespace:
+spec:
+  containers:
+  - image: kalise/curl:latest
+    command:
+      - sleep
+      - "3600"
+    name: curl
+  restartPolicy: Always

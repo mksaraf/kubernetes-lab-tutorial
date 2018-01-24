@@ -21,6 +21,7 @@ In this section we're going to introduce this model by using simple examples. Pl
   * [Manual volumes provisioning](#manual-volumes-provisioning)
   * [Storage Classes](#storage-classes)
   * [Dynamic volumes provisioning](#dynamic-volumes-provisioning)
+  * [Redis benchmark](#redis-benchmark)
 
 ## Local Persistent Volumes
 Start by defining a persistent volume ``local-persistent-volume-recycle.yaml`` configuration file
@@ -698,3 +699,144 @@ In the same way, the gluster volume is dynamically removed when the claim is rem
 	kubectl delete pvc apache-volume-claim
 	kubectl get pvc,pv
 	No resources found.
+
+## Redis benchmark
+In this section, we are going to use Datera block storage a backend for a Redis server. Redis is an open source, in-memory data structure store, used as a database, cache and message broker. Redis provides different levels of on-disk persistence. Redis is famous for its performances and, therefore, we are going to run a Redis benchmark having persistence on a Datera volume.
+
+### Create a persistent volume claim
+Make sure a Datera Storage Class is defined and create a claim for data as in the ``redis-data-claim.yaml`` configuration file
+```yaml
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: redis-data-claim
+spec:
+  storageClassName: datera-storage-class
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+```
+
+Create the claim and check the dynamic volume creation and the binding
+
+	kubectl create -f redis-data-claim.yaml
+	
+	kubectl get pvc
+	NAME                     STATUS    VOLUME         CAPACITY   ACCESS MODES   STORAGECLASS                     AGE
+	redis-data-claim         Bound     pvc-eaab62e3   10Gi       RWO            datera-storage-class             1m
+
+### Create a Redis Master
+Define a Redis Master deployment as in the ``redis-deployment.yaml`` configuration file
+```yaml
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata:
+  name: redis-deployment
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        name: redis
+        role: master
+      name: redis
+    spec:
+      containers:
+        - name: redis
+          image: kubernetes/redis:v1
+          env:
+            - name: MASTER
+              value: "true"
+          ports:
+            - containerPort: 6379
+          volumeMounts:
+            - mountPath: /redis-master-data
+              name: redis-data
+      volumes:
+        - name: redis-data
+          persistentVolumeClaim:
+            claimName: redis-data-claim
+```
+
+Define a Redis service as in the ``redis-service.yaml`` configuration file
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis
+spec:
+  ports:
+  - port: 6379
+    targetPort: 6379
+    nodePort: 31079
+    name: http
+  type: NodePort
+  selector:
+    name: redis
+```
+
+Deploy the Redis Master and create the service
+
+	kubectl create -f redis-deployment.yaml
+	kubectl create -f redis-service.yaml
+
+Wait the Redis pod is ready
+
+	kubectl get pods -a -o wide
+	NAME                                READY     STATUS      RESTARTS   AGE       IP             NODE
+	redis-deployment-75466795f6-thtx4   1/1       Running     0          30s       10.38.5.62     kubew05
+
+To verify Redis, install the ``netcat`` utility and connect to the Redis Master
+
+	yum install -y nmap-ncat
+
+	nc -v kubew05 31079
+	Ncat: Version 6.40 
+	Ncat: Connected to kubew05:31079.
+	ping
+	+PONG
+	set greetings "Hello from Redis!"
+	+OK
+	get greetings
+	$17
+	Hello from Redis!
+	logout
+
+### Run benchmark
+Define a job running the Redis performances benchmark as in the ``redis-benchmark.yaml`` configuration file
+```yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: redis-bench
+spec:
+  template:
+    metadata:
+      name: bench
+    spec:
+      containers:
+      - name: bench
+        image: clue/redis-benchmark
+      restartPolicy: Never
+```
+
+Create a batch job to run the benchmark
+
+	kubectl create -f redis-benchmark.yaml
+
+Wait the job completes
+
+	kubectl get job
+	NAME          DESIRED   SUCCESSFUL   AGE
+	redis-bench   1         1            48s
+
+Check the bench pod name and display the results
+
+	kubectl get pods -a
+	NAME                                        READY     STATUS      RESTARTS   AGE
+	redis-bench-jgbj8                           0/1       Completed   0          1m
+	redis-deployment-75466795f6-thtx4           1/1       Running     0          16m
+
+	kubectl logs redis-bench-jgbj8

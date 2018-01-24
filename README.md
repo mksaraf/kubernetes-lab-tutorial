@@ -38,6 +38,7 @@
     * [Manual volumes provisioning](./content/storage.md#manual-volumes-provisioning)
     * [Storage Classes](./content/storage.md#storage-classes)
     * [Dynamic volumes provisioning](./content/storage.md#dynamic-volumes-provisioning)
+    * [Redis benchmark](./content/storage.md#redis-benchmark)
     
 5. [Cluster Healing](./content/admin.md)
     * [Cluster Backup and Restore](./content/admin.md#cluster-backup-and-restore)

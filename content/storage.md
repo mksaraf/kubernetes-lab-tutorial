@@ -701,17 +701,17 @@ In the same way, the gluster volume is dynamically removed when the claim is rem
 	No resources found.
 
 ## Redis benchmark
-In this section, we are going to use Datera block storage a backend for a Redis server. Redis is an open source, in-memory data structure store, used as a database, cache and message broker. Redis provides different levels of on-disk persistence. Redis is famous for its performances and, therefore, we are going to run a Redis benchmark having persistence on a Datera volume.
+In this section, we are going to use persistent storage as a backend for a Redis server. Redis is an open source, in-memory data structure store, used as a database, cache and message broker. Redis provides different levels of on-disk persistence. Redis is famous for its performances and, therefore, we are going to run a Redis benchmark having persistence on a persistence volume.
 
 ### Create a persistent volume claim
-Make sure a Datera Storage Class is defined and create a claim for data as in the ``redis-data-claim.yaml`` configuration file
+Make sure a default Storage Class is defined and create a claim for data as in the ``redis-data-claim.yaml`` configuration file
 ```yaml
 kind: PersistentVolumeClaim
 apiVersion: v1
 metadata:
   name: redis-data-claim
 spec:
-  storageClassName: datera-storage-class
+  storageClassName: default
   accessModes:
     - ReadWriteOnce
   resources:
@@ -724,8 +724,8 @@ Create the claim and check the dynamic volume creation and the binding
 	kubectl create -f redis-data-claim.yaml
 	
 	kubectl get pvc
-	NAME                     STATUS    VOLUME         CAPACITY   ACCESS MODES   STORAGECLASS                     AGE
-	redis-data-claim         Bound     pvc-eaab62e3   10Gi       RWO            datera-storage-class             1m
+	NAME                     STATUS    VOLUME         CAPACITY   ACCESS MODES   STORAGECLASS        AGE
+	redis-data-claim         Bound     pvc-eaab62e3   10Gi       RWO            default             1m
 
 ### Create a Redis Master
 Define a Redis Master deployment as in the ``redis-deployment.yaml`` configuration file

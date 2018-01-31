@@ -32,3 +32,7 @@ To defenively disable swap, modify the fstab file by commenting the swap mountin
     /dev/mapper/os-root     /                         xfs     defaults        1 1
     UUID=49e78f32-2e92-4acd-9b8b-ef41b13c3a7d /boot   xfs     defaults        1 2
     # /dev/mapper/os-swap     swap                    swap    defaults        0 0
+
+Check the disk usage of the worker nodes
+
+    du -a -h /var/lib/docker | sort -n -r | head -n 10

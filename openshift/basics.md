@@ -1,12 +1,6 @@
 # OpenShift Core Concepts
 At this point we essentially have a sufficiently functional OpenShift environment. It is now time to create the **Hello World** application using some sample code. It is simple http server written in nodejs returning a greating message as contained into the MESSAGE env variable. The application is available as Docker image and the source code is [here](https://github.com/kalise/nodejs-web-app).
 
-  * [Create a demo user](#create-a-demo-user)
-  * [Create a demo project](#create-a-demo-project)
-  * [Create a pod](#create-a-pod)
-  * [Create a service](#create-a-service)
-  * [Create a replica controller](#create-a-replica-controller)
-
 ## Create a demo user
 OpenShift platform supports a number of mechanisms for authentication. The simplest use case for testing purposes is htpasswd-based authentication. To start, we will need the ``htpasswd`` binary on the Master node
 

@@ -44,5 +44,5 @@ When disk usage is reaching 80%, worker nodes become unschedulable. Check this b
     chmod +x jq-linux64 && mv jq-linux64 /usr/bin/jq
     
     # query kube nodes
-    kubectl get no -ojson | jq -r '.items[] | select(.status.conditions[] | select(.status == "True") | select(.type == "DiskPressure")) | .metadata.name'
+    kubectl get nodes -o json | jq -r '.items[] | select(.status.conditions[] | select(.status == "True") | select(.type == "DiskPressure")) | .metadata.name'
 

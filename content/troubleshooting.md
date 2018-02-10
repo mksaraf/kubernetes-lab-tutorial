@@ -36,3 +36,13 @@ To defenively disable swap, modify the fstab file by commenting the swap mountin
 Check the disk usage of the worker nodes
 
     find / -printf '%s %p\n'| sort -nr | head -10
+    
+When disk usage is reaching 80%, worker nodes become unschedulable. Check this by:
+
+    # download and install jq
+    wget https://github.com/stedolan/jq/releases/download/jq-1.5/jq-linux64
+    chmod +x jq-linux64 && mv jq-linux64 /usr/bin/jq
+    
+    # query kube nodes
+    kubectl get no -ojson | jq -r '.items[] | select(.status.conditions[] | select(.status == "True") | select(.type == "DiskPressure")) | .metadata.name'
+

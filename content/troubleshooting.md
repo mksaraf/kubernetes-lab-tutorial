@@ -35,4 +35,4 @@ To defenively disable swap, modify the fstab file by commenting the swap mountin
 
 Check the disk usage of the worker nodes
 
-    du -a -h /var/lib/docker | sort -n -r | head -n 10
+    find / -printf '%s %p\n'| sort -nr | head -10

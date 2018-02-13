@@ -640,7 +640,7 @@ With the ``emptyDir`` volume type, data in the volume is removed when the pod is
 
 As alternative to put data in an empty dir of the local disk, we can put data on a tmpfs filesystem, i.e. in memory instead of on disk. To do this, set the ``emptyDir`` medium to ``Memory`` like in this snippet
 
-``` json
+```
 ...
 volumes:
   - name: html

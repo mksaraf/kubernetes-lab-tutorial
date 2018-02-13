@@ -636,7 +636,18 @@ Now we should be able to get an answer from the pod
     curl 10.38.3.167
     Hello World from /var/lib/kubelet/pods/<POD_ID>/volumes/kubernetes.io~empty-dir/content-data
 
-With the ``emptyDir`` volume type, data in the volume is removed when the pod is deleted from the node where it was running. To achieve data persistence across pod deletion or relocation, we need for a persistent shared storage alternative. 
+With the ``emptyDir`` volume type, data in the volume is removed when the pod is deleted from the node where it was running. To achieve data persistence across pod deletion or relocation, we need for a persistent shared storage alternative.
+
+As alternative to put data in an empty dir of the local disk, we can put data on a tmpfs filesystem, i.e. in memory instead of on disk. To do this, set the ``emptyDir`` medium to ``Memory`` like in this snippet
+
+``` json
+...
+volumes:
+  - name: html
+emptyDir:
+      medium: Memory
+...
+```
 
 ### Host Path Volume
 The other volume type we're gooing to use is ``hostPath``. With this volume type, the volume is mount from an existing directory on the file system of the node hosting the pod. Data inside the host directory are safe to container crashes and restarts as well as to pod deletion. However, if the pod is moved from a node to another one, data on the initial node are no more accessible from the new instance of the pod.

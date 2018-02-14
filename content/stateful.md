@@ -397,7 +397,7 @@ while checking its status progression
     consul-1   0/1       PodInitializing  0          9s        10.38.4.6   kubew04
     consul-1   1/1       Running          0          12s       10.38.4.6   kubew04
 
-As expected, a new pod is recreated with different IP address but with the same identity. Now check if the rescheduled pod is using the same previous Datera storage volume
+As expected, a new pod is recreated with different IP address but with the same identity. Now check if the rescheduled pod is using the same previous storage volume
 
     kubectl describe pod consul-1
     ...

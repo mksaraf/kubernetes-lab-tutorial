@@ -304,7 +304,7 @@ spec:
       resources:
         requests:
           storage: 1Gi
-       storageClassName: default
+      storageClassName: default
 ```
 
 We notice the presence of an init container in the pod template in addition to the main Consul container. Both the containers, the init and the main container mount, as shared volume, the same Consul configuration file (in the form of a ConfigMap we just created early) . The role of the init container is to update the consul configuration file according to the namespace where that pod is running. This is accomplished by accessing the pod metadata by the API server running in the Kubernetes Control Plane. This step is required because the discoverability of each Consul instance is tied to the namespace where the instance is running, i.e. Consul instances running in different namespaces are named differently.  
@@ -466,7 +466,7 @@ Check the membership of the scaled cluster
     consul-3  10.38.3.161:8301  alive   server  1.0.2  2         kubernetes  <all>
     consul-4  10.38.4.11:8301   alive   server  1.0.2  2         kubernetes  <all>
 
-Also check the dynamic Datera storage provisioner created the additional volumes
+Also check the dynamic storage provisioner created the additional volumes
 
     kubectl get pvc -o wide
 

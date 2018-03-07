@@ -113,20 +113,18 @@ svc/ingress-default-backend   10.32.156.148   <none>        8080/TCP   1m
 Please, note that the ingress default backend service is an internal service ``type: ClusterIP`` and therefore, it is not exposed.
 
 ### Nginx as Ingress Controller
-The Nginx application is capable to act as reverse proxy to route requests from an external load balancer directly to the pods providing the service. To configure an Nginx Ingress Controller, create first an Nginx deploy form the ``nginx-ingress-controller-deploy.yaml`` available [here](../examples/ingress-controller/nginx-ingress-controller-deploy.yaml) and then the related service from the file ``nginx-ingress-controller-svc.yaml`` available [here](../examples/ingress-controller/nginx-ingress-controller-svc.yaml).
+The Nginx application is capable to act as reverse proxy to route requests from an external load balancer directly to the pods providing the service. To configure an Nginx Ingress Controller, create an Nginx deploy form the ``nginx-ingress-controller-deploy.yaml`` available [here](../examples/ingress-controller/nginx-ingress-controller-deploy.yaml).
 
 Assuming we want to handle TLS requests, the Ingress Controller needs to have a default TLS certificate. This will be used for requests where is not specified TLS certificate. Assuming we have a certificate and key, ``tsl.crt`` and ``tsl.key``, respectively, create a secrets as follow
 ```bash
 kubectl -n kube-system create secret tls tls-secret --key tls.key --cert tls.crt
 ```
 
-Create the deploy and the service 
+Create the ingress controller
 ```bash
 kubectl create -f nginx-ingress-controller-deploy.yaml
-kubectl create -f nginx-ingress-controller-svc.yaml
 ```
-
-The templates above, will create a deploy and the related service in the ``kube-system`` namespace.
+The file above, will deploy the ingress controller in the ``kube-system`` namespace.
 
 Having already created the Ingress resource, the Ingress Controller is now able to forward requests from the kube proxy directly to the pods running your application
 ```bash
@@ -150,11 +148,22 @@ Content-Type: text/plain; charset=utf-8
 default backend - 404
 ```
 
-An Ingress Controller can be deployed also as Daemon Set resulting an Nginx instance for each worker node in the cluster. The daemon set definition file ``nginx-ingress-controller-daemonset.yaml`` can be found [here](../examples/ingress-controller/nginx-ingress-controller-daemonset.yaml). Remove the deploy and create the daemon set in the ``kube-system`` namespace
+An Ingress Controller can be deployed also as Daemon Set resulting an Nginx instance for each worker node in the cluster. The daemon set definition file ``nginx-ingress-controller-daemonset.yaml`` can be found [here](../examples/ingress-controller/nginx-ingress-controller-daemonset.yaml). Remove the previous deploy and create the daemon set in the ``kube-system`` namespace
 ```bash
-kubectl delete deploy nginx-ingress-controller
 kubectl create -f nginx-ingress-controller-daemonset.yaml
 ```
+
+Please, note the ingress controller is running as a host pod, meaning it is using the same network namespace of the host. This is achieved with the ``hostNetwork`` option in the pod template:
+```yaml
+    ...
+    spec:
+      hostNetwork: true
+      containers:
+      - ...
+```
+
+In practice, this means the ingress controller pod is listening on the IP address and port of the host machine.
+
 
 ### TLS Termination
 An Ingress Controller is able to terminate secure TLS sessions and redirect requests to insecure HTTP applications running on the cluster. To configure TLS termination for user application, create a secret with certification and key in the user namespace pay attention to the **Common Name** used for the service.

@@ -111,6 +111,10 @@ Create a **Certificates** configuration file ``cert-config.json`` as following
       "client-authentication": {
         "usages": ["signing", "key encipherment", "client auth"],
         "expiry": "8760h"
+      },
+      "peer-authentication": {
+        "usages": ["signing", "key encipherment", "server auth", "client auth"],
+        "expiry": "8760h"
       }
     }
   }

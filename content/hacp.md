@@ -339,7 +339,7 @@ To avoid single point of failure in the load balancer, instead to use a single e
 ## Controllers redundancy
 Compared to the API server, where multiple replicas can run simultaneously, running multiple instances of the Controller Manager or the Scheduler requires coordination among instances. Because controllers and the scheduler all actively watch the cluster state and then act when it changes, running multiple instances of each of those components would result in all of them performing the same action.
 
-For this reason, when running multiple instances of these components, only one instance may be active at any given time. This is controlled with the ``--leader-elect`` option in the startup files of both the controller manager and the scheduler, which defaults to true. Each individual instance will only be active when it becomes the elected leader. Only the leader performs actual work, whereas all other instances are standing by and waiting for the current leader to fail. When it does, the remaining instances elect a new leader, which then takes over the work. This mechanism ensures that two components are never operating at the same time.
+For this reason, when running multiple instances of these components, only one instance may be active at any given time. This is controlled with the ``--leader-elect=true`` option in the startup files of both the controller manager and the scheduler. Each individual instance will only be active when it becomes the elected leader. Only the leader performs actual work, whereas all other instances are standing by and waiting for the current leader to fail. When it does, the remaining instances elect a new leader, which then takes over the work. This mechanism ensures that two components are never operating at the same time.
 
 To check the active instance of the controller manager, query the system for the service endpoints in the ``kube-system`` namespace
 
@@ -348,11 +348,18 @@ To check the active instance of the controller manager, query the system for the
     Name:         kube-controller-manager
     Namespace:    kube-system
     Labels:       <none>
-    Annotations:  control-plane.alpha.kubernetes.io/leader={"holderIdentity":"kubem00","leaseDurationSeconds":15,"acquireTime":"2018-03-18T03:55:36Z","renewTime":"2018-03-19T14:46:50Z","leaderTransitions":3}
+    Annotations:  control-plane.alpha.kubernetes.io/leader
+                  {
+                   "holderIdentity":"kubem00",
+                   "leaseDurationSeconds":15,
+                   "acquireTime":"2018-03-18T03:55:36Z",
+                   "renewTime":"2018-03-19T14:46:50Z",
+                   "leaderTransitions":3
+                  }
     Subsets:
     Events:  <none>
 
-The ``holderIdentity`` annotation reports the name of the current leader. Once becoming the leader, it periodically update the resource every two seconds by default, so all other instances know that it is still alive. When the current leader fails, the other instances see that the resource has not been updated for a while, and try to become
+The ``holderIdentity`` annotation reports the name of the current leader. Once becoming the leader, it periodically update the resource, so all other instances know that it is still alive. When the current leader fails, the other instances see that the resource has not been updated for a while, and try to become
 the new leader by writing their name to the resource.
 
     kubectl describe endpoints kube-controller-manager -n kube-system
@@ -360,7 +367,14 @@ the new leader by writing their name to the resource.
     Name:         kube-controller-manager
     Namespace:    kube-system
     Labels:       <none>
-    Annotations:  control-plane.alpha.kubernetes.io/leader={"holderIdentity":"kubem01","leaseDurationSeconds":15,"acquireTime":"2018-03-19T14:48:31Z","renewTime":"2018-03-19T14:48:33Z","leaderTransitions":4}
+    Annotations:  control-plane.alpha.kubernetes.io/leader
+                  {
+                   "holderIdentity":"kubem01",
+                   "leaseDurationSeconds":15,
+                   "acquireTime":"2018-03-19T14:48:31Z",
+                   "renewTime":"2018-03-19T14:48:33Z",
+                   "leaderTransitions":4
+                  }
     Subsets:
     Events:
       Type    Reason          Age   From                Message

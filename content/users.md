@@ -515,15 +515,15 @@ we get an answer from the pod being in the namespace name ``project``.
 
 Pods use service accounts to access the following information:
 
-  1. name of the pod
-  2. IP address of the pod
-  3. labels of the pod
-  4. annotations of the pod
-  5. namespace the pod belongs to
-  6. name of the node the pod is running on
-  7. name of the service account used by the pod 
-  8. CPU and memory requests for each container
-  9. CPU and memory limits for each container
+  * name of the pod
+  * IP address of the pod
+  * labels of the pod
+  * annotations of the pod
+  * namespace the pod belongs to
+  * name of the node the pod is running on
+  * name of the service account used by the pod 
+  * CPU and memory requests for each container
+  * CPU and memory limits for each container
 
 A pod uses exactly one Service Account belonging to the same namespace, but multiple pods inside the same namespace can use the same Service Account.
 
@@ -589,17 +589,3 @@ We made some progress but still not authenticated by the APIs server. To be auth
     }
 
 Now we're authenticated by the APIs server.
-
-
-
-
-
-
-
-
-
-
-
-
-
-

@@ -782,8 +782,10 @@ On CentOS systems, the suggested storage driver is the Device Mapper. However, s
 
 and change the ``/etc/fstab`` host file to mount it under ``/var/lib/docker``
 
+    ...
     # Mount the Docker disk
     /dev/sdb1	/var/lib/docker	xfs	defaults	0 0
+    ...
 
 and mount it
 

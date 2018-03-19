@@ -23,7 +23,7 @@ Configure the DNS to resolve the *kubernetes* hostname with the load balancer ad
 The etcd and the APIs server will run in active-active mode meaning all instances are able to handle requests in parallel. The Controller Manager and the Scheduler will run in active-standby mode meaning only one instance is handling requests while the other two are in standy waiting for take over.
 
 ## Configuring multiple etcd instances
-The etcd distributed key/value database stores all configurations about the claster status. It has been designed to be natively running in multiple instance, so all we need is run it on an appropriate number of machines. Because the etcd is based on the **Raft** algorithm, we need to setup an odd number of machines to avoid the so called *split-brain* scenario where a partitioning in the cluster can lead two partitions to act independently.
+The etcd distributed key/value database stores all configurations about the claster status. It has been designed to be natively running in multiple instance, so all we need is run it on an appropriate number of machines. Because the etcd is based on the **Raft** distributed consensus algorithm, we need to setup an odd number of machines to avoid the so called *"split-brain"* scenario where a partitioning in the cluster can lead the two partitions to act independently.
 
 We'll configure an etcd instance on each master node.
 

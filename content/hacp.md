@@ -16,7 +16,7 @@ To make kubernetes control plane high available, we need to run multiple instanc
   
 On top of the master nodes, we'll setup an additional machine as load balancer in order to distribute the requests to all masters:
 
-  * *kubernetes* (loaad balancer) 10.10.10.2
+  * *kubernetes* (load balancer) 10.10.10.2
 
 Configure the DNS to resolve the *kubernetes* hostname with the load balancer address. We'll use this name in our configuration files without specifying for a particular hostname.
 

@@ -542,7 +542,7 @@ Find the service address of the APIs server by checking the env variables
 
 Trying to access the APIs server from the pod
 
-    / # curl https://$KUBERNETES_SERVICE_HOST:443/api
+    / # curl https://$KUBERNETES_SERVICE_HOST:443/version
     curl: (60) SSL certificate problem: unable to get local issuer certificate
 
 we get an error because we're not able to verify the identity of the APIs server. To verify we are talking to the right APIs server and not to a faker, we need to check if the server’s certificate is signed by the known Certification Authority (CA).

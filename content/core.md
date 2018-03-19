@@ -520,11 +520,7 @@ We can see a new endpoint is added to the service
 
 Any pod in the cluster need for the nginx service will be able to talk with this service by the service address no matter which IP address will be assigned to the nginx pod. Also, in case of multiple nginx pods, the service abstraction acts as load balancer between the nginx pods.
 
-The picture below shows the relationship between services and pods
-
-![](../img/service-pod.png?raw=true)
-
-Create a pod from the below yaml file
+Create a pod from the following yaml file
 ```yaml
 apiVersion: v1
 kind: Pod

@@ -162,7 +162,7 @@ Move the certificate to all worker nodes in the proper location ``/etc/kubernete
     done
 
 ### Create server keys pair
-The master node IP addresses and names will be included in the list of subject alternative content names for the server certificate. Create the configuration file ``server-csr.json`` for server certificate signing request
+The master node IP addresses and names will be included in the list of subject alternative content names for the server certificate. Create the configuration file ``apiserver-csr.json`` for server certificate signing request
 
 ```json
 {
@@ -193,20 +193,20 @@ Create the server key pair
        -ca-key=ca-key.pem \
        -config=cert-config.json \
        -profile=server-authentication \
-       server-csr.json | cfssljson -bare server
+       apiserver-csr.json | cfssljson -bare apiserver
 
-This will produce the ``server.pem`` certificate file containing the public key and the ``server-key.pem`` file, containing the private key. Just as reference, to verify that a certificate was issued by a specific CA, given that CA's certificate
+This will produce the ``apiserver.pem`` certificate file containing the public key and the ``apiserver-key.pem`` file, containing the private key. Just as reference, to verify that a certificate was issued by a specific CA, given that CA's certificate
 
-    openssl x509 -in server.pem -noout -issuer -subject
+    openssl x509 -in apiserver.pem -noout -issuer -subject
       issuer= /C=IT/ST=Italy/L=Milan/CN=Clastix.io CA
       subject= /CN=apiserver
     
-    openssl verify -verbose -CAfile ca.pem  server.pem
-      server.pem: OK
+    openssl verify -verbose -CAfile ca.pem  apiserver.pem
+      apiserver.pem: OK
 
 Move the key and certificate to master node proper location ``/etc/kubernetes/pki``
 
-    scp server*.pem root@kubem00:/etc/kubernetes/pki
+    scp apiserver*.pem root@kubem00:/etc/kubernetes/pki
 
 ### Create the kubectl keys pair
 Since TLS authentication in kubernetes is a two way authentication between client and server, we create the client certificate and key. We are going to create a certificate for the admin cluster user. This user will be allowed to perform any admin operation on the cluster via ``kubectl`` command line client interface.

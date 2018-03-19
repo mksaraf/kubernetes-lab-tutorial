@@ -14,14 +14,14 @@ This tutorial refers to a cluster of nodes (virtual, physical or a mix of both) 
 ## Requirements
 Our initial cluster will be made of 1 Master node and 3 Workers nodes. All machines can be virtual or physical or a mix of both. Minimum hardware requirements are: 1 vCPUs, 2GB of RAM, 16GB HDD for OS. All machines will be installed with a minimal Linux CentOS 7. Firewall and Selinux will be disabled. An NTP server is installed and running on all machines. On worker nodes, Docker uses a separate 10GB HDD. Internet access.
 
-Here the hostnames:
+Here the hostnames and addresses:
 
-   * *kubem00* a.k.a *kubernetes* (master)
-   * *kubew03* (worker)
-   * *kubew04* (worker)
-   * *kubew05* (worker)
+   * *kubem00* (master) 10.10.10.80
+   * *kubew03* (worker) 10.10.10.83
+   * *kubew04* (worker) 10.10.10.84
+   * *kubew05* (worker) 10.10.10.85
 
-Make sure to enable DNS resolution for the above hostnames.
+Make sure to enable DNS resolution for the above hostnames. Also configure the *kubernetes* hostname to be resolved with the master address. We'll use this name in our configuration files without specifying for a particular hostname.
 
 Here the releases we'll use during this tutorial
 

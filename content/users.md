@@ -15,8 +15,8 @@ In kubernetes, users access the API server via HTTP(S) requests. When a request 
 ## Service Accounts
 In kubernetes we have two kind of users:
 
-  1. **Service Accounts**: used for applications running in pods that need to contact the apiserver. 
-  2. **User Accounts**: used for humans or machines
+  1. **Service Accounts**: used for applications running in pods 
+  2. **User Accounts**: used for humans or machines 
   
 User accounts are global, i.e. user names must be unique across all namespaces of a cluster while service accounts are namespaced. Each namespace has a default service account automatically created by kubernetes. 
 
@@ -103,17 +103,19 @@ secrets:
 we see that a service account token has automatically been created 
 
     kubectl get secrets
+    
     NAME                  TYPE                                  DATA      AGE
     default-token-xr7kb   kubernetes.io/service-account-token   3         3d
     nginx-token-9dx47     kubernetes.io/service-account-token   3         22m
 
-Service accounts are tied to a set of credentials stored as secrets which are mounted into pods allowing in cluster processes to authenticate the service account against the API server.
+Service accounts are tied to a set of credentials stored as secrets which are mounted into pods allowing them to authenticate against the API server.
 
-To achieve token creation for service accounts, we have to pass a private key file to the controller-manager via the ``--service-account-private-key-file`` option to sign generated service account tokens. Similarly, we have to pass the corresponding public key to the API server using the ``--service-account-key-file`` option.
+To achieve token creation for service accounts, we have to pass a private key file to the controller manager via the ``--service-account-private-key-file`` option. The controller manager will use the private key to sign the generated service account tokens. Similarly, we have to pass the corresponding public key to the API server using the ``--service-account-key-file`` option.
 
 *Please, note that each time the public and private certificate keys change, we have to delete the service accounts, including the default service account for each namespace.*
 
-Service accounts are useful when the pod needs to access the API server. For example, the following ``nodejs-pod-namespace.yaml`` definition file implements an API call to read the pod namespace and put it into a pod env variable
+### Accessing metadata
+Service accounts are useful when the pod needs to access the pod metadata stored in the API server. For example, the following ``nodejs-pod-namespace.yaml`` definition file implements an API call to read the pod namespace and put it into a pod env variable
 ```yaml
 apiVersion: v1
 kind: Pod
@@ -150,6 +152,93 @@ Create the pod above and access the pod
     <html><head></head><body>Hello project from 10.38.4.9</body></html>
 
 we get an answer from the pod being in the namespace name ``project``.
+
+Pods use service accounts to access the following information:
+
+  1. name of the pod
+  2. IP address of the pod
+  3. labels of the pod
+  4. annotations of the pod
+  5. namespace the pod belongs to
+  6. name of the node the pod is running on
+  7. name of the service account used by the pod 
+  8. CPU and memory requests for each container
+  9. CPU and memory limits for each container
+
+A pod uses exactly one Service Account belonging to the same namespace, but multiple pods inside the same namespace can use the same Service Account.
+
+## Explore the APIs server
+Service account can also be used to explore the APIs server content when working inside a pod.
+
+Create a pod from the ``curl.yaml`` file and login into it
+
+    kubectl create -f curl.yaml
+    kubectl exec -it curl sh
+    / # 
+
+Find the service address of the APIs server by checking the env variables
+
+    / # env | grep KUBERNETES_SERVICE
+    KUBERNETES_SERVICE_PORT=443
+    KUBERNETES_SERVICE_PORT_HTTPS=443
+    KUBERNETES_SERVICE_HOST=10.32.0.1
+
+Trying to access the APIs server from the pod
+
+    / # curl https://$KUBERNETES_SERVICE_HOST:443
+    curl: (60) SSL certificate problem: unable to get local issuer certificate
+
+we get an error because we're not able to verify the identity of the APIs server. To verify we are talking to the right APIs server and not to a faker, we need to check if the server’s certificate is signed by the known Certification Authority (CA).
+
+    / # ls -l /var/run/secrets/kubernetes.io/serviceaccount/
+    total 0
+    lrwxrwxrwx    1 root     root            13 Mar 19 15:39 ca.crt -> ..data/ca.crt
+    lrwxrwxrwx    1 root     root            16 Mar 19 15:39 namespace -> ..data/namespace
+    lrwxrwxrwx    1 root     root            12 Mar 19 15:39 token -> ..data/token
+
+The ``ca.crt`` file above holds the certificate of the Certificate Authority (CA) used to sign the kubernetes API server’s certificate
+
+    / # export CURL_CA_BUNDLE=/var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+    / # curl https://$KUBERNETES_SERVICE_HOST:443
+    {
+      "kind": "Status",
+      "apiVersion": "v1",
+      "metadata": {
+
+      },
+      "status": "Failure",
+      "message": "forbidden: User \"system:anonymous\" cannot get path \"/\"",
+      "reason": "Forbidden",
+      "details": {
+
+      },
+      "code": 403
+    }
+
+We made some progress but still not authenticated by the APIs server. To be authenticate, we'll use the service account token signed by the controller manager via the key specified ``--service-account-private-key-file`` option. That token is mounted as secret into each container
+
+    / # TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
+    / # curl -H "Authorization: Bearer $TOKEN" https://kubernetes:443
+    {
+      "kind": "Status",
+      "apiVersion": "v1",
+      "metadata": {
+
+      },
+      "status": "Failure",
+      "message": "forbidden: User \"system:serviceaccount:kube-system:default\" cannot get path \"/\"",
+      "reason": "Forbidden",
+      "details": {
+
+      },
+      "code": 403
+    }
+
+Now we're authenticated by the APIs server but not authorized because of the RBAC authorization that is preventing the default service account to access the APIs server.
+
+To achieve authorization by the APIs server, we need to create a custom service account and give it the permissions or, otherwise, give the permissions to the default service account. The first option is considered a best practice while the latter not since the default service account can be used by any pod.
+
+
 
 ## Authentication
 Kubernetes uses different ways to authenticate users: certificates, tokens, passwords as long enhanced methods as OAuth. Multiple methods can be used at same time, depending on the use case. At least two methods:

@@ -12,7 +12,7 @@ This tutorial refers to a cluster of nodes (virtual, physical or a mix of both) 
    * [Configure DNS service](#configure-dns-service)
 
 ## Requirements
-Our initial cluster will be made of 1 Master node and 3 Workers nodes. All machines can be virtual or physical or a mix of both. Minimum hardware requirements are: 1 vCPUs, 2GB of RAM, 16GB HDD for OS. All machines will be installed with a minimal Linux CentOS 7. Firewall and Selinux will be disabled. An NTP server is installed and running on all machines. On worker nodes, Docker is installed with a Device Mapper on a separate 10GB HDD. Internet access.
+Our initial cluster will be made of 1 Master node and 3 Workers nodes. All machines can be virtual or physical or a mix of both. Minimum hardware requirements are: 1 vCPUs, 2GB of RAM, 16GB HDD for OS. All machines will be installed with a minimal Linux CentOS 7. Firewall and Selinux will be disabled. An NTP server is installed and running on all machines. On worker nodes, Docker uses a separate 10GB HDD. Internet access.
 
 Here the hostnames:
 
@@ -21,13 +21,13 @@ Here the hostnames:
    * *kubew04* (worker)
    * *kubew05* (worker)
 
-Make sure to enable DNS resolution for the above hostnames or set the ``/etc/hosts`` file on all the machines.
+Make sure to enable DNS resolution for the above hostnames.
 
 Here the releases we'll use during this tutorial
 
     ETCD=v3.2.8
-    KUBERNETES=v1.8.2
-    DOCKER=v1.12.6
+    KUBERNETES=v1.9.2
+    DOCKER=v1.13.1
     CNI=v0.6.0
 
 ## Install binaries
@@ -65,6 +65,8 @@ Estract and install
 On all the worker nodes, install docker
 
     yum -y install docker
+
+This will install the latest docker version (v1.13.1) available for CentOS. Please, do not install the latest Docker CE Edition since Kubernetes does not need all the bells and whistles Docker provides.
 
 ## Create TLS certificates
 Kubernetes supports **TLS** certificates on each of its components. When set up correctly, it will only allow components with a certificate signed by a specific **Certification Authority** to talk to each other. In general a single Certification Authority is enough to setup a secure kubernets cluster. However nothing prevents to use different Certification Authorities for different components. For example, a public Certification Authority can be used to authenticate the API server in public Internet while internal components, such as worker nodes can be authenticate by using a self signed certificate.
@@ -206,8 +208,8 @@ Move the key and certificate to master node proper location ``/etc/kubernetes/pk
 
     scp server*.pem root@kubem00:/etc/kubernetes/pki
 
-### Create client keys pair
-Since TLS authentication in kubernetes is a two way authentication between client and server, we create the client certificate and key. We are going to create a certificate for the admin cluster user. This user will be allowed to perform any admin operation on the cluster via kubectl command line client interface.
+### Create the kubectl keys pair
+Since TLS authentication in kubernetes is a two way authentication between client and server, we create the client certificate and key. We are going to create a certificate for the admin cluster user. This user will be allowed to perform any admin operation on the cluster via ``kubectl`` command line client interface.
 
 Create the ``admin-csr.json`` configuration file for the admin client.
 ```json
@@ -216,7 +218,12 @@ Create the ``admin-csr.json`` configuration file for the admin client.
   "key": {
     "algo": "rsa",
     "size": 2048
-  }
+  },
+  "names": [
+    {
+      "O": "system:masters"
+    }
+  ]
 }
 ```
 
@@ -236,11 +243,11 @@ Move the key and certificate, along with the Certificate Authority certificate t
     scp ca.pem root@kube-admin:~/.kube
     scp admin*.pem root@kube-admin:~/.kube
 
-### Create kubelet keys pair
-We need also to secure interaction between worker nodes and master node. Create the ``kubelet-csr.json`` configuration file for the kubelet component
+### Create the kube-controller-manager keys pair
+The control manager will act as client for the APIs server, so we need to provide it a certificate. Create the ``controller-manager-csr.json`` configuration file.
 ```json
 {
-  "CN": "kubelet",
+  "CN": "system:kube-controller-manager",
   "key": {
     "algo": "rsa",
     "size": 2048
@@ -255,9 +262,66 @@ Create the key and certificate
       -ca-key=ca-key.pem \
       -config=cert-config.json \
       -profile=client-authentication \
-      kubelet-csr.json | cfssljson -bare kubelet
+      controller-manager-csr.json | cfssljson -bare controller-manager
 
-This will produce the ``kubelet.pem`` certificate file containing the public key and the ``kubelet-key.pem`` file, containing the private key.
+This will produce the ``controller-manager.pem`` certificate file containing the public key and the ``controller-manager-key.pem`` file, containing the private key.
+
+Move the keys pair in the proper location 
+
+    scp controller-manager*.pem root@kubem00:/var/lib/kube-controller-manager/pki
+
+### Create the kube-scheduler keys pair
+Create the ``scheduler-csr.json`` configuration file.
+```json
+{
+  "CN": "system:kube-scheduler",
+  "key": {
+    "algo": "rsa",
+    "size": 2048
+  }
+}
+```
+
+Create the key and certificate
+
+    cfssl gencert \
+      -ca=ca.pem \
+      -ca-key=ca-key.pem \
+      -config=cert-config.json \
+      -profile=client-authentication \
+      scheduler-csr.json | cfssljson -bare scheduler
+
+This will produce the ``scheduler.pem`` certificate file containing the public key and the ``scheduler-key.pem`` file, containing the private key.
+
+Move the keys pair in the proper location
+
+    scp scheduler*.pem root@kubem00:/var/lib/kube-scheduler/pki
+
+### Create kubelet keys pair
+We need also to secure interaction between worker nodes and master node. For each worker node identified by ``${nodename}``, create an authentication signing request ``${nodename}-csr.json`` file
+```json
+{
+  "CN": "system:node:${nodename}",
+  "key": {
+    "algo": "rsa",
+    "size": 2048
+  },
+  "names": [
+    {
+      "O": "system:nodes"
+    }
+  ]
+}
+```
+
+Create the certificates
+
+    cfssl gencert \
+      -ca=ca.pem \
+      -ca-key=ca-key.pem \
+      -config=cert-config.json \
+      -profile=client-authentication \
+      ${nodename}-csr.json | cfssljson -bare ${nodename}
 
 Move the keys pair to all worker nodes in the proper location ``/var/lib/kubelet/pki``
 
@@ -265,12 +329,11 @@ Move the keys pair to all worker nodes in the proper location ``/var/lib/kubelet
       scp kubelet.pem kubelet-key.pem ${instance}:/var/lib/kubelet/pki
     done
 
-
 ### Create proxy keys pair
 For the proxy component, create the ``kube-proxy-csr.json`` configuration file 
 ```json
 {
-  "CN": "kube-proxy",
+  "CN": "system:kube-proxy",
   "key": {
     "algo": "rsa",
     "size": 2048
@@ -305,7 +368,12 @@ Create the ``kubelet-client-csr.json`` configuration file
   "key": {
     "algo": "rsa",
     "size": 2048
-  }
+  },
+  "names": [
+    {
+      "O": "system:masters"
+    }
+  ]
 }
 ```
 
@@ -325,7 +393,7 @@ Move the keys pair to the master node in the proper location ``/etc/kubernetes/p
     scp kubelet-client*.pem kubem00:/etc/kubernetes/pki
 
 ### Create service accounts keys pair
-Unlike every other TLS key that kubernetes supports, the service account key doesn’t require to be signed by a Certification Authority and, therfore, it does not need for certificates. 
+In some cases, the pods need to access the APIs server. In these cases, we need to provide a key pair for the service accounts in order to be authenticated by the APIs server. The service account key doesn’t require to be signed by a Certification Authority and, therfore, it does not need for certificates. 
 
 Just generate a service account key with
 
@@ -335,8 +403,66 @@ and move it to the master node in the proper location
 
     scp sa.key kubem00:/etc/kubernetes/pki
 
+### Create the etcd server key pair
+The etcd server needs to be secured as best practice. Theoretically, you can use a separate certification authority (CA) for the etcd server but in our case we're going to use the same CA for whole cluster. Create the ``etcd-server-csr.json`` configuration file.
+```json
+{
+  "CN": "10.10.10.80",
+  "key": {
+    "algo": "rsa",
+    "size": 2048
+  }
+}
+```
+
+Make sure the CN field contains the IP address of the node where the etcd will be. In our case, it will runn on the master server.
+
+Create the key and certificate
+
+    cfssl gencert \
+      -ca=ca.pem \
+      -ca-key=ca-key.pem \
+      -config=cert-config.json \
+      -profile=peer-authentication \
+      etcd-server-csr.json | cfssljson -bare etcd-server
+
+This will produce the ``etcd-server`` certificate file containing the public key and the ``etcd-server-key.pem`` file, containing the private key.
+
+Move the keys pair to the master node in the proper location ``/etc/etcd/pki`` as well as the certification authority certificate we used:
+
+    scp etcd-server*.pem kubem00:/etc/etcd/pki
+    scp ca.pem kubem00:/etc/etcd/pki
+   
+### Create the etcd client key pair
+The APIs server acts as client for the etcd server, so we need to create a certificate in order to access the etcd server from the APIs server. Create the ``etcd-client-csr.json`` configuration file.
+```json
+{
+  "CN": "etcd-client",
+  "key": {
+    "algo": "rsa",
+    "size": 2048
+  }
+}
+```
+
+Create the key and certificate
+
+    cfssl gencert \
+      -ca=ca.pem \
+      -ca-key=ca-key.pem \
+      -config=cert-config.json \
+      -profile=client-authentication \
+      etcd-client-csr.json | cfssljson -bare etcd-client
+
+This will produce the ``etcd-client`` certificate file containing the public key and the ``etcd-client-key.pem`` file, containing the private key.
+
+Move the keys pair to the master node in the proper location ``/etc/etcd/pki``
+
+    scp etcd-client*.pem kubem00:/etc/etcd/pki
+   
+
 ## Configure etcd
-In this section, we'll install a single instance of etcd running on the same machine of the API server. For this reason, we'll not secure the communication between etcd and APIs server because of this assumption.
+In this section, we'll install a single instance of etcd running on the same machine of the API server.
 
 On the master node, create the etcd data directory
 
@@ -355,12 +481,20 @@ Before launching and enabling the etcd service, set options in the ``/etc/system
     Type=notify
     ExecStart=/usr/bin/etcd \
       --name kubem00 \
-      --initial-advertise-peer-urls http://127.0.0.1:2380 \
-      --listen-peer-urls http://127.0.0.1:2380 \
-      --listen-client-urls http://127.0.0.1:2379 \
-      --advertise-client-urls http://127.0.0.1:2379 \
+      --trusted-ca-file=/etc/kubernetes/pki/ca.pem \
+      --cert-file=/etc/etcd/pki/etcd-server.pem \
+      --key-file=/etc/etcd/pki/etcd-server-key.pem \
+      --client-cert-auth=true \
+      --listen-client-urls https://10.10.10.80:2379\
+      --advertise-client-urls https://10.10.10.80:2379 \
+      --peer-client-cert-auth=true \
+      --peer-trusted-ca-file=/etc/kubernetes/pki/ca.pem \
+      --peer-cert-file=/etc/etcd/pki/etcd-server.pem \
+      --peer-key-file=/etc/etcd/pki/etcd-server-key.pem \
+      --initial-advertise-peer-urls https://10.10.10.80:2380 \
+      --listen-peer-urls https://10.10.10.80:2380 \
       --initial-cluster-token etcd-cluster-token \
-      --initial-cluster kubem00=http://127.0.0.1:2380 \
+      --initial-cluster kubem00=https://10.10.10.80:2380 \
       --initial-cluster-state new \
       --data-dir=/var/lib/etcd \
       --debug=false
@@ -371,6 +505,7 @@ Before launching and enabling the etcd service, set options in the ``/etc/system
 
     [Install]
     WantedBy=multi-user.target
+
 
 Start and enable the service
 
@@ -394,22 +529,28 @@ Set the options in the ``/etc/systemd/system/kube-apiserver.service`` startup fi
     [Service]
     Type=notify
     ExecStart=/usr/bin/kube-apiserver \
-      --admission-control=NamespaceLifecycle,ServiceAccount,LimitRanger,DefaultStorageClass,ResourceQuota \
-      --etcd-servers=http://127.0.0.1:2379 \
+      --admission-control=NamespaceLifecycle,ServiceAccount,LimitRanger,ResourceQuota,DefaultStorageClass \
+      --etcd-servers=https://10.10.10.80:2379 \
+      --etcd-cafile=/etc/etcd/pki/ca.pem \
+      --etcd-certfile=/etc/etcd/pki/etcd-client.pem \
+      --etcd-keyfile=/etc/etcd/pki/etcd-client-key.pem \
       --advertise-address=0.0.0.0 \
       --allow-privileged=true \
-      --insecure-bind-address=127.0.0.1 \
-      --insecure-port=8080 \
       --bind-address=0.0.0.0 \
       --secure-port=6443 \
       --service-cluster-ip-range=10.32.0.0/16 \
       --service-node-port-range=30000-32767 \
       --client-ca-file=/etc/kubernetes/pki/ca.pem \
-      --tls-cert-file=/etc/kubernetes/pki/server.pem \
-      --tls-private-key-file=/etc/kubernetes/pki/server-key.pem \
+      --tls-cert-file=/etc/kubernetes/pki/apiserver.pem \
+      --tls-private-key-file=/etc/kubernetes/pki/apiserver-key.pem \
       --service-account-key-file=/etc/kubernetes/pki/sa.key \
       --kubelet-client-certificate=/etc/kubernetes/pki/kubelet-client.pem \
       --kubelet-client-key=/etc/kubernetes/pki/kubelet-client-key.pem \
+      --insecure-bind-address=127.0.0.1 \
+      --insecure-port=8080 \
+      --apiserver-count=1 \
+      --enable-swagger-ui=true \
+      --authorization-mode=Node,RBAC \
       --v=2
     Restart=on-failure
     RestartSec=5
@@ -435,15 +576,18 @@ Having configured TLS on the APIs server, we need to configure other components 
 
     [Service]
     ExecStart=/usr/bin/kube-controller-manager \
+      --kubeconfig=/var/lib/kube-controller-manager/kubeconfig \
       --address=127.0.0.1 \
       --cluster-cidr=10.38.0.0/16 \
       --cluster-name=kubernetes \
-      --master=http://127.0.0.1:8080 \
+      --leader-elect=true \
       --service-cluster-ip-range=10.32.0.0/16 \
-      --service-account-private-key-file=/etc/kubernetes/pki/sa.key \
       --root-ca-file=/etc/kubernetes/pki/ca.pem \
+      --service-account-private-key-file=/etc/kubernetes/pki/sa.key \
+      --use-service-account-credentials=true \
+      --controllers=* \
       --v=2
-
+      
     Restart=on-failure
     RestartSec=5
     LimitNOFILE=65536
@@ -451,6 +595,28 @@ Having configured TLS on the APIs server, we need to configure other components 
     [Install]
     WantedBy=multi-user.target
 
+Then create the ``kubeconfig`` file under the proper directory ``/var/lib/kube-controller-manager/``
+```yaml
+apiVersion: v1
+clusters:
+- cluster:
+    certificate-authority: /etc/kubernetes/pki/ca.pem
+    server: https://kubernetes:6443
+  name: kubernetes
+contexts:
+- context:
+    cluster: kubernetes
+    user: system:kube-controller-manager
+  name: default
+current-context: default
+kind: Config
+preferences: {}
+users:
+- name: system:kube-controller-manager
+  user:
+    client-certificate: /var/lib/kube-controller-manager/pki/controller-manager.pem
+    client-key: /var/lib/kube-controller-manager/pki/controller-manager-key.pem
+```
 
 Start and enable the service
 
@@ -470,7 +636,8 @@ Finally, configure the sceduler by setting the required options in the ``/etc/sy
     [Service]
     ExecStart=/usr/bin/kube-scheduler \
       --address=127.0.0.1 \
-      --master=http://127.0.0.1:8080 \
+      --kubeconfig=/var/lib/kube-scheduler/kubeconfig \
+      --leader-elect=true \
       --v=2
 
     Restart=on-failure
@@ -480,6 +647,29 @@ Finally, configure the sceduler by setting the required options in the ``/etc/sy
     [Install]
     WantedBy=multi-user.target
 
+Then create the ``kubeconfig`` file under the proper directory ``/var/lib/kube-scheduler/``
+```yaml
+apiVersion: v1
+clusters:
+- cluster:
+    certificate-authority: /etc/kubernetes/pki/ca.pem
+    server: https://kubernetes:6443
+  name: kubernetes
+contexts:
+- context:
+    cluster: kubernetes
+    user: system:kube-scheduler
+  name: default
+current-context: default
+kind: Config
+preferences: {}
+users:
+- name: system:kube-scheduler
+  user:
+    client-certificate: /var/lib/kube-scheduler/pki/scheduler.pem
+    client-key: /var/lib/kube-scheduler/pki/scheduler-key.pem
+```
+
 Start and enable the service
 
     systemctl daemon-reload
@@ -488,7 +678,7 @@ Start and enable the service
     systemctl status kube-scheduler
 
 ## Configure the clients
-We just configured TLS on the APIs server. So, any interaction with it will require authentication. Kubernetes supports different types of authentication, please, refer to the documentation for details. In this section, we are going to use the **X.509** certificates based authentication.
+Any interaction with the APIs server will require authentication. Kubernetes supports different types of authentication, please, refer to the documentation for details. In this section, we are going to use the **X.509** certificates based authentication.
 
 All the users, including the cluster admin, have to authenticate against the APIs server before to access it. For now, we are not going to configure any authorization, so once a user is authenticated, he is enabled to operate on the cluster.
 
@@ -548,7 +738,7 @@ Now it is possible to query and operate with the cluster in a secure way
     etcd-0               Healthy   {"health": "true"}
 
 ## Configure the Compute Plane
-In a kubernetes cluster, each worker node runs the container engine, the network plugins, the kubelet, and the proxy components.
+In a kubernetes cluster, each worker node runs the container engine, the network plugins, the kubelet, and the kube-proxy components.
 
 ### Disable swap
 Starting from Kubernetes 1.8, the nodes running kubelet have to be swap disabled. The assigned swap memory can be disabled by using swapoff command. You can list all currently mounted and active swap partition by a following command:
@@ -575,18 +765,31 @@ There are a number of ways to customize the Docker daemon flags and environment 
 
 ```json
 {
- "debug": true,
- "storage-driver": "devicemapper",
+ "debug": false,
+ "storage-driver": "overlay2",
+ "storage-opts": [
+    "overlay2.override_kernel_check=true"
+ ],
  "iptables": false,
  "ip-masq": false
 }
 ```
 
-On CentOS systems, the suggested storage mapper is the Device Mapper.
+**Notes**:
+On CentOS systems, the suggested storage driver is the Device Mapper. However, starting from CentOS 7.4 with kernel version 3.10.0-693, the overlay2 storage driver is supported too. Before to start the Docker engine on worker nodes, make sure an additional disk device of minimum 10GB is used as volume for the docker. In order to support the overlay2 storage driver, we need to format this disk as ``xfs`` with ``ftype=1``
 
-Also, since Kubernetes uses a different network model than Docker, we need to prevent Docker to use NAT/IP Table rewriting, as for its default settings. For this reason, we disable the IP Table and NAT options in Docker daemon.
+    mkfs -t xfs -n ftype=1 /dev/sdb1
 
-Start and enable the docker service
+and change the ``/etc/fstab`` host file to mount it under ``/var/lib/docker``
+
+    # Mount the Docker disk
+    /dev/sdb1	/var/lib/docker	xfs	defaults	0 0
+
+and mount it
+
+    mount -a
+    
+Then, start and enable the docker service
 
     systemctl start docker
     systemctl enable docker
@@ -599,7 +802,7 @@ As usual, Docker will create the default ``docker0`` bridge network interface
             inet 172.17.0.1  netmask 255.255.0.0  broadcast 0.0.0.0
             ether 02:42:c3:64:b4:7f  txqueuelen 0  (Ethernet)
 
-However, we're not going to use it since Kubernetes networking is based on the **CNI** Container Network Interface.
+However, we're not going to use it because Kubernetes networking is based on the **CNI** Container Network Interface and we need to prevent Docker to use NAT/IP Table rewriting, as for its default settings. For this reason, we disable the IP Table and NAT options in Docker daemon configuration above.
 
 ### Setup the network plugin
 In this tutorial we are not going to provision any overlay networks for containers networking. Instead we'll rely on the simpler routing networking between the nodes. That means we need to add some static routes to our hosts.
@@ -661,7 +864,7 @@ On the first cluster activation, the above configurations will create on the wor
 
 
 ### Configure the kubelet
-For each worker node in the cluster, configure the kubelet by setting the required options in the ``/etc/systemd/system/kubelet.service`` startup file
+For each worker node, configure the kubelet by setting the required options in the ``/etc/systemd/system/kubelet.service`` startup file
 
     [Unit]
     Description=Kubernetes Kubelet Server
@@ -692,7 +895,7 @@ For each worker node in the cluster, configure the kubelet by setting the requir
     WantedBy=multi-user.target
 
 
-As a client of the APIs server, the kubelet requires its own ``kubeconfig`` context authentication file. The context file for kubelet ``/var/lib/kubelet/kubeconfig`` should look like this
+As a client of the APIs server, the kubelet requires its own ``kubeconfig`` context authentication file. For each worker node identified by ``${nodename}``, the context file for kubelet ``/var/lib/kubelet/kubeconfig`` should look like this
 
 ```yaml
 apiVersion: v1
@@ -712,8 +915,8 @@ preferences: {}
 users:
 - name: kubelet
   user:
-    client-certificate: /var/lib/kubelet/pki/kubelet.pem
-    client-key: /var/lib/kubelet/pki/kubelet-key.pem
+    client-certificate: /var/lib/kubelet/pki/${nodename}.pem
+    client-key: /var/lib/kubelet/pki/${nodename}-key.pem
 ```
 
 Start and enable the kubelet service

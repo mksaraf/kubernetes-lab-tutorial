@@ -56,7 +56,7 @@
    * [Define the Network Routes](./content/setup.md#define-the-network-routes)
    * [Configure DNS service](./content/setup.md#configure-dns-service)
 
-7. [Scaling the Control Plane](./content/info.md)
+7. [Scaling the Control Plane](./content/hacp.md)
 
 8. [User Management](./content/users.md)
    * [Service Accounts](./content/users.md#service-accounts)

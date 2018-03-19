@@ -171,7 +171,7 @@ However, the service is not reachable from any cluster host. If we try to access
 
 Without specifying the type of service, kubernetes by default uses the ``Type: ClusterIP`` option, which means that the new service is only exposed only within the cluster. It is kind of like internal kubernetes service, so not particularly useful if you want to accept external traffic.
 
-When creating a service, kubernetes has four options of service types:
+When creating a service, currently, kubernetes provides four options of service types:
 
    * **ClusterIP**: it exposes the service only on a cluster internal IP making the service only reachable from within the cluster. This is the default Service Type.
    * **NodePort**: it exposes the service on each node public IP on a static port as defined in the NodePort option. It will be possible to access the service, from outside the cluster.
@@ -211,11 +211,7 @@ The NodePort type opens a service port on every worker node in the cluster. The 
     [root@kuben06 ~]# netstat -natp | grep 31608
     tcp6       0      0 :::31608                :::*                    LISTEN      863/kube-proxy
 
-The kube-proxy service on the worker node, is in charge of doing this job as reported in the picture
-
-![](../img/service-nodeport.png?raw=true)
-
-Now it is possible to access the nginx service from ouside the cluster by pointing to any worker node
+The kube-proxy service on the worker node, is in charge of doing this job by configuring the IPtables. Now it is possible to access the nginx service from ouside the cluster by pointing to any worker node
 
     [root@centos ~]# curl 10.10.10.85:31608
     Welcome to nginx!

@@ -60,9 +60,10 @@ This will produce the ``etcd-server.pem`` certificate file containing the public
       scp etcd-server*.pem ${instance}:/etc/etcd/pki
     done
 
-Also make sure to move in the same location, the client etcd certificate we create previously for the single master kubernetes setup
+Also make sure to move in the same location, the client etcd and the certification authority certificates, we created previously for the single master kubernetes setup
 
     for instance in kubem00 kubem01 kubem02; do
+      scp ca.pem ${instance}:/etc/etcd/pki
       scp etcd-client*.pem ${instance}:/etc/etcd/pki
     done
 
@@ -172,7 +173,7 @@ On each master node, set the options in the ``/etc/systemd/system/kube-apiserver
 Also make sure to copy all required certificates and keys on the proper locations
 
     for instance in kubem00 kubem01 kubem02; do
-      scp ca.pem ${instance}:/etc/kubernetes/pki
+      scp ca*.pem ${instance}:/etc/kubernetes/pki
       scp apiserver*pem ${instance}:/etc/kubernetes/pki
       scp sa.key ${instance}:/etc/kubernetes/pki
       scp kubelet-client*pem ${instance}:/etc/kubernetes/pki     

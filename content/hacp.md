@@ -4,7 +4,6 @@ For running services without interruption it’s not only the apps that need to 
    * [Configuring multiple etcd instances](#configuring-multiple-etcd-instances)
    * [Configuring multiple APIs servers](#configuring-multiple-apis-servers)
    * [Configuring multiple Controller Managers](#configuring-multiple-controller-managers)
-   * [Configuring multiple Controller Managers](#configuring-multiple-controller-managers)
    * [Configuring multiple Schedulers](#configuring-multiple-schedulers)
    * [Configuring the Load Balancer](#configuring-the-load-balancer)
    * [Controllers redundancy](#controllers-redundancy)

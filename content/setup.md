@@ -882,7 +882,6 @@ For each worker node, configure the kubelet by setting the required options in t
       --container-runtime=docker \
       --cgroup-driver=systemd \
       --kubelet-cgroups=/systemd/system.slice \
-      --runtime-cgroups=/systemd/system.slice \
       --serialize-image-pulls=false \
       --register-node=true \
       --network-plugin=cni \

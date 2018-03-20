@@ -1,5 +1,16 @@
 # High Availability Control Plane
-For running services without interruption it’s not only the apps that need to be up all the time, but also the Kubernetes Control Plane components. In this section, we’ll configure the control plane to achieve high availability with multiple master nodes. Here the hostnames and addresses:
+For running services without interruption it’s not only the apps that need to be up all the time, but also the Kubernetes Control Plane components. In this section, we’ll configure the control plane to achieve high availability with multiple master nodes.
+
+   * [Configuring multiple etcd instances](#configuring-multiple-etcd-instances)
+   * [Configuring multiple APIs servers](#configuring-multiple-apis-servers)
+   * [Configuring multiple Controller Managers](#configuring-multiple-controller-managers)
+   * [Configuring multiple Controller Managers](#configuring-multiple-controller-managers)
+   * [Configuring multiple Schedulers](#configuring-multiple-schedulers)
+   * [Configuring the Load Balancer](#configuring-the-load-balancer)
+   * [Controllers redundancy](#controllers-redundancy)
+
+
+Here the hostnames and addresses:
 
   * *kubem00* (master) 10.10.10.80
   * *kubem01* (master) 10.10.10.81

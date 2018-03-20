@@ -39,6 +39,7 @@
     * [Storage Classes](./content/storage.md#storage-classes)
     * [Dynamic volumes provisioning](./content/storage.md#dynamic-volumes-provisioning)
     * [Redis benchmark](./content/storage.md#redis-benchmark)
+    * [Stateful Applications](./content/stateful.md)
     
 5. [Cluster Healing](./content/admin.md)
     * [Cluster Backup and Restore](./content/admin.md#cluster-backup-and-restore)
@@ -57,6 +58,12 @@
    * [Configure DNS service](./content/setup.md#configure-dns-service)
 
 7. [Scaling the Control Plane](./content/hacp.md)
+   * [Configuring multiple etcd instances](./content/hacp.md#configuring-multiple-etcd-instances)
+   * [Configuring multiple APIs servers](./content/hacp.md#configuring-multiple-apis-servers)
+   * [Configuring multiple Controller Managers](./content/hacp.md#configuring-multiple-controller-managers)
+   * [Configuring multiple Schedulers](./content/hacp.md#configuring-multiple-schedulers)
+   * [Configuring the Load Balancer](./content/hacp.md#configuring-the-load-balancer)
+   * [Controllers redundancy](./content/hacp.md#controllers-redundancy)
 
 8. [User Management](./content/users.md)
    * [Service Accounts](./content/users.md#service-accounts)
@@ -64,7 +71,6 @@
    * [Authorization](./content/users.md#authorization)
 
 9. [Additional Concepts](./content/info.md)
-    * [Stateful Applications](./content/stateful.md)
     * [Batch Processes](./content/batch.md)
     * [Static Pods](./content/static.md)
    

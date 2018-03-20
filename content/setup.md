@@ -326,7 +326,7 @@ Create the certificates
 Move the keys pair to all worker nodes in the proper location ``/var/lib/kubelet/pki``
 
     for instance in kubew03 kubew04 kubew05; do
-      scp kubelet.pem kubelet-key.pem ${instance}:/var/lib/kubelet/pki
+      scp ${instance}*.pem ${instance}:/var/lib/kubelet/pki
     done
 
 ### Create proxy keys pair

@@ -20,6 +20,7 @@
     * [Services](./content/core.md#services)
     * [Volumes](./content/core.md#volumes)
     * [Daemons](./content/core.md#daemons)
+    * [Jobs](./content/batch.md)
     * [Namespaces](./content/core.md#namespaces)
     * [Quotas and Limits](./content/core.md#quotas-and-limits)
     
@@ -29,6 +30,7 @@
     * [Service discovery](./content/network.md#service-discovery)
     * [Accessing services](./content/network.md#accessing-services)
     * [Ingress controller](./content/ingress.md)
+    * [Static Pods](./content/static.md)
 
 4. [Storage](./content/storage.md)
     * [Local Persistent Volumes](./content/storage.md#local-persistent-volumes)
@@ -63,17 +65,13 @@
    * [Configuring multiple Controller Managers](./content/hacp.md#configuring-multiple-controller-managers)
    * [Configuring multiple Schedulers](./content/hacp.md#configuring-multiple-schedulers)
    * [Configuring the Load Balancer](./content/hacp.md#configuring-the-load-balancer)
+   * [APIs server redundancy](./content/hacp.md#apis-server-redundancy)   
    * [Controllers redundancy](./content/hacp.md#controllers-redundancy)
 
 8. [User Management](./content/users.md)
    * [Service Accounts](./content/users.md#service-accounts)
    * [Authentication](./content/users.md#authentication)
-   * [Authorization](./content/users.md#authorization)
-
-9. [Additional Concepts](./content/info.md)
-    * [Batch Processes](./content/batch.md)
-    * [Static Pods](./content/static.md)
-   
+   * [Authorization](./content/users.md#authorization) 
 
 ## Disclaimer
 This tutorial is for personal use only. This is just a lab guide, not a documentation for Kubernets, please go to their online

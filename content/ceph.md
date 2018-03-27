@@ -113,8 +113,6 @@ View a more complete cluster status with
 
     ceph -s
 
-
-## Starting over
 If at any point you run into trouble and you want to start over, purge the Ceph packages, erase all its data and all configuration.
 
 From the admin node, as ``cephdeploy`` user

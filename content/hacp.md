@@ -168,7 +168,7 @@ On each master node, set the options in the ``/etc/systemd/system/kube-apiserver
       --kubelet-client-key=/etc/kubernetes/pki/kubelet-client-key.pem \
       --insecure-bind-address=127.0.0.1 \
       --insecure-port=8080 \
-      --apiserver-count=3 \
+      --endpoint-reconciler-type=lease \
       --enable-swagger-ui=true \
       --authorization-mode=Node,RBAC \
       --v=2
@@ -346,6 +346,28 @@ listen secure_kube_control_plane
 All clients talking to the APIs server will send their requests to the load balancer and then forwarded transparently in a round robin fashion to the APIs servers.
 
 To avoid single point of failure in the load balancer, instead to use a single external machine, we can setup an istance of HAProxy on all the master nodes and configure redundant DNS entries for the load balancer hostname.
+
+## APIs server redundancy
+The apiserver is exposed through a service called **kubernetes** in the dafault namespace.
+
+    kubectl get svc -o wide -n default
+    
+    NAME         TYPE        CLUSTER-IP   EXTERNAL-IP   PORT(S)   AGE       SELECTOR
+    kubernetes   ClusterIP   10.32.0.1    <none>        443/TCP   9d        <none>
+
+This service is accessible to all pods from any namespaces. Pods access this service through its endpoints corresponding to the apiserver replicas that we set.
+
+Check the endpoints
+
+    kubectl get endpoints -n default
+    
+    NAME         ENDPOINTS                                            AGE
+    kubernetes   10.10.10.80:6443,10.10.10.81:6443,10.10.10.82:6443   10m
+
+We see the addresses of all APIs servers. Please, note that pods cannot access the APIs server through the external load balancer se configured above but instead through the iptables set by the kube-proxy. This means, in case of one of the APIs server stops to work, the list of endpoints is not updated and pods can fail to access the APIs server.
+
+To workaround this, a reconciler implementation is available in kubernetes. It uses a lease that is regularly renewed by each APIs server replica. When a replica is down, it stops renewing its lease, and the other replicas notice that the lease expired and remove it from the list of endpoints. This is achieved by adding the flag ``--endpoint-reconciler-type=lease`` in the APIs server configuration file.
+
 
 ## Controllers redundancy
 Compared to the API server, where multiple replicas can run simultaneously, running multiple instances of the Controller Manager or the Scheduler requires coordination among instances. Because controllers and the scheduler all actively watch the cluster state and then act when it changes, running multiple instances of each of those components would result in all of them performing the same action.

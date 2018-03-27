@@ -6,6 +6,7 @@ For running services without interruption it’s not only the apps that need to 
    * [Configuring multiple Controller Managers](#configuring-multiple-controller-managers)
    * [Configuring multiple Schedulers](#configuring-multiple-schedulers)
    * [Configuring the Load Balancer](#configuring-the-load-balancer)
+   * [APIs server redundancy](#apis-server-redundancy)   
    * [Controllers redundancy](#controllers-redundancy)
 
 

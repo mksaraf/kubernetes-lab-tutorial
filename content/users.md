@@ -5,6 +5,8 @@ In this section we are going to cover additional concepts related to the authent
    * [Authentication](#authentication)
    * [Authorization](#authorization)
    * [Admission Control](#admission-control)
+   * [Accessing the APIs server](#accessing-the-apis-server)
+   
 
 In kubernetes, users access the API server via HTTP(S) requests. When a request reaches the API, it goes through several stages:
 
@@ -409,9 +411,9 @@ Login as ``adriano`` user and list the worker nodes
 
     kubectl get nodes
     NAME      STATUS    ROLES     AGE       VERSION
-    kubew03   Ready     <none>    3d        v1.8.0
-    kubew04   Ready     <none>    22h       v1.8.0
-    kubew05   Ready     <none>    22h       v1.8.0
+    kubew03   Ready     <none>    3d        v1.9.2
+    kubew04   Ready     <none>    22h       v1.9.2
+    kubew05   Ready     <none>    22h       v1.9.2
  
 Try to delete one of these nodes
 

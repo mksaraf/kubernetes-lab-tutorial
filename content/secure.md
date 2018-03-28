@@ -1,4 +1,4 @@
-# User Management
+# Secure Access
 In this section we are going to cover additional concepts related to the authentication, authorization and user management.
 
    * [Service Accounts](#service-accounts)

@@ -71,7 +71,9 @@
 8. [User Management](./content/users.md)
    * [Service Accounts](./content/users.md#service-accounts)
    * [Authentication](./content/users.md#authentication)
-   * [Authorization](./content/users.md#authorization) 
+   * [Authorization](./content/users.md#authorization)
+   * [Admission Control](./content/users.md#admission-control)
+   * [Accessing the APIs server](./content/users.md#accessing-the-apis-server)
 
 ## Disclaimer
 This tutorial is for personal use only. This is just a lab guide, not a documentation for Kubernets, please go to their online

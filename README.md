@@ -68,7 +68,7 @@
    * [APIs server redundancy](./content/hacp.md#apis-server-redundancy)   
    * [Controllers redundancy](./content/hacp.md#controllers-redundancy)
 
-8. [Securing the cluster](./content/secure.md)
+8. [Secure Access](./content/secure.md)
    * [Service Accounts](./content/secure.md#service-accounts)
    * [Authentication](./content/secure.md#authentication)
    * [Authorization](./content/secure.md#authorization)

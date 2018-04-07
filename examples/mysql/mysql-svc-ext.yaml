@@ -1,0 +1,16 @@
+# Client service for connecting to MySQL master for writes
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql-ext
+  labels:
+    app: mysql
+spec:
+  type: NodePort
+  ports:
+  - name: mysql
+    port: 3306
+    targetPort: 3306
+    nodePort: 30006
+  selector:
+    app: mysql

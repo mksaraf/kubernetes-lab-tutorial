@@ -1,0 +1,26 @@
+# Assume key and certificate are available with "/CN=minio.cloud.noverit.com"
+# openssl req -x509 -nodes -days 365 -newkey rsa:4096 \
+# -keyout minio-tls.key \
+# -out minio-tls.crt \
+# -subj "/CN=minio.cloud.noverit.com"
+#
+# Also assume web-tls-secret already exists in the current namespace
+# kubectl create secret tls minio-tls-secret --cert=minio-tls.crt --key=minio-tls.key
+#
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: minio-tls
+spec:
+  tls:
+  - hosts:
+    - minio.cloud.noverit.com
+    secretName: minio-tls-secret
+  rules:
+  - host: minio.cloud.noverit.com
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: minio
+          servicePort: 9000

@@ -42,6 +42,8 @@
     * [Dynamic volumes provisioning](./content/storage.md#dynamic-volumes-provisioning)
     * [Redis benchmark](./content/storage.md#redis-benchmark)
     * [Stateful Applications](./content/stateful.md)
+    * [Configure GlusterFS as Storage backend](./content/glusterfs.md)
+    * [Configure Ceph as Storage backend](./content/ceph.md)
     
 5. [Cluster Healing](./content/admin.md)
     * [Cluster Backup and Restore](./content/admin.md#cluster-backup-and-restore)

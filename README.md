@@ -77,7 +77,7 @@
    * [Admission Control](./content/secure.md#admission-control)
    * [Accessing the APIs server](./content/secure.md#accessing-the-apis-server)
 
-9. [OpenShift Container Platform](./openshift/openshift.md)
+9. [OpenShift Container Platform](./content/info.md)
    * [Setup](./openshift/setup.md)
    * [Getting started](./openshift/basics.md)
    * [Creating Applications](./openshift/applications.md)

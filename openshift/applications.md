@@ -1,4 +1,4 @@
-# Creating applications in OpenShift
+# Creating Applications in OpenShift
 In the real world of applications development and deployment, OpenShift users need a repository where they can pull docker images and then deploy the application on OpenShift. Another approach is to use the OpenShift to develop and deploy the application starting from a source code so that they can build the docker images on OpenShift itself and then deploy the applications. In this section, we're going to walk through both the approaches.
 
   * [Application Templates](#application-templates)

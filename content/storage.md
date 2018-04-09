@@ -22,9 +22,9 @@ In this section we're going to introduce this model by using simple examples. Pl
   * [Storage Classes](#storage-classes)
   * [Dynamic volumes provisioning](#dynamic-volumes-provisioning)
   * [Redis benchmark](#redis-benchmark)
-  * [Stateful Applications](../stateful.md)
-  * [Configure GlusterFS as Storage backend](../glusterfs.md)
-  * [Configure Ceph as Storage backend](../ceph.md)
+  * [Stateful Applications](./stateful.md)
+  * [Configure GlusterFS as Storage backend](./glusterfs.md)
+  * [Configure Ceph as Storage backend](./ceph.md)
 
 ## Local Persistent Volumes
 Start by defining a persistent volume ``local-persistent-volume-recycle.yaml`` configuration file

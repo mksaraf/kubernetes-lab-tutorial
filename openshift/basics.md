@@ -41,7 +41,9 @@ oc new-project <projectname>
 ```
 
 ## Create a demo project
-The OpenShift platform has the concept of "projects" to contain a number of different resources. We'll explore what this means in more details throughout the rest of the tutorial. Create a demo project for our first application.
+The OpenShift platform has the concept of "projects" to contain a number of different resources.
+
+Create a demo project for our first application.
 
 The default configuration for CLI operations currently is to be the ``system:admin`` passwordless user, which is allowed to create projects. Login as admin user:
 ```
@@ -142,7 +144,7 @@ users:
 ```
 
 ## Create a pod
-An application in OpenShift live inside an entity called **"pod"**. Here the file ``pod-hello-world.yaml`` containing the definition of our pod in yaml format:
+An application in OpenShift live inside a pod. Here the file ``pod-hello-world.yaml`` containing the definition of our pod in yaml format:
 ```yaml
 ---
 kind: Pod
@@ -232,7 +234,7 @@ CONTAINER ID   IMAGE                                    COMMAND       CREATED   
 8d4dc403d659   docker.io/kalise/nodejs-web-app:latest   "npm start"   12 minutes ago   Up 12 min   ...    ...
 f867f09e8639   openshift3/ose-pod:v3.4.0.39             "/pod"        12 minutes ago   Up 12 min   ...    ...
 ```
-Our application is running inside the first container from the ``docker.io/kalise/nodejs-web-app:latest`` image. The second container from the ``openshift3/ose-pod`` container exists because of the way network namespacing works in OpenShift.
+Our application is running inside the first container from the ``docker.io/kalise/nodejs-web-app:latest`` image.
 
 Finally, delete the pod
 ```
@@ -241,7 +243,7 @@ pod "hello-pod" deleted
 ```
 
 ## Create a service
-Our simple Hello World application is a backed by a container inside a pod running on a single compute node. The OpenShift platform introduces the concept of **"service"**. A service in OpenShift is an abstraction which defines a logical set of pods. Pods can be added to or removed from a service arbitrarily while the service remains consistently available, enabling any client to refer the service by a consistent address:port couple. 
+Our simple Hello World application is a backed by a container inside a pod running on a single compute node. Pods can be added to or removed from a service arbitrarily while the service remains consistently available, enabling any client to refer the service by a consistent address. 
 
 Define a service for our simple Hello World application in a ``service-hello-world.yaml`` file.
 ```yaml
@@ -260,7 +262,7 @@ spec:
     port: 9000
     targetPort: 8080
 ```
-The above service is associated to our previous Hello World pod. Pay attention to the service selector field. It tells OpenShift that all pods with the label ``hello`` are associated to this service, and should have traffic distributed amongst them. In other words, the service provides an abstraction layer, and is the input point to reach all of the pods. 
+The above service is associated to our previous Hello World pod. The service selector field tells OpenShift that all pods with the label ``hello`` are associated to this service, and should have traffic distributed amongst them. In other words, the service provides an abstraction layer, and is the input point to reach all of the pods. 
 
 As demo user, create the service
 ```
@@ -318,7 +320,7 @@ Hello OpenShift!
 The service also provide a name resolution for the associated pods. For example, in the case above, the hello pods can be reached by other pods in the same namespace by the name ``hello-world-service`` instead of the address:port ``172.30.42.123:9000``. This is very useful when we need to link different applications.
 
 ## Create a replica controller
-Manually created pods as we made above are not replaced if they get failed, deleted or terminated for some reason. To make things more robust, OpenShift introduces the **Replica Controller** abstraction. A Replica Controller ensures that a specified number of pod *"replicas"* are running at any time. In other words, a Replica Controller makes sure that a pod or set of pods are always up and available. If there are too many pods, it will kill some; if there are too few, it will start more.
+A Replica Controller ensures that a specified number of pod *"replicas"* are running at any time. In other words, a Replica Controller makes sure that a pod or set of pods are always up and available. If there are too many pods, it will kill some; if there are too few, it will start more.
 
 A Replica Controller configuration consists of:
 

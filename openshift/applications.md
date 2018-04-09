@@ -1,4 +1,18 @@
-# Application Templates
+# Creating applications in OpenShift
+In the real world of applications development and deployment, OpenShift users need a repository where they can pull docker images and then deploy the application on OpenShift. Another approach is to use the OpenShift to develop and deploy the application starting from a source code so that they can build the docker images on OpenShift itself and then deploy the applications. In this section, we're going to walk through both the approaches.
+
+  * [Application Templates](#application-templates)
+  * [Create applications from images](#create-applications-from-images)
+  * [Image Stream](#image-stream)
+  * [Deployment Config](#deployment-config)
+  * [Trigger a new Deployment Config](#trigger-a-new-deployment-config)
+  * [Create applications from source code](#create-applications-from-source-code)
+  * [Docker build strategy](#docker-build-strategy)
+  * [Build Config](#build-config)
+  * [Source build strategy](#source-build-strategy)
+  * [Webhooks](#webhooks)
+
+## Application Templates
 In OpenShift, a template describes a set of objects that can be parameterized and processed. A template can be processed to create anything we have permission to create within a given project, for example: pod, services, routes and deployment configurations. A template may also define a set of labels to apply to every object defined in the template.
 
 To getting started, here is a ``template-hello-world.yaml`` template file for our Hello World application looks like 
@@ -141,7 +155,6 @@ Modify an existing template
 [root@master ~]# oc edit template hello-world-template
 ```
 
-## Create a Template from Existing Objects
 Rather than writing an entire template from scratch, we can also export existing objects in template form, and then modify the template from there by adding parameters and other customizations.
 
 Export existing objects in the project in a template form:
@@ -190,19 +203,6 @@ When creating an application based on a template, users can set parameter values
                         SERVICE_PORT=5680
                         GREATING_MESSAGE="Arrivederci e grazie per tutto il pesce."
 ```
-
-# Applications
-In the real world of applications development and deployment, OpenShift users need a repository where they can pull docker images and then deploy the application on OpenShift. Another approach is to use the OpenShift to develop and deploy the application starting from a source code so that they can build the docker images on OpenShift itself and then deploy the applications. In this section, we're going to walk through both the approaches.
-
-  * [Create applications from images](#create-applications-from-images)
-  * [Image Stream](#image-stream)
-  * [Deployment Config](#deployment-config)
-  * [Trigger a new Deployment Config](#trigger-a-new-deployment-config)
-  * [Create applications from source code](#create-applications-from-source-code)
-  * [Docker build strategy](#docker-build-strategy)
-  * [Build Config](#build-config)
-  * [Source build strategy](#source-build-strategy)
-  * [Webhooks](#webhooks)
 
 ## Create applications from images
 Users can deploy an application from an already built docker image. Images can be pulled from the reposistory in the OpenShift Container Platform or can be pulled from any public or local registry.
@@ -261,7 +261,7 @@ Hello New Application
 
 Now we'll pay attention to a couple of new resources: the **Image Stream** and the **Deployment Config**
 
-### Image Stream
+## Image Stream
 The Image Stream resource tells OpenShift when the referenced image changes and then take action based on that changes. In our example, if the ``nodejs-web-app`` image changed, the OpenShift platform automatically trigger a new deployment of our application.
 
 Inspect the Image Stream above 
@@ -543,7 +543,7 @@ Deployment #1:
 
 In this test, we saw the OpenShift start a new deployment every time the image in the local registry changes. Howewer, please note that changes of the original image in the docker repository will not trigger automatically any new deployment of the application.
 
-# Create applications from source code
+## Create applications from source code
 Users can create applications from source code in a local or remote Git repository. When users specify source code repository, OpenShift attempts to build the source into a new application image. OpenShift tries to automatically determine the type of build strategy to use.
 
 There are, basically two build strategies: **Docker** or **Source**.

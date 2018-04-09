@@ -77,6 +77,11 @@
    * [Admission Control](./content/secure.md#admission-control)
    * [Accessing the APIs server](./content/secure.md#accessing-the-apis-server)
 
+9. [OpenShift Container Platform](./content/openshift/openshift.md)
+   * [Setup](./content/openshift/setup.md)
+   * [Getting started](./content/openshift/basics.md)
+   * [Creating Applications](./content/openshift/applications.md)
+
 ## Disclaimer
 This tutorial is for personal use only. This is just a lab guide, not a documentation for Kubernets, please go to their online
 documentation sites for more details about what Kubernets is and how does it work.

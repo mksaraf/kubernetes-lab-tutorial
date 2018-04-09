@@ -2,6 +2,7 @@
 In the real world of applications development and deployment, OpenShift users need a repository where they can pull docker images and then deploy the application on OpenShift. Another approach is to use the OpenShift to develop and deploy the application starting from a source code so that they can build the docker images on OpenShift itself and then deploy the applications. In this section, we're going to walk through both the approaches.
 
   * [Application Templates](#application-templates)
+  * [Create an application from a template](#create-applications-from-a-template)
   * [Create applications from images](#create-applications-from-images)
   * [Image Stream](#image-stream)
   * [Deployment Config](#deployment-config)
@@ -310,7 +311,7 @@ status:
 
 This Image Stream references an image originated from public repository ``docker.io/kalise/nodejs-web-app``. This image has been pulled by OpenShift during the application creation process and stored in the local OpenShift registry at ``172.30.222.143:5000/demo/nodejs``. Any changes to the image in the local OpenShift registry will trigger a new deployment of the application.
 
-### Deployment Config
+## Deployment Config
 OpenShift adds expanded support for the software development and deployment lifecycle with the concept of deployments. In the simplest case, a deployment just creates a new replica controller and lets it start up the pods. Also, an OpenShift deployment is able to transition from an existing deployment of an image to a new one.
 
 Inspect the Deployment Config above 
@@ -447,7 +448,7 @@ Please, note that a rollback does not remove the current deployment. It instead,
 deploymentconfig "nodejs" rolled back
 ```
 
-### Trigger a new Deployment Config
+## Trigger a new Deployment Config
 Thanks to the Image Stream construct, any changes to the image in the local OpenShift registry will trigger a new Deployment Config of the application. To test this feature, as root user, check the nodejs images in the local repository
 ```
 [root@master ~]# oc get images | grep nodejs

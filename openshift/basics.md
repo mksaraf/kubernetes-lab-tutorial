@@ -144,7 +144,7 @@ users:
 ```
 
 ## Create a pod
-An application in OpenShift live inside a pod. Here the file ``pod-hello-world.yaml`` containing the definition of our pod in yaml format:
+An application in OpenShift lives inside a pod. Here the file ``pod-hello-world.yaml`` containing the definition of our pod in yaml format:
 ```yaml
 ---
 kind: Pod
@@ -198,7 +198,7 @@ IP:                     10.1.0.2
 Controllers:            <none>
 Containers:
   hello:
-    Container ID:       docker://8d4dc403d6597c2d2ccafeb45f684e37e789fcd32b43f35704a70e59cfdb2d24
+    Container ID:       docker://8d4dc403d6597c2d2ccafeb45f684e37e789fcd32b43f35
     Image:              openshift/hello-openshift:latest
     Image ID:           docker-pullable://docker.io/openshift/hello-openshift
     Port:               8080/TCP
@@ -431,11 +431,11 @@ No resources found.
 Please note that the Replica Controller does not autoscale. This job is done by a metering service by piloting the Replica Controller, based on memory and cpu load or other criteria.
 
 ## The Routing Layer
-The OpenShift routing layer is how client traffic enters the OpenShift environment so that it can ultimately reach pods. In our Hello World example, the service abstraction defines a logical set of pods enabling clients to refer the service by a consistent address and port. Howewer, our service is not reachable from external clients.
+The OpenShift routing layer is how client traffic enters the OpenShift environment so that it can ultimately reach pods. In our Hello World example, the service abstraction defines a logical set of pods enabling clients to refer the service by a consistent address and port. However, our service is not reachable from external clients.
 
 To get pods reachable from external clients we need for a Routing Layer. In a simplification of the process, the OpenShift Routing Layer consists in an instance of a pre-configured HAProxy running in a dedicated pod as well as the related services
 
-Strarting from latest OpenShift release, the installation process install a preconfigured router pod running on the master node. To see details, login as system admin
+The installation process installs a preconfigured router pod running on the master node. To see details, login as system admin
 ```
 [root@master ~]# oc login -u system:admin
 Logged into "https://master.openshift.com:8443" as "system:admin" using existing credentials.

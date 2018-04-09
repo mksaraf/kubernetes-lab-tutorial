@@ -1,4 +1,4 @@
-# OpenShift Core Concepts
+# Getting started with OpenShift
 It is now time to create the **Hello World** application using some sample code. It is simple http server written in nodejs returning a greating message as contained into the MESSAGE env variable. The application is available as Docker image and the source code is [here](https://github.com/kalise/nodejs-web-app).
 
 ## Create a demo user

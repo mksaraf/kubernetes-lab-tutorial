@@ -544,8 +544,8 @@ We'll use this pod to address the nginx service
     pod "busybox" created
 
     [root@kubem00 ~]# kubectl exec -it busybox sh
-    / # wget -O - 10.254.105.187:8000
-    Connecting to 10.254.105.187:8000 (10.254.105.187:8000)
+    / # wget -O - 10.254.60.24:8000
+    Connecting to 10.254.60.24:8000 (10.254.60.24:8000)
     <!DOCTYPE html>
     <html>
     <head>

@@ -20,15 +20,11 @@ An additional machine with any Linux OS will be used as provisioner machine.
 ## Preflight
 To setup a Tectonic cluster on virtual or bare metal nodes, we'll require the following items:
 
- * [Tectonic](https://coreos.com/tectonic) account license and secret
  * Bare metal or virtual machines with BIOS options set to boot from hard disk, first, and then network
  * PXE network boot environment with DHCP, TFTP, and DNS services
  * [Matchbox](https://github.com/coreos/matchbox) server that provisions Container Linux on the nodes
- * [Terraform](https://www.terraform.io/) that creates Container Linux profiles
+ * [Tectonic](https://coreos.com/tectonic) installer
  * SSH keypair to login into Container Linux nodes
-
-### Tectonic license
-Copy the account license ``tectonic-license.txt`` and secret ``config.json`` files you downloaded from the CoreOS web site to the provisioner machine.
 
 ### Bare metal or virtual machines
 Configure the machines to boot from disk first and then from network via PXE boot. Take note of the MAC address of each machine.
@@ -182,4 +178,102 @@ Download the Container Linux OS stable image to the matchbox ``/var/lib/matchbox
 and verify the images are accessible from clients
 
     curl http://matchbox.noverit.com:8080/assets/coreos/$COREOS/
+
+### Tectonic installer
+To use Tectonic installer, first create an account on the Tectonic web site and download the license ``tectonic-license.txt`` and secret ``config.json`` files. Move these files in a proper location
+
+     mkdir ~/.tectonic
+     mv config.json ~/.tectonic
+     mv tectonic-license.txt ~/.tectonic
+     cd ~/.tectonic
+
+Download and extract the Tectonic installer
+
+    wget https://releases.tectonic.com/releases/tectonic_1.8.9-tectonic.2.zip
+    unzip tectonic_1.8.9-tectonic.2.zip
+    cd tectonic_1.8.9-tectonic.2
+
+The Terraform version required to install Tectonic is included in the same installer tarball.
+
+Initialize and configure Terraform
+
+    export INSTALLER_PATH=$(pwd)/tectonic-installer/linux/installer
+    export PATH=$(pwd)/tectonic-installer/linux:$PATH
+
+    terraform init ./platforms/metal
+
+Move the placeholder ``terraform.tfvars.metal`` variables file into a dedicated build directory
+
+    export CLUSTER=mycluster
+    mkdir -p build/${CLUSTER}
+    cp examples/terraform.tfvars.metal build/${CLUSTER}/terraform.tfvars
+
+and edit the following variables
+
+    matchbox_http_url = "http://matchbox.noverit.com:8080"
+    matchbox_rpc_endpoint = "matchbox.noverit.com:8081"
+    container_linux_version = "1688.5.3"
+    pull_secret_path = "/root/tectonic/config.json"
+    license_path = "/root/tectonic/tectonic-license.txt"
+
+    base_domain = "noverit.com"
+    cluster_name = "mycluster"
+    cluster_cidr = "10.32.0.0/16"
+    service_cidr = "10.32.0.0/16"
+
+    controller_domain = "core00.clastix.io"
+    controller_domains = ["core00.noverit.com"]
+    controller_macs = ["XX:XX:XX:0f:76:4d"]
+    controller_names = ["core00"]
+
+    worker_domains = ["core01.noverit.com", "core02.noverit.com", "core03.noverit.com"]
+    worker_macs = ["XX:XX:XX:6C:48:56", "XX:XX:XX:77:b9:89", "XX:XX:XX:86:f3:e6"]
+    worker_names = ["core01", "core02", "core03"]
+
+    ingress_domain = "tectonic.noverit.com"
+
+    matchbox_ca =
+    <<EOD
+    -----BEGIN CERTIFICATE-----
+    MIIFDTCCAvWgAwIBAgIJAMu06/iIavQmMA0GCSqGSIb3DQEBCwUAMBIxEDAOBgNV
+    vPwSxrAx7dAItCyL1mQeoPQRGFcVUkBz7ZESPNqWc9KL68iQD7cGk7yh1R0DZprJ
+    ...
+    -----END CERTIFICATE-----
+    EOD
+
+    matchbox_client_cert = 
+    <<EOD
+    -----BEGIN CERTIFICATE-----
+    OIRLA6bUdf5H7w+6pvI4KCkLvgHjzMh2FZWrSxHo2CjMfaiVem+szVxEJoj0E9mO
+    ...
+    -----END CERTIFICATE-----
+    EOD
+
+    matchbox_client_key =
+    <<EOD
+    -----BEGIN CERTIFICATE-----
+    IwQYMBaAFF5DObm7JCncYE5xIYMaPNGcfMnaMA4GA1UdDwEB/wQEAwIF4DATBgNV
+    ...
+    -----END CERTIFICATE-----
+    EOD
+
+    tectonic_ssh_authorized_key = 
+    <<EOD
+    ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCrZsEEfrggN86NfxoDu1gzA0mF
+    ...
+    EOD
+
+    vanilla_k8s = true
+
+
+Make sure they match your environment.
+
+
+
+
+
+
+
+
+
 

@@ -221,7 +221,7 @@ and edit the following variables
     cluster_cidr = "10.32.0.0/16"
     service_cidr = "10.32.0.0/16"
 
-    controller_domain = "core00.clastix.io"
+    controller_domain = "core00.noverit.com"
     controller_domains = ["core00.noverit.com"]
     controller_macs = ["XX:XX:XX:0f:76:4d"]
     controller_names = ["core00"]
@@ -265,6 +265,10 @@ and edit the following variables
 
     vanilla_k8s = true
 
+Some notes:
+
+ 1. Variable ``vanilla_k8s`` tells Tectonic to install only Kubernetes without the additional components provided by Tectonic management platform
+ 2. Variable ``tectonic_ssh_authorized_key`` must be set to the public key of the SSH keys pair the system will use to talk with nodes (see below) 
 
 Make sure they match your environment.
 

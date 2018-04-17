@@ -62,7 +62,9 @@ docker run --cap-add=NET_ADMIN --net=host --name dnsmasq quay.io/coreos/dnsmasq 
   --log-dhcp
 ```
 
-Make sure the network space and addresses above match with your environment. In some cases, you already have a DHCP and DNS servers in place. In that case, run a proxy-DHCP and TFTP service on the host network
+Make sure the network space and addresses above match with your environment.
+
+In some cases, you already have a DHCP and DNS servers in place. In that case, run a proxy-DHCP and TFTP service on the host network instead
 ```bash
 docker run --cap-add=NET_ADMIN --net=host --name dnsmasq quay.io/coreos/dnsmasq -d \
   --dhcp-range=10.10.10.0,proxy,255.255.255.0 \
@@ -74,9 +76,110 @@ docker run --cap-add=NET_ADMIN --net=host --name dnsmasq quay.io/coreos/dnsmasq 
   --log-dhcp  
 ```
 
-Make sure no firewall is blocking DHCP, DNS and TFTP traffic on the host network.
+In both cases, make sure no firewall is blocking DHCP, DNS and TFTP traffic on the host network.
 
+### Matchbox
+We're going to setup the Matchbox service on the provisioner machine. Matchbox is a service for network booting and provisioning machines to create CoreOS Container Linux clusters.
 
+Download the latest matchbox to the provisioner machine
 
+     MATCHBOX=v0.7.0
+     wget https://https://github.com/coreos/matchbox/releases/download/$MATCHBOX/matchbox-$MATCHBOX-linux-amd64.tar.gz
 
+and untar it and install on the appropriate path
+
+    tar xzvf matchbox-$MATCHBOX-linux-amd64.tar.gz
+    cd matchbox-$MATCHBOX-linux-amd64
+    cp matchbox /usr/local/bin
+
+The matchbox service should be run by a non-root user with access to the matchbox ``/var/lib/matchbox`` data directory 
+
+useradd -U matchbox
+mkdir -p /var/lib/matchbox/assets
+chown -R matchbox:matchbox /var/lib/matchbox
+cp contrib/systemd/matchbox-local.service /etc/systemd/system/matchbox.service
+
+Customize matchbox system file as following:
+
+    [Unit]
+    Description=CoreOS matchbox Server
+    Documentation=https://github.com/coreos/matchbox
+
+    [Service]
+    User=matchbox
+    Group=matchbox
+    Environment="MATCHBOX_ADDRESS=0.0.0.0:8080"
+    Environment="MATCHBOX_LOG_LEVEL=debug"
+    Environment="MATCHBOX_RPC_ADDRESS=0.0.0.0:8081"
+    ExecStart=/usr/local/bin/matchbox
+
+    # systemd.exec
+    ProtectHome=yes
+    ProtectSystem=full
+
+    [Install]
+    WantedBy=multi-user.target
+
+The Matchbox RPC APIs allow clients to create and update resources in Matchbox through a secure channel. TLS credentials are needed for client authentication. Please note, that PXE booting machines use the HTTP APIs and do not use credentials.
+
+Create a self-signed Certification Authority and a keys pair
+
+    export SAN=DNS.1:matchbox.noverit.com,DNS.2=matchbox,IP:10.10.10.2
+    ./scripts/cert-gen
+
+The above will produce the following
+
+    ls -l 
+    -rw-r--r-- 1 root root 1814 Apr 11 09:51 ca.crt
+    -rw-r--r-- 1 root root 1679 Apr 11 09:51 server.crt
+    -rw-r--r-- 1 root root 1679 Apr 11 09:51 server.key
+    -rw-r--r-- 1 root root 1578 Apr 11 09:52 client.crt
+    -rw-r--r-- 1 root root 1679 Apr 11 09:52 client.key
+
+Copy the server credentials to the matchbox default location
+
+    mkdir -p /etc/matchbox
+    cp ca.crt server.crt server.key /etc/matchbox
+
+Copy the client credentials to the home location of the current user
+
+    mkdir -p ~/.matchbox
+    cp client.crt client.key ca.crt ~/.matchbox/
+
+Start, enable, and verify the matchbox service
+
+    systemctl daemon-reload 
+    systemctl start matchbox
+    systemctl enable matchbox
+    systemctl status matchbox
+
+Make sure the matchbox service is reachable by name
+
+    nslookup matchbox.noverit.com
+
+Verify the service can be reacheble by clients
+
+    curl http://matchbox.noverit.com:8080    
+    openssl s_client -connect matchbox.noverit.com:8081 -CAfile ca.crt -cert client.crt -key client.key
+
+Download the Container Linux OS stable image to the matchbox ``/var/lib/matchbox`` data directory
+
+    COREOS=1688.5.3
+    ./scripts/get-coreos stable $COREOS /var/lib/matchbox/assets
+    tree /var/lib/matchbox/assets
+    /var/lib/matchbox/assets
+    `-- coreos
+        `-- 1688.5.3
+            |-- CoreOS_Image_Signing_Key.asc
+            |-- coreos_production_image.bin.bz2
+            |-- coreos_production_image.bin.bz2.sig
+            |-- coreos_production_pxe_image.cpio.gz
+            |-- coreos_production_pxe_image.cpio.gz.sig
+            |-- coreos_production_pxe.vmlinuz
+            |-- coreos_production_pxe.vmlinuz.sig
+            `-- version.txt
+
+and verify the images are accessible from clients
+
+    curl http://matchbox.noverit.com:8080/assets/coreos/$COREOS/
 

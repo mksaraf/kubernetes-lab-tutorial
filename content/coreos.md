@@ -120,8 +120,9 @@ The Matchbox RPC APIs allow clients to create and update resources in Matchbox t
 
 Create a self-signed Certification Authority and a keys pair
 
-    export SAN=DNS.1:matchbox.noverit.com,DNS.2=matchbox,IP:10.10.10.2
-    ./scripts/tls/cert-gen
+    cd ./scripts/tls
+    export SAN=DNS.1:matchbox.noverit.com,IP.1:10.10.10.2
+    ./cert-gen
 
 The above will produce the following
 
@@ -153,15 +154,20 @@ Make sure the matchbox service is reachable by name
 
     nslookup matchbox.noverit.com
 
-Verify the service can be reacheble by clients
+Verify the service can be reachable by clients
 
     curl http://matchbox.noverit.com:8080    
-    openssl s_client -connect matchbox.noverit.com:8081 -CAfile ca.crt -cert client.crt -key client.key
+    openssl s_client -connect matchbox.noverit.com:8081 \
+            -CAfile ~/.matchbox/ca.crt \
+            -cert ~/.matchbox/client.crt \
+            -key ~/.matchbox/client.key
 
 Download the Container Linux OS stable image to the matchbox ``/var/lib/matchbox`` data directory
 
     COREOS=1688.5.3
+    cd matchbox-$MATCHBOX-linux-amd64
     ./scripts/get-coreos stable $COREOS /var/lib/matchbox/assets
+    
     tree /var/lib/matchbox/assets
     /var/lib/matchbox/assets
     `-- coreos

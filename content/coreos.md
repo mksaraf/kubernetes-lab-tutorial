@@ -121,7 +121,7 @@ The Matchbox RPC APIs allow clients to create and update resources in Matchbox t
 Create a self-signed Certification Authority and a keys pair
 
     export SAN=DNS.1:matchbox.noverit.com,DNS.2=matchbox,IP:10.10.10.2
-    ./scripts/cert-gen
+    ./scripts/tls/cert-gen
 
 The above will produce the following
 

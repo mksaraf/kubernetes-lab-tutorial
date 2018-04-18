@@ -182,10 +182,10 @@ and verify the images are accessible from clients
 ### Tectonic installer
 To use Tectonic installer, first create an account on the Tectonic web site and download the license ``tectonic-license.txt`` and secret ``config.json`` files. Move these files in a proper location
 
-     mkdir ~/.tectonic
-     mv config.json ~/.tectonic
-     mv tectonic-license.txt ~/.tectonic
-     cd ~/.tectonic
+     mkdir ~/tectonic
+     mv config.json ~/tectonic
+     mv tectonic-license.txt ~/tectonic
+     cd ~/tectonic
 
 Download and extract the Tectonic installer
 
@@ -221,13 +221,12 @@ and edit the following variables
     cluster_cidr = "10.32.0.0/16"
     service_cidr = "10.32.0.0/16"
 
-    controller_domain = "core00.noverit.com"
     controller_domains = ["core00.noverit.com"]
-    controller_macs = ["XX:XX:XX:0f:76:4d"]
+    controller_macs = ["**:**:**:0f:76:4d"]
     controller_names = ["core00"]
 
     worker_domains = ["core01.noverit.com", "core02.noverit.com", "core03.noverit.com"]
-    worker_macs = ["XX:XX:XX:6C:48:56", "XX:XX:XX:77:b9:89", "XX:XX:XX:86:f3:e6"]
+    worker_macs = ["**:**:**:6C:48:56", "**:**:**:77:b9:89", "**:**:**:86:f3:e6"]
     worker_names = ["core01", "core02", "core03"]
 
     ingress_domain = "tectonic.noverit.com"
@@ -267,17 +266,89 @@ and edit the following variables
 
 Some notes:
 
- 1. Variable ``vanilla_k8s`` tells Tectonic to install only Kubernetes without the additional components provided by Tectonic management platform
- 2. Variable ``tectonic_ssh_authorized_key`` must be set to the public key of the SSH keys pair the system will use to talk with nodes (see below) 
+ 1. Variable ``vanilla_k8s`` tells Tectonic to install only Kubernetes without the additional components provided by Tectonic management platform.
+ 2. Variables ``license_path`` and ``pull_secret_path`` are required only when installing Tectonic management platform, i.e. ``vanilla_k8s = false``. Not required for kubernetes vanilla installation.
+ 2. Variable ``tectonic_ssh_authorized_key`` must be set to the public key of the SSH keys pair the system will use to talk with nodes.
+ 3. Variables ``matchbox_ca``, ``matchbox_client_cert``, and ``matchbox_client_key`` must contain the keys of matchbox client.
+ 4. Tectonic generates self-signed certificates at install time. To use custom certificates, specify a Certificate Authority Certificate and keys in PEM format.
 
-Make sure they match your environment.
+Make sure the variables above match your environment, including MAC addresses and domain names of controllers and workers.
 
+### SSH keypair
+Tectonic installer makes use of a ssh keypair to login into Container Linux nodes. The installer will ssh into the nodes using the private key of the ssh key you inserted in the variables file. Before starting the setup process, you need to add a ssh private key to your ssh agent running on the provisioner machine which is running the Tectonic installer. Without this step, the Tectonic installer will not be able to ssh copy the assets into nodes.
 
+If you don't have any key you can generate one
 
+    ssh-keygen -t rsa -b 4096 -C "admin@noverit.com"
 
+Leave the private key ``~/.ssh/id_rsa`` into your ssh path and copy the public key ``~/.ssh/id_rsa.pub`` into the Tectonic installer variables file above.
 
+## Deploying
+When all the requirements above are met, let's start with deploy of the cluster. Login to the provisioner machine and move to the build environment
 
+    export CLUSTER=mycluster
+    cd ~/tectonic/tectonic_1.8.9-tectonic.2
 
+Make sure the SSH agent is running and add the ssh private key be using in the installer
 
+    eval $(ssh-agent -s)
+    ssh-add ~/.ssh/id_rsa
+    ssh-add -L
+
+Also make sure that the ``~/.ssh/known_hosts`` file doesn't have old records of the nodes names because the fingerprints will not match.
+
+Initialise Terraform
+
+    export INSTALLER_PATH=$(pwd)/tectonic-installer/linux/installer
+    export PATH=$(pwd)/tectonic-installer/linux:$PATH
+    terraform init ./platforms/metal
+
+Test the terraform plan before deploy
+
+    export TF_VAR_tectonic_admin_email="admin@noverit.com"
+    export TF_VAR_tectonic_admin_password="********"
+    terraform plan -var-file=build/${CLUSTER}/terraform.tfvars platforms/metal
+    
+Apply the plan
+
+    terraform apply -var-file=build/${CLUSTER}/terraform.tfvars platforms/metal
+
+Terraform starts and waits till the whole installation process terminates.
+
+From another terminal session, check if Terraform writed the machine profiles and matcher groups to the matchbox service data directory
+
+    tree /var/lib/matchbox
+    /var/lib/matchbox
+    |-- assets
+    |   `-- coreos
+    |       ...
+    |-- groups
+    |   |-- mycluster-core00.json
+    |   |-- mycluster-core01.json
+    |   |-- mycluster-core02.json
+    |   |-- mycluster-core03.json
+    |   |-- coreos-install-core00.json
+    |   `-- coreos-install-core01.json
+    |-- ignition
+    |   |-- coreos-install.yaml.tmpl
+    |   |-- tectonic-controller.yaml.tmpl
+    |   `-- tectonic-worker.yaml.tmpl
+    `-- profiles
+        |-- coreos-install.json
+        |-- tectonic-controller.json
+        `-- tectonic-worker.json
+
+Now, power on the machines: they will PXE boot, download the Container Linux OS from Matchbox, write it to disk, and reboot. During the whole process, Terraform waits for the disk installation and reboot to complete and then be able to copy credentials to the nodes to bootstrap the cluster.
+
+Wait till the installation process terminates (it can take more than 30 minutes) and access the cluster from the provisioner machine through the ``kubectl`` command
+
+    cp ./generated/auth/kubeconfig ~/.kube/config
+    
+    kubectl cluster-info
+    
+    Kubernetes master is running at https://core00.noverit.com:443
+    To further debug and diagnose cluster problems, use 'kubectl cluster-info dump'.
+
+Use common ``kubectl`` commands to interact with the Kubernetes cluster.
 
 

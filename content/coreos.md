@@ -209,6 +209,7 @@ and edit the following variables
     license_path = "/root/tectonic/tectonic-license.txt"
 
     base_domain = "noverit.com"
+    controller_domain = "core00.noverit.com"
     cluster_name = "mycluster"
     cluster_cidr = "10.38.0.0/16"
     service_cidr = "10.32.0.0/16"
@@ -332,8 +333,9 @@ From another terminal session, check if Terraform writes the machine profiles an
 
 Now, power on the machines: they will PXE boot, download the Container Linux OS from Matchbox, write it to disk, and reboot. During the whole process, Terraform waits for the disk installation and reboot to complete and then be able to copy credentials to the nodes to bootstrap the cluster.
 
-Wait till the installation process terminates (it can take more than 30 minutes) and access the cluster from the provisioner machine through the ``kubectl`` command
+Wait till the installation process terminates (it can take more than 30 minutes) and access the cluster from the provisioner machine through the ``kubectl`` command line (install it before).
 
+    mkdir ~/.kube
     cp ./generated/auth/kubeconfig ~/.kube/config
     
     kubectl cluster-info

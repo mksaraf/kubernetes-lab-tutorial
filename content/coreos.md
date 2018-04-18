@@ -256,10 +256,10 @@ and edit the following variables
 
     matchbox_client_key =
     <<EOD
-    -----BEGIN CERTIFICATE-----
+    -----BEGIN RSA PRIVATE KEY-----
     IwQYMBaAFF5DObm7JCncYE5xIYMaPNGcfMnaMA4GA1UdDwEB/wQEAwIF4DATBgNV
     ...
-    -----END CERTIFICATE-----
+    -----END RSA PRIVATE KEY-----
     EOD
 
     tectonic_ssh_authorized_key = 

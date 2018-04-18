@@ -90,10 +90,10 @@ and install under the appropriate path
 
 The matchbox service should be run by a non-root user with access to the matchbox ``/var/lib/matchbox`` data directory 
 
-useradd -U matchbox
-mkdir -p /var/lib/matchbox/assets
-chown -R matchbox:matchbox /var/lib/matchbox
-cp contrib/systemd/matchbox-local.service /etc/systemd/system/matchbox.service
+    useradd -U matchbox
+    mkdir -p /var/lib/matchbox/assets
+    chown -R matchbox:matchbox /var/lib/matchbox
+    cp contrib/systemd/matchbox-local.service /etc/systemd/system/matchbox.service
 
 Customize matchbox system file as following:
 

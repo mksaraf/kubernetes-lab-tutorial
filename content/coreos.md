@@ -321,7 +321,7 @@ Apply the plan
 
 Terraform starts and waits till the whole installation process terminates.
 
-From another terminal session, check if Terraform writed the machine profiles and matcher groups to the matchbox service data directory
+From another terminal session, check if Terraform writes the machine profiles and the matcher groups to the matchbox service data directory
 
     tree /var/lib/matchbox
     /var/lib/matchbox

@@ -186,12 +186,7 @@ and verify the images are accessible from clients
     curl http://matchbox.noverit.com:8080/assets/coreos/$COREOS/
 
 ### Tectonic installer
-To use Tectonic installer, first create an account on the Tectonic web site and download the license ``tectonic-license.txt`` and secret ``config.json`` files. Move these files in a proper location
-
-     mkdir ~/tectonic
-     mv config.json ~/tectonic
-     mv tectonic-license.txt ~/tectonic
-     cd ~/tectonic
+To use Tectonic installer, first create an account on the Tectonic web site and download the license ``tectonic-license.txt`` and secret ``config.json`` files. Move these files in a proper location, e.g. ``/root/tectonic/``.
 
 Download and extract the Tectonic installer
 
@@ -199,16 +194,7 @@ Download and extract the Tectonic installer
     unzip tectonic_1.8.9-tectonic.2.zip
     cd tectonic_1.8.9-tectonic.2
 
-The Terraform version required to install Tectonic is included in the same installer tarball.
-
-Initialize and configure Terraform
-
-    export INSTALLER_PATH=$(pwd)/tectonic-installer/linux/installer
-    export PATH=$(pwd)/tectonic-installer/linux:$PATH
-
-    terraform init ./platforms/metal
-
-Move the placeholder ``terraform.tfvars.metal`` variables file into a dedicated build directory
+The Terraform version required to install Tectonic is included in the same installer tarball. Move the placeholder ``terraform.tfvars.metal`` variables file into a dedicated build directory
 
     export CLUSTER=mycluster
     mkdir -p build/${CLUSTER}
@@ -293,7 +279,7 @@ Leave the private key ``~/.ssh/id_rsa`` into your ssh path and copy the public k
 When all the requirements above are met, let's start with deploy of the cluster. Login to the provisioner machine and move to the build environment
 
     export CLUSTER=mycluster
-    cd ~/tectonic/tectonic_1.8.9-tectonic.2
+    cd tectonic_1.8.9-tectonic.2
 
 Make sure the SSH agent is running and add the ssh private key be using in the installer
 

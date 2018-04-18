@@ -224,7 +224,7 @@ and edit the following variables
 
     base_domain = "noverit.com"
     cluster_name = "mycluster"
-    cluster_cidr = "10.32.0.0/16"
+    cluster_cidr = "10.38.0.0/16"
     service_cidr = "10.32.0.0/16"
 
     controller_domains = ["core00.noverit.com"]

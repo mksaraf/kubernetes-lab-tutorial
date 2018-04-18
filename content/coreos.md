@@ -58,9 +58,9 @@ docker run --cap-add=NET_ADMIN --net=host --name dnsmasq quay.io/coreos/dnsmasq 
   --log-dhcp
 ```
 
-Make sure the network space and addresses above match with your environment.
+Make sure the network addresses above match with your environment.
 
-In some cases, you already have a DHCP and DNS servers in place. In that case, run a proxy-DHCP and TFTP service on the host network instead
+In some cases, you already have a DHCP and DNS servers in your environment. In that case, run a proxy-DHCP and TFTP service on the host network instead
 ```bash
 docker run --cap-add=NET_ADMIN --net=host --name dnsmasq quay.io/coreos/dnsmasq -d \
   --dhcp-range=10.10.10.0,proxy,255.255.255.0 \
@@ -72,7 +72,7 @@ docker run --cap-add=NET_ADMIN --net=host --name dnsmasq quay.io/coreos/dnsmasq 
   --log-dhcp  
 ```
 
-In both cases, make sure no firewall is blocking DHCP, DNS and TFTP traffic on the host network.
+Also make sure no firewall is blocking DHCP, DNS and TFTP traffic on the host network.
 
 ### Matchbox
 We're going to setup the Matchbox service on the provisioner machine. Matchbox is a service for network booting and provisioning machines to create CoreOS Container Linux clusters.
@@ -80,9 +80,9 @@ We're going to setup the Matchbox service on the provisioner machine. Matchbox i
 Download the latest matchbox to the provisioner machine
 
      MATCHBOX=v0.7.0
-     wget https://https://github.com/coreos/matchbox/releases/download/$MATCHBOX/matchbox-$MATCHBOX-linux-amd64.tar.gz
+     wget https://github.com/coreos/matchbox/releases/download/$MATCHBOX/matchbox-$MATCHBOX-linux-amd64.tar.gz
 
-and untar it and install on the appropriate path
+and install under the appropriate path
 
     tar xzvf matchbox-$MATCHBOX-linux-amd64.tar.gz
     cd matchbox-$MATCHBOX-linux-amd64

@@ -20,7 +20,7 @@ An additional machine with any Linux OS will be used as provisioner machine.
 ## Preflight
 To setup a Tectonic cluster on virtual or bare metal nodes, we'll require the following items:
 
- * Bare metal or virtual machines with BIOS options set to boot from hard disk, first, and then network
+ * Bare metal or virtual machines with BIOS options set to boot from hard disk and then network
  * PXE network boot environment with DHCP, TFTP, and DNS services
  * [Matchbox](https://github.com/coreos/matchbox) server that provisions Container Linux on the nodes
  * [Tectonic](https://coreos.com/tectonic) installer
@@ -30,49 +30,64 @@ To setup a Tectonic cluster on virtual or bare metal nodes, we'll require the fo
 Configure the machines to boot from disk first and then from network via PXE boot. Take note of the MAC address of each machine.
 
 ### PXE network environment
-Login to the provisioner machine and configure DHCP, TFTP, and DNS services to make machines bootable from PXE boot. You can go with a dnsmasq service implementing all the functions above as container.
+Login to the provisioner machine and configure DHCP, TFTP, and DNS services to make machines bootable from PXE boot. You can go with a dnsmasq service implementing all the functions above. In some cases, you already have a DHCP and DNS servers in your environment. In that case, run only proxy DHCP and TFTP services on the host network instead and make sure to configure your DHCP to assign static IPs to the machines and make your DNS aware of the machine names.
 
-Install and configure Docker on the provisioner machine
+Install dnsmasq on the provisioner machine
 
-    yum install -y docker
-    systemctl start docker
-    systemctl enable docker
+    yum install -y dnsmasq
 
-Run DHCP, TFTP, and DNS on the host network
-```bash
-docker run --cap-add=NET_ADMIN --net=host --name dnsmasq quay.io/coreos/dnsmasq -d \
-  --dhcp-range=10.10.10.200,10.10.10.250 \
-  --enable-tftp --tftp-root=/var/lib/tftpboot \
-  --dhcp-match=set:bios,option:client-arch,0 \
-  --dhcp-boot=tag:bios,undionly.kpxe \
-  --dhcp-match=set:efi32,option:client-arch,6 \
-  --dhcp-boot=tag:efi32,ipxe.efi \
-  --dhcp-match=set:efibc,option:client-arch,7 \
-  --dhcp-boot=tag:efibc,ipxe.efi \
-  --dhcp-match=set:efi64,option:client-arch,9 \
-  --dhcp-boot=tag:efi64,ipxe.efi \
-  --dhcp-userclass=set:ipxe,iPXE \
-  --dhcp-boot=tag:ipxe,http://matchbox.noverit.com:8080/boot.ipxe \
-  --address=/matchbox.noverit.com/10.10.10.2 \
-  --log-queries \
-  --log-dhcp
-```
+Configure the services by editing the ``/etc/dnsmasq.conf`` configuration file:
 
-Make sure the network addresses above match with your environment.
+    # DHCP mode
+    interface=ens33
+    domain=noverit.com
+    dhcp-range=10.10.10.200,10.10.10.250
+    enable-tftp
+    tftp-root=/var/lib/tftpboot
+    dhcp-match=set:bios,option:client-arch,0 
+    dhcp-boot=tag:bios,undionly.kpxe 
+    dhcp-match=set:efi32,option:client-arch,6
+    dhcp-boot=tag:efi32,ipxe.efi 
+    dhcp-match=set:efibc,option:client-arch,7 
+    dhcp-boot=tag:efibc,ipxe.efi 
+    dhcp-match=set:efi64,option:client-arch,9 
+    dhcp-boot=tag:efi64,ipxe.efi 
+    dhcp-userclass=set:ipxe,iPXE 
+    dhcp-boot=tag:ipxe,http://matchbox.noverit.com:8080/boot.ipxe 
+    dhcp-host=core00.noverit.com,10.10.10.190 
+    dhcp-host=core01.noverit.com,10.10.10.191 
+    dhcp-host=core02.noverit.com,10.10.10.192 
+    dhcp-host=core03.noverit.com,10.10.10.193 
+    address=/matchbox.noverit.com/10.10.10.2 
+    log-queries 
+    log-dhcp
 
-In some cases, you already have a DHCP and DNS servers in your environment. In that case, run a proxy-DHCP and TFTP service on the host network instead
-```bash
-docker run --cap-add=NET_ADMIN --net=host --name dnsmasq quay.io/coreos/dnsmasq -d \
-  --dhcp-range=10.10.10.0,proxy,255.255.255.0 \
-  --enable-tftp --tftp-root=/var/lib/tftpboot \
-  --dhcp-userclass=set:ipxe,iPXE \
-  --pxe-service=tag:#ipxe,x86PC,"PXE chainload to iPXE",undionly.kpxe \
-  --pxe-service=tag:ipxe,x86PC,"iPXE",http://matchbox.noverit.com:8080/boot.ipxe \
-  --log-queries \
-  --log-dhcp  
-```
+Alternatively:
 
-Also make sure no firewall is blocking DHCP, DNS and TFTP traffic on the host network.
+    # DHCP proxy mode
+    interface=ens33
+    domain=noverit.com
+    dhcp-range=10.10.10.0,proxy,255.255.255.0
+    enable-tftp
+    tftp-root=/var/lib/tftpboot
+    dhcp-userclass=set:ipxe,iPXE
+    pxe-service=tag:#ipxe,x86PC,"PXE chainload to iPXE",undionly.kpxe
+    pxe-service=tag:ipxe,x86PC,"iPXE",http://matchbox.noverit.com:8080/boot.ipxe
+    log-queries
+    log-dhcp
+    # In case, avoid to send default gateway in DHCP offers
+    # dhcp-option=3
+    # In case, avoid to send nameserver in DHCP offers
+    # dhcp-option=6
+
+Download the PXE boot files from [here]() and move to the proper TFTP boot location, eg. ``/var/lib/tftpboot``.
+
+Start and enable the dnsmasq service
+
+    systemctl start dnsmasq
+    systemctl enable dnsmasq
+
+Make sure the network addresses above match with your environment. Also make sure no firewall is blocking DHCP, DNS and TFTP traffic on the host network.
 
 ### Matchbox
 We're going to setup the Matchbox service on the provisioner machine. Matchbox is a service for network booting and provisioning machines to create CoreOS Container Linux clusters.

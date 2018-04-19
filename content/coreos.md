@@ -306,9 +306,13 @@ Apply the plan
 
     terraform apply -var-file=build/${CLUSTER}/terraform.tfvars platforms/metal
 
-Terraform starts and waits till the whole installation process terminates.
+Terraform starts and waits till the whole installation process terminates. If something will go wrong, clean the environment  before to attempt another try by issuing the following command:
 
-From another terminal session, check if Terraform writes the machine profiles and the matcher groups to the matchbox service data directory
+    terraform destroy -var-file=build/${CLUSTER}/terraform.tfvars platforms/metal
+
+and start over.
+
+Terraform writes the machine profiles and the matcher groups to the matchbox service data directory. Check the content of that folder
 
     tree /var/lib/matchbox
     /var/lib/matchbox

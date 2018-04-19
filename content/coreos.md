@@ -224,37 +224,16 @@ and edit the following variables
 
     ingress_domain = "tectonic.noverit.com"
 
-    matchbox_ca =
-    <<EOD
-    -----BEGIN CERTIFICATE-----
-    MIIFDTCCAvWgAwIBAgIJAMu06/iIavQmMA0GCSqGSIb3DQEBCwUAMBIxEDAOBgNV
-    vPwSxrAx7dAItCyL1mQeoPQRGFcVUkBz7ZESPNqWc9KL68iQD7cGk7yh1R0DZprJ
-    ...
-    -----END CERTIFICATE-----
-    EOD
+    matchbox_ca = <paste content here>
+    matchbox_client_cert = <paste content here>
+    matchbox_client_key = <paste content here>
 
-    matchbox_client_cert = 
-    <<EOD
-    -----BEGIN CERTIFICATE-----
-    OIRLA6bUdf5H7w+6pvI4KCkLvgHjzMh2FZWrSxHo2CjMfaiVem+szVxEJoj0E9mO
-    ...
-    -----END CERTIFICATE-----
-    EOD
-
-    matchbox_client_key =
-    <<EOD
-    -----BEGIN RSA PRIVATE KEY-----
-    IwQYMBaAFF5DObm7JCncYE5xIYMaPNGcfMnaMA4GA1UdDwEB/wQEAwIF4DATBgNV
-    ...
-    -----END RSA PRIVATE KEY-----
-    EOD
-
-    tectonic_ssh_authorized_key = 
-    <<EOD
-    ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCrZsEEfrggN86NfxoDu1gzA0mF
-    ...
-    EOD
-
+    tectonic_ssh_authorized_key = <paste content here>
+    
+    tectonic_ca_cert = <paste content here>
+    tectonic_ca_key = <paste content here>
+    tectonic_ca_key_alg = "RSA"
+    
     vanilla_k8s = true
 
 Some notes:
@@ -263,7 +242,7 @@ Some notes:
  2. Variables ``license_path`` and ``pull_secret_path`` are required only when installing Tectonic management platform, i.e. ``vanilla_k8s = false``. Not required for kubernetes vanilla installation.
  2. Variable ``tectonic_ssh_authorized_key`` must be set to the public key of the SSH keys pair the system will use to talk with nodes.
  3. Variables ``matchbox_ca``, ``matchbox_client_cert``, and ``matchbox_client_key`` must contain the keys of matchbox client.
- 4. Tectonic generates self-signed certificates at install time. To use custom certificates, specify a Certificate Authority Certificate and keys in PEM format.
+ 4. Variables ``tectonic_ca_cert``, ``tectonic_ca_key``, and ``tectonic_ca_key_alg`` need to be set only if you provide a custom Certificate Authority, otherwise Tectonic will generate a self-signed certificates at install time.
 
 Make sure the variables above match your environment, including MAC addresses and domain names of controllers and workers.
 
@@ -296,10 +275,13 @@ Initialise Terraform
     export PATH=$(pwd)/tectonic-installer/linux:$PATH
     terraform init ./platforms/metal
 
-Test the terraform plan before deploy
+Set the admin and password credentials
 
     export TF_VAR_tectonic_admin_email="admin@noverit.com"
     export TF_VAR_tectonic_admin_password="********"
+
+Test the terraform plan before deploy
+
     terraform plan -var-file=build/${CLUSTER}/terraform.tfvars platforms/metal
     
 Apply the plan

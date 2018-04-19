@@ -306,7 +306,7 @@ Apply the plan
 
     terraform apply -var-file=build/${CLUSTER}/terraform.tfvars platforms/metal
 
-Terraform starts and waits till the whole installation process terminates. If something will go wrong, clean the environment  before to attempt another try by issuing the following command:
+Terraform starts and waits till the whole installation process terminates. If something goes wrong, clean the environment  by issuing the following command:
 
     terraform destroy -var-file=build/${CLUSTER}/terraform.tfvars platforms/metal
 

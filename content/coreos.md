@@ -338,15 +338,24 @@ Terraform writes the machine profiles and the matcher groups to the matchbox ser
 Now, power on the machines: they will PXE boot, download the Container Linux OS from Matchbox, write it to disk, and reboot. During the whole process, Terraform waits for the disk installation and reboot to complete and then be able to copy credentials to the nodes to bootstrap the cluster.
 
 Wait till the installation process terminates (it can take more than 30 minutes) and access the cluster from the provisioner machine through the ``kubectl`` command line (install it before).
-
-    mkdir ~/.kube
-    cp ./generated/auth/kubeconfig ~/.kube/config
-    
+   
+    export KUBECONFIG=generated/auth/kubeconfig
     kubectl cluster-info
     
     Kubernetes master is running at https://core00.noverit.com:443
     To further debug and diagnose cluster problems, use 'kubectl cluster-info dump'.
 
-Use common ``kubectl`` commands to interact with the Kubernetes cluster.
+Use common ``kubectl`` commands to interact with the Kubernetes cluster
 
+    kubectl get nodes
+    NAME                 STATUS    ROLES     AGE       VERSION
+    core00.noverit.com   Ready     master    2m        v1.8.9+coreos.1
+    core01.noverit.com   Ready     node      2m        v1.8.9+coreos.1
+    core02.noverit.com   Ready     node      2m        v1.8.9+coreos.1
+    core03.noverit.com   Ready     node      2m        v1.8.9+coreos.1
+
+Finally, copy the ``kubeconfig`` file to your home dir
+
+    mkdir ~/.kube
+    cp ./generated/auth/kubeconfig ~/.kube/config
 

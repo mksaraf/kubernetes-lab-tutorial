@@ -32,7 +32,7 @@ Configure the machines to boot from disk first and then from network via PXE boo
 ### PXE network environment
 Login to the provisioner machine and configure DHCP, TFTP, and DNS services to make machines bootable from PXE boot. You can go with a dnsmasq service implementing all the functions you nedd.
 
-In some cases, you already have a DHCP and DNS servers in your environment. In that case, run only proxy DHCP and TFTP services on the host network instead and make sure to configure your DHCP to assign static IPs to the machines and make your DNS aware of the names. Also you nedd to add DNS names for the control plane (i.e. the master node) and for the data plane (i.e. a load balancer on top of the worker nodes, otherwise one of the worker nodes).
+In some cases, you already have a DHCP and DNS servers in your environment. In that case, run only proxy DHCP and TFTP services on the host network instead. Make sure to configure your DHCP to assign static IPs to the machines and make your DNS aware of all machines names. Also you nedd to add DNS names for the control plane (i.e. the master node) and for the data plane (i.e. a load balancer on top of the worker nodes, otherwise one of the worker nodes).
 
 Install dnsmasq on the provisioner machine
 

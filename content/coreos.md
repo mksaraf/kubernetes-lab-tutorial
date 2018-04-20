@@ -13,7 +13,6 @@ These are the minimum requirements for Container Linux machines:
  * 2 Core CPU
  * 8 GB RAM
  * 32 GB HDD
- * 1 Gb NIC
 
 An additional machine with any Linux OS will be used as provisioner machine.
 
@@ -43,9 +42,11 @@ Configure the services by editing the ``/etc/dnsmasq.conf`` configuration file:
     # DHCP mode
     interface=ens33
     domain=noverit.com
+    # dhcp range used only during the pxe booting
     dhcp-range=10.10.10.200,10.10.10.250
     enable-tftp
     tftp-root=/var/lib/tftpboot
+    # set boot options
     dhcp-match=set:bios,option:client-arch,0 
     dhcp-boot=tag:bios,undionly.kpxe 
     dhcp-match=set:efi32,option:client-arch,6

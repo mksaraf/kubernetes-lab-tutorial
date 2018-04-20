@@ -58,7 +58,8 @@ Configure the services by editing the ``/etc/dnsmasq.conf`` configuration file:
     dhcp-host=core01.noverit.com,10.10.10.191 
     dhcp-host=core02.noverit.com,10.10.10.192 
     dhcp-host=core03.noverit.com,10.10.10.193 
-    address=/matchbox.noverit.com/10.10.10.2 
+    address=/matchbox.noverit.com/10.10.10.2
+    address=/master.noverit.com/10.10.10.190
     log-queries 
     log-dhcp
 
@@ -224,7 +225,7 @@ and edit the following variables
     license_path = "/root/tectonic/tectonic-license.txt"
 
     base_domain = "noverit.com"
-    controller_domain = "core00.noverit.com"
+    controller_domain = "master.noverit.com"
     cluster_name = "mycluster"
     cluster_cidr = "10.38.0.0/16"
     service_cidr = "10.32.0.0/16"

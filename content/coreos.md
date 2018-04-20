@@ -30,7 +30,9 @@ To setup a Tectonic cluster on virtual or bare metal nodes, we'll require the fo
 Configure the machines to boot from disk first and then from network via PXE boot. Take note of the MAC address of each machine.
 
 ### PXE network environment
-Login to the provisioner machine and configure DHCP, TFTP, and DNS services to make machines bootable from PXE boot. You can go with a dnsmasq service implementing all the functions above. In some cases, you already have a DHCP and DNS servers in your environment. In that case, run only proxy DHCP and TFTP services on the host network instead and make sure to configure your DHCP to assign static IPs to the machines and make your DNS aware of the machine names.
+Login to the provisioner machine and configure DHCP, TFTP, and DNS services to make machines bootable from PXE boot. You can go with a dnsmasq service implementing all the functions you nedd.
+
+In some cases, you already have a DHCP and DNS servers in your environment. In that case, run only proxy DHCP and TFTP services on the host network instead and make sure to configure your DHCP to assign static IPs to the machines and make your DNS aware of the names. Also you nedd to add DNS names for the control plane (i.e. the master node) and for the data plane (i.e. a load balancer on top of the worker nodes, otherwise one of the worker nodes).
 
 Install dnsmasq on the provisioner machine
 
@@ -54,12 +56,18 @@ Configure the services by editing the ``/etc/dnsmasq.conf`` configuration file:
     dhcp-boot=tag:efi64,ipxe.efi 
     dhcp-userclass=set:ipxe,iPXE 
     dhcp-boot=tag:ipxe,http://matchbox.noverit.com:8080/boot.ipxe 
+    # static mapping for the name of the master node
     dhcp-host=core00.noverit.com,10.10.10.190 
+    # static mapping for the names of the worker nodes
     dhcp-host=core01.noverit.com,10.10.10.191 
     dhcp-host=core02.noverit.com,10.10.10.192 
-    dhcp-host=core03.noverit.com,10.10.10.193 
+    dhcp-host=core03.noverit.com,10.10.10.193
+    # matchbox machine
     address=/matchbox.noverit.com/10.10.10.2
+    # control plane machine
     address=/master.noverit.com/10.10.10.190
+    # data plane load balance machine
+    address=/tectonic.noverit.com/10.10.10.2
     log-queries 
     log-dhcp
 
@@ -226,6 +234,7 @@ and edit the following variables
 
     base_domain = "noverit.com"
     controller_domain = "master.noverit.com"
+    ingress_domain = "tectonic.noverit.com"
     cluster_name = "mycluster"
     cluster_cidr = "10.38.0.0/16"
     service_cidr = "10.32.0.0/16"
@@ -237,8 +246,6 @@ and edit the following variables
     worker_domains = ["core01.noverit.com", "core02.noverit.com", "core03.noverit.com"]
     worker_macs = ["**:**:**:6C:48:56", "**:**:**:77:b9:89", "**:**:**:86:f3:e6"]
     worker_names = ["core01", "core02", "core03"]
-
-    ingress_domain = "tectonic.noverit.com"
 
     matchbox_ca = <paste content here>
     matchbox_client_cert = <paste content here>
@@ -340,7 +347,7 @@ Wait till the installation process terminates (it can take more than 30 minutes)
     export KUBECONFIG=generated/auth/kubeconfig
     kubectl cluster-info
     
-    Kubernetes master is running at https://core00.noverit.com:443
+    Kubernetes master is running at https://master.noverit.com:443
     To further debug and diagnose cluster problems, use 'kubectl cluster-info dump'.
 
 Use common ``kubectl`` commands to interact with the Kubernetes cluster

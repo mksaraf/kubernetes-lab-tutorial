@@ -82,6 +82,8 @@
    * [Getting started](./openshift/basics.md)
    * [Creating Applications](./openshift/applications.md)
 
+10. [CoreOS Kubernetes](./content/coreos.md)
+
 ## Disclaimer
 This tutorial is for personal use only. This is just a lab guide, not a documentation for Kubernets, please go to their online
 documentation sites for more details about what Kubernets is and how does it work.

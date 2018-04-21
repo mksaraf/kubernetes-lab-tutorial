@@ -4,47 +4,28 @@ In this section we are going to setup a simple OpenShift based on a single Maste
 ## Architecture
 This tutorial assumes the following architecture. There are four machines:
 
-* **Master:** master.openshift.com
-* **NodeA:** nodea.openshift.com
-* **NodeB:** nodeb.openshift.com
-* **NodeC:** nodec.openshift.com
+* **Master:** master.openshift.noverit.com
+* **Node01:** node01.openshift.noverit.com
+* **Node02:** node02.openshift.noverit.com
+* **Node03:** node03.openshift.noverit.com
 
 The **Master** is the scheduler/orchestrator of the cluster and the API endpoint. It also host a **Router** for the applications hosted on the nodes. The nodes are also called the **Compute Nodes**.
 
-The majority of storage requirements are related to Docker storage. Each VM is equipped with an additional disk, e.g. ``/dev/sdb`` for LVM device mapper as loop devices are not supported in a production. An additional VM for persistent storage is used. We assume NFS Server and iSCSI server available on that machine. Please, note this machine is not part of the OpenShift envinronment and it is only for external storage.
+The majority of storage requirements are related to Docker storage. Each VM is equipped with an additional disk, e.g. ``/dev/sdb`` for LVM device mapper as loop devices are not supported in a production.
 
 All of the VMs should be on the same logical network and be able to access one another resolving DNS entries. The setup requires DNS name resolving via an external DNS server for all the VMs.
 ```
-master.openshift.com    A   10.10.10.19
-nodea.openshift.com     A   10.10.10.13
-nodeb.openshift.com     A   10.10.10.17
-nodec.openshift.com     A   10.10.10.22
-storage.openshift.com   A   10.10.10.21
+master.openshift.noverit.com     A   10.10.10.20
+node01.openshift.noverit.com     A   10.10.10.21
+node02.openshift.noverit.com     A   10.10.10.22
+node03.openshift.noverit.com     A   10.10.10.23
 ```
 
 Resolving hostnames only via ``/etc/hosts`` file is not enough. There an appendix section in this tutorial on configuring DNSmasq for the OpenShift requirements. Remember that the NetworkManager may make changes the DNS configuration and resolver. Properly configure interfaces' DNS settings and/or configure NetworkManager appropriately.
 
 Also configure a DNS entry to route all the user application to the Master node. This is accomplished by configuring a wildcard mask on the DNS server. For example, create a wildcard DNS entry for cloud applications that has a low time-to-live value (TTL) and points to the public IP address of the host where the router will be deployed
 ```
-*.cloud.openshift.com. 300 IN  A 10.10.10.19
-```
-
-Some sections of this tutorial refer to an high-availability setup with three master for fully redundancy of the control plane and routing layer.
-
-The ha-setup requires DNS name resolving via an external DNS server for all the VMs.
-```
-master01.openshift.com    A   10.10.10.10
-master02.openshift.com    A   10.10.10.16
-master03.openshift.com    A   10.10.10.18
-node01.openshift.com     A   10.10.10.12
-node02.openshift.com     A   10.10.10.14
-node03.openshift.com     A   10.10.10.25
-storage.openshift.com   A   10.10.10.21
-```
-
-DNS wildcard mask will point to the public IP address of the load balancer
-```
-*.cloud.openshift.com. 300 IN  A 10.10.10.11
+*.cloud.openshift.noverit.com. 300 IN  A 10.10.10.20
 ```
 
 ## Security

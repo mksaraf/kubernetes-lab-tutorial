@@ -61,13 +61,13 @@ You have access to the following projects and can switch between them with 'oc p
 Using project "default".
 ```
 
-We can use the admin OpenShift ``oadm`` command to create a project, and assign an administrative user to it.
+We can use the admin OpenShift ``oc adm`` command to create a project, and assign an administrative user to it.
 
 As the root system user on master:
 ```
-oadm new-project demo \
+oc adm new-project demo \
 --display-name="OpenShift Demo" \
---description="This is the first demo project with OpenShift" \
+--description="This is the demo project with OpenShift" \
 --admin=demo
 ```
 

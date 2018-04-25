@@ -258,15 +258,19 @@ spec:
       - name: consul-config-data
         image: busybox:latest
         imagePullPolicy: IfNotPresent
-        command: ["sed", "-i", "s/default/$(POD_NAMESPACE)/g", "/mnt/consul.json"]
+        command: ["/bin/sh", "-c", "cp /readonly/consul.json /config && sed -i s/default/$(POD_NAMESPACE)/g /config/consul.json"]
         env:
           - name: POD_NAMESPACE
             valueFrom:
               fieldRef:
                 fieldPath: metadata.namespace
         volumeMounts:
+        - name: readonly
+          mountPath: /readonly
+          readOnly: true
         - name: config
-          mountPath: /mnt
+          mountPath: /config
+          readOnly: false
       containers:
       - name: consul
         image: consul:1.0.2
@@ -285,16 +289,20 @@ spec:
         volumeMounts:
         - name: data
           mountPath: /consul/data
+          readOnly: false
         - name: config
           mountPath: /consul/config
+          readOnly: false
         args:
         - consul
         - agent
         - -config-file=/consul/config/consul.json
       volumes:
-        - name: config
+        - name: readonly
           configMap:
             name: consulconfig
+        - name: config
+          emptyDir: {}
   volumeClaimTemplates:
   - metadata:
       name: data
@@ -307,7 +315,9 @@ spec:
       storageClassName: default
 ```
 
-We notice the presence of an init container in the pod template in addition to the main Consul container. Both the containers, the init and the main container mount, as shared volume, the same Consul configuration file (in the form of a ConfigMap we just created early) . The role of the init container is to update the consul configuration file according to the namespace where that pod is running. This is accomplished by accessing the pod metadata by the API server running in the Kubernetes Control Plane. This step is required because the discoverability of each Consul instance is tied to the namespace where the instance is running, i.e. Consul instances running in different namespaces are named differently.  
+We notice the presence of an init container in the pod template in addition to the main Consul container. Both the containers, the init and the main container mount the same Consul configuration file in the form of the ConfigMap.
+
+The role of the init container is to copy the configuration file from the ConfigMap (read only) to a shared volume (read write) and then update the file according to the namespace where that pod is running. This is accomplished by accessing the pod metadata by the API server running in the Kubernetes Control Plane. This step is required because the discoverability of each Consul instance depends on the namespace where the instance is running, i.e. Consul instances running in different namespaces are named differently.  
 
 Create the headless service
 
@@ -478,13 +488,13 @@ Also check the dynamic storage provisioner created the additional volumes
     data-consul-4   Bound     pvc-28feff1c   2Gi        RWO            default        1h
 
 ### Exposing the cluster
-Consul provides a simple HTTP graphical interface on port 8500 for interact with it. To expose this interface to the external of the kubernetes cluster, define an service as in the ``consul-svc-ext.yaml`` configuration file
+Consul provides a simple HTTP graphical interface on port 8500 for interact with it. To expose this interface to the external of the kubernetes cluster, define an service as in the ``consul-ui.yaml`` configuration file
 ```yaml
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: consul-ext
+  name: consul-ui
   labels:
     app: consul
 spec:
@@ -511,13 +521,13 @@ spec:
       paths:
       - path: /
         backend:
-          serviceName: consul-ext
+          serviceName: consul-ui
           servicePort: 8500
 ```
 
 Create the service and expose it
 
-    kubectl create -f consul-svc-ext.yaml
+    kubectl create -f consul-ui.yaml
     kubectl create -f consul-ingress.yaml
 
 Point the browser to the http://consul.cloud.example.com/ui to access the GUI.

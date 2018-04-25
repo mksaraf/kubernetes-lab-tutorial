@@ -9,5 +9,5 @@ spec:
       paths:
       - path: /
         backend:
-          serviceName: consul-ext
+          serviceName: consul-ui
           servicePort: 8500

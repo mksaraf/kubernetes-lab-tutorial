@@ -1,5 +1,5 @@
 # Setup OpenShift
-In this section we are going to setup a simple OpenShift based on a single Master architecture and three compute nodes. The Linux platform used for this tutorial is RHEL7. Setup of OpenShift on **Atomic Host** is not described in this tutorial. We assume the **OpenShift** platform subscriptions are available. The setup is based on Virtual Machines meeting requirements as stated in product documentation.
+In this section we are going to setup a simple OpenShift based on a single Master architecture and three compute nodes. The Linux platform used for this tutorial is RHEL7. We assume the **OpenShift** platform subscriptions are available. The setup is based on Virtual Machines having requirements as stated in product documentation.
 
 ## Architecture
 This tutorial assumes the following architecture. There are four machines:

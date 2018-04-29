@@ -36,21 +36,21 @@ The OpenShift installation automatically creates a set of internal firewall rule
 ## Install Docker
 On all the OpenShift hosts, enable the proper subscriptions and install the setup utilities
 ```
-# yum install -y atomic-openshift-utils
+yum install -y atomic-openshift-utils
 ```
 
 Install Docker on all master and node hosts and configure the Docker storage options before installing OpenShift Container Platform.
 ```
-# yum install -y docker
-# vi /etc/sysconfig/docker-storage-setup
+yum install -y docker
+vi /etc/sysconfig/docker-storage-setup
 DEVS=/dev/sdb
 VG=docker
 
-# docker-storage-setup
-# systemctl star docker
-# systemctl enable docker
+docker-storage-setup
+systemctl star docker
+systemctl enable docker
 
-# lsblk
+lsblk
 NAME                          MAJ:MIN RM  SIZE RO TYPE MOUNTPOINT
 ...
 sdb                             8:16   0   20G  0 disk
@@ -67,16 +67,16 @@ The OpenShift installation method is based on **Ansibe** playbook. It requirer a
 
 Generate an SSH key on the host where you will invoke the installation process. This can be the master host.
 ```
-[root@master ~]# ssh-keygen
+ssh-keygen
 ```
 
 Do not use a password. An easy way to distribute SSH keys is by using a bash loop:
 ```
-[root@master ~]# for host in \
-    master.openshift.com \
-    nodea.openshift.com \
-    nodeb.openshift.com \
-    nodec.openshift.com; \
+for host in \
+    master.openshift.noverit.com \
+    node01.openshift.noverit.com \
+    node02.openshift.noverit.com \
+    node03.openshift.noverit.com; \
 do ssh-copy-id -i ~/.ssh/id_rsa.pub $host; \
 done
 ```
@@ -84,7 +84,8 @@ done
 ## Install OpenShift
 The OpenShift installation method is based on **Ansibe** playbook. The ``/etc/ansible/hosts`` file is the Ansible inventory file for the playbook to use during the installation. The inventory file describes the configuration of the OpenShift Container Platform cluster.
 ```
-[root@master ~]# cat /etc/ansible/hosts
+cat /etc/ansible/hosts
+
 # Create an OSEv3 group that contains the masters and nodes groups
 [OSEv3:children]
 masters
@@ -106,50 +107,37 @@ openshift_master_identity_providers=[{'name': 'htpasswd_auth', 'login': 'true', 
 
 # host group for masters
 [masters]
-master.openshift.com
+master.openshift.noverit.com
 
 # host group for nodes, includes region info
 [nodes]
-master.openshift.com openshift_node_labels="{'region': 'infra', 'zone': 'default'}" openshift_schedulable=true
-nodea.openshift.com openshift_node_labels="{'region': 'primary', 'zone': 'east'}"
-nodeb.openshift.com openshift_node_labels="{'region': 'primary', 'zone': 'west'}"
-# nodec.openshift.com openshift_node_labels="{'region': 'primary', 'zone': 'west'}"
+master.openshift.noverit.com openshift_node_labels="{'region': 'infra', 'zone': 'default'}"
+node01.openshift.noverit.com openshift_node_labels="{'region': 'primary', 'zone': 'east'}"
+node02.openshift.noverit.com openshift_node_labels="{'region': 'primary', 'zone': 'west'}"
+node03.openshift.noverit.com openshift_node_labels="{'region': 'primary', 'zone': 'west'}"
 ```
-
-Please, note that we are escluding ``nodec.openshift.com`` from the cluster since we'll add later to demonstrate hot to scale the cluster.
 
 Make sure Ansible is able to reach all nodes
 ```
-[root@master ~]# ansible all -m ping
-nodea.openshift.com | SUCCESS => {
-    "changed": false,
-    "ping": "pong"
-}
-nodeb.openshift.com | SUCCESS => {
-    "changed": false,
-    "ping": "pong"
-}
-master.openshift.com | SUCCESS => {
-    "changed": false,
-    "ping": "pong"
-}
+ansible all -m ping
 ```
 
 Start the installation of the OpenShift Platform
 ```
-[root@master ~]# ansible-playbook /usr/share/ansible/openshift-ansible/playbooks/byo/config.yml
+ansible-playbook /usr/share/ansible/openshift-ansible/playbooks/byo/config.yml
 ```
 
 This will take some time. Once the istallation completes, check the status of the cluster
 ```
-[root@master ~]# oc get nodes
-NAME                          STATUS    AGE
-master.openshift.com   Ready     1h
-nodea.openshift.com    Ready     1h
-nodeb.openshift.com    Ready     1h
+kubectl get nodes
+NAME                            STATUS    AGE
+master.openshift.noverit.com    Ready     1h
+node01.openshift.noverit.com    Ready     1h
+node02.openshift.noverit.com    Ready     1h
+node03.openshift.noverit.com    Ready     1h
 ```
 
-In case of something went wrong, uninstall the platform if required
+In case of something went wrong, uninstall the platform and start over
 ```
-[root@master ~]# ansible-playbook /usr/share/ansible/openshift-ansible/playbooks/adhoc/uninstall.yml
+ansible-playbook /usr/share/ansible/openshift-ansible/playbooks/adhoc/uninstall.yml
 ```

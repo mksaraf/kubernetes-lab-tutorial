@@ -66,18 +66,6 @@ Deleting a job will remove all the pods it created
     kubectl delete job simplejob
     kubectl get pods -o wide -a
 
-There are three ways to use jobs:
-
-   1. *Single Jobs*
-   2. *Parallel Jobs*
-   3. *Work Queue Jobs*
-    
-For single jobs, only one pod is started unless it fails and the job completes when pod completes successfully. To create a single job, leave both the options ``completions`` and ``parallelism`` unset or set both them to 1.
-
-For parallel jobs, with a fixed completion count, set the ``completions`` option to the number of desired pods. The ``parallelism`` option specifies the number of pods to run in parallel.
-
-For work queue jobs, leave the the ``completions`` option unset while set the ``parallelism`` option to the dsidered number of pods to run in parallel. 
-
 ## Cron Jobs
 In kubernetes, a **Cron Job** is a time based managed job. A cron job runs a job periodically on a given schedule, written in standard unix cron format.
 

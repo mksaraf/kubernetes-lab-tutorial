@@ -20,7 +20,8 @@
     * [Services](./content/core.md#services)
     * [Volumes](./content/core.md#volumes)
     * [Daemons](./content/core.md#daemons)
-    * [Jobs](./content/batch.md)
+    * [Jobs](./content/core.md#jobs)
+    * [Cron Jobs](./content/core.md#cron-jobs)
     * [Namespaces](./content/core.md#namespaces)
     * [Quotas and Limits](./content/core.md#quotas-and-limits)
     

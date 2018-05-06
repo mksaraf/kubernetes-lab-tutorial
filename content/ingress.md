@@ -1,5 +1,5 @@
 # Ingress
-In kubernetes, user applications are made public by creating a service on a given port and a load balancer on top of the cluster for each application to expose. For example, a request for *myservice.mysite.com* will be balanced across worker nodes and then routed to the related service exposed on a given port by the kube proxy. An external load balancer is required for each service to expose. This can get rather expensive especially when on a public cloud.
+In kubernetes, user applications are made public by creating a service on a given port and a load balancer on top of the cluster for each application to expose. For example, a request for *myservice.mysite.com* will be balanced across worker nodes and then routed to the related service exposed on a given port by the kube proxy. An external load balancer is required for each service to expose. This can get rather expensive especially when done on a public cloud.
 
 Ingress gives the cluster admin a different way to route requests to services by centralizing multiple services into a single external load balancer.
 
@@ -64,7 +64,7 @@ spec:
     app: website
 ```
 
-Please, note the services above are defined as type of ``ClusterIP`` and then they are not exposed to the external. This is required since the Ingress will configure the cluster to route requests to the services without passing through the kube proxy. 
+Please, note the services above are defined as type of ``ClusterIP`` and then they are not exposed to the external.
 
 Create the application and the service
 ```bash

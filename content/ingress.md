@@ -3,7 +3,7 @@ In kubernetes, user applications are made public by creating a service on a give
 
 Ingress gives the cluster admin a different way to route requests to services by centralizing multiple services into a single external load balancer.
 
-An ingress is split up into two main pieces: the first is an **Ingress Resource**, which defines how you want requests routed to the backing services. The second is an **Ingress Controller**, which listen to the kubernetes API for Ingress Resource creation and then handle requests that match them. Ingress Controllers can technically be any system capable of reverse proxying, but the most common options are Nginx and HAProxy. As additional component, a **Default Backend** service can be used to handle all requests that are no service relates, eg. *Not Found (404)* error page.
+An ingress is split up into two main pieces: the first is an **Ingress Resource**, which defines how you want requests routed to the backing services. The second is an **Ingress Controller**, which listen to the kubernetes API for Ingress Resource creation and then handle requests that match them.
 
 ## Ingress Resource
 An ingress resource is a kubernetes abstraction to handle requests, for example to *web.cloud.noverit.com* and then route them to the kubernetes services named web.
@@ -92,9 +92,9 @@ website       web.cloud.noverit.com                       80        27m
 However, an Ingress resource on it’s own does not do anything. An Ingress Controller is required to route requests to the service.
 
 ## Ingress Controller
-The Ingress Controller is the component that routes the requests to the services. It is listening to the kubernetes API for an ingress creation and then handle requests. Ingress Controllers can technically be any system capable of reverse proxying, but the most common options are Nginx and HAProxy.
+The Ingress Controller is the component that routes the requests to the services. It is listening to the kubernetes API for an ingress creation and then handle requests.
 
-Before to create an Ingress Controller, we are going to create a default backend service for the Ingress Controller itself. This backend service will reply to all requests that are not related to our services, for example requests for unknown url.
+Ingress Controllers can technically be any system capable of reverse proxying, but the most common options are Nginx and HAProxy. As additional component, a **Default Backend** service is created to handle all requests that are no service relates. This backend service will reply to all requests that are not related to our services, for example requests for unknown urls. The default backend will reply with a *Not Found (404)* error page. 
 
 ### Default Backend
 Create the backend and related service from the file ``ingress-default-backend.yaml`` available [here](../examples/ingress/ingress-default-backend.yaml)

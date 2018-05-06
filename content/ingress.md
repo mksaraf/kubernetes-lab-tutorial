@@ -64,11 +64,16 @@ spec:
     app: website
 ```
 
-Please, note the services above are defined as type of ``ClusterIP`` and then they are not exposed to the external.
+Please, note the service above is defined as type of ``ClusterIP`` and then it's not exposed directly to the external.
 
-Create the application and the service
+Create the application
 ```bash
 kubectl create -f website-rc.yaml
+kubectl create -f website-svc.yaml
+```
+
+Create the service
+```bash
 kubectl create -f website-svc.yaml
 ```
 

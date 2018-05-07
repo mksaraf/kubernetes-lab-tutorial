@@ -8,6 +8,7 @@ In this section we're going through core concepts of Kubernetes:
    * [Deployments](#deployments)
    * [Services](#services)
    * [Volumes](#volumes)
+   * [Config Maps](#config-maps)
    * [Daemons](#daemons)
    * [Jobs](#jobs)
    * [Cron Jobs](#cron-jobs)
@@ -724,6 +725,77 @@ Data in host dir volume will survive to any crash and restart of both container 
     Hello from kubew05
 
 This works because we forced kubernetes to schedule the nginx pod always on the same host node.
+
+## Config Maps
+Kubernetes allows separating configuration options into a separate object called **ConfigMap**, which is a map containing key/value pairs with the values ranging from short literals to full config files.
+
+An application doesn’t need to read the ConfigMap directly or even know that it exists. The contents of the map are instead passed to containers as either environment variables or as files in a volume.
+
+For example, let's to create a ConfigMap from the ``nginx.conf`` configuration file
+
+    kubectl create kubectl create configmap nginxconfig --from-file=nginx.json
+
+Define now a nginx pod mounting the config map above as volume under the ``/etc/nginx/conf.d`` as in the ``nginx-pod-cm.yaml`` manifest file
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx-cm
+  namespace:
+  labels:
+spec:
+  containers:
+  - name: nginx
+    image: nginx:latest
+    ports:
+    - containerPort: 80
+    volumeMounts:
+      - name: config
+        mountPath: /etc/nginx/conf.d
+        readOnly: true
+  volumes:
+    - name: config
+      configMap:
+        name: nginxconfig
+```
+
+Create the pod
+
+    kubectl create -f nginx-pod-cm.yaml
+
+Check if the pod just created mounted the ConfigMap as its default configuration file
+
+    kubectl exec -it nginx-cm cat /etc/nginx/conf.d/nginx.conf
+
+Having the configuration stored in a standalone object, allows to keep multiple ConfigMaps with the same name, each for a different environment (development, test, pre-stage, production, and so on). Because pods reference the ConfigMap by name, we can use a different config in each environment while using the same pod specification across all of them. 
+
+As alternative, a ConfigMap can be created as in the ``nginx-conf.yaml`` manifest file
+
+```yaml
+apiVersion: v1
+data:
+  nginx.conf: |
+    server {
+        listen       80;
+        server_name  www.noverit.com;
+        charset koi8-r;
+        access_log  /var/log/nginx/host.access.log  main;
+        location / {
+            root   /usr/share/nginx/html;
+            index  index.html index.htm;
+        }
+        error_page  404              /404.html;
+        error_page  500 502 503 504  /50x.html;
+        location = /50x.html {
+            root   /usr/share/nginx/html;
+        }
+    }
+kind: ConfigMap
+metadata:
+  name: nginxconfig
+  namespace:
+```
 
 ## Daemons
 A Daemon Set is a controller type ensuring each node in the cluster runs a pod. As new node is added to the cluster, a new pod is added to the node. As the node is removed from the cluster, the pod running on it is removed and not scheduled on another node. Deleting a Daemon Set will clean up all the pods it created.

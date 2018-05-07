@@ -797,6 +797,19 @@ metadata:
   namespace:
 ```
 
+Using a ConfigMap and exposing it through a volume brings the ability to update the configuration without having to recreate the pod or even restart the container.
+
+When updating a ConfigMap, the files in all the volumes referencing it are updated. It’s then up to the process to detect that they’ve been changed and reload them.
+
+For example, to update the configuration above, edit the ConfigMap
+
+    kubectl edit cm nginxconfig
+
+Then check the nginx application running inside the pod reloaded the configuration
+
+    kubectl exec -it nginx-cm cat /etc/nginx/conf.d/nginx.conf
+
+
 ## Daemons
 A Daemon Set is a controller type ensuring each node in the cluster runs a pod. As new node is added to the cluster, a new pod is added to the node. As the node is removed from the cluster, the pod running on it is removed and not scheduled on another node. Deleting a Daemon Set will clean up all the pods it created.
 

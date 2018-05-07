@@ -399,23 +399,29 @@ The second parameter controls how many pods can be unavailable below to the desi
 
 For example, to update the pods with a different version of nginx image
 
-    [root@kubem00 ~]# kubectl set image deploy nginx nginx=nginx:1.13
-    deployment "nginx" image updated
+    kubectl set image deploy nginx nginx=nginx:1.13
+    
+Check the rollout status while it is happening
 
-On a separate terminal window, check the rollout status
+    kubectl rollout status deploy nginx
 
-    [root@kubem00 ~]# kubectl rollout status deploy nginx
-    deployment "nginx" successfully rolled out
+If you want to pause the rollout
+
+    kubectl rollout pause deploy nginx
+
+Resume it to complete
+
+    kubectl rollout resume deploy nginx
 
 Check the status of the deploy
 
-    [root@kubem00 ~]# kubectl get all -l run=nginx -o wide
+    kubectl get all -l run=nginx -o wide
     NAME           DESIRED   CURRENT   UP-TO-DATE   AVAILABLE   AGE       CONTAINERS   IMAGES       SELECTOR
     deploy/nginx   3         3         3            3           4m        nginx        nginx:1.13   run=nginx
 
     NAME                  DESIRED   CURRENT   READY     AGE       CONTAINERS   IMAGES       SELECTOR
-    rs/nginx-698d6b8c9f   0         0         0         4m        nginx        nginx:1.12   pod-template-hash=2548264759,run=nginx
-    rs/nginx-76b7c8fff4   3         3         3         2m        nginx        nginx:1.13   pod-template-hash=3263749990,run=nginx
+    rs/nginx-698d6b8c9f   0         0         0         4m        nginx        nginx:1.12   run=nginx
+    rs/nginx-76b7c8fff4   3         3         3         2m        nginx        nginx:1.13   run=nginx
 
     NAME                        READY     STATUS    RESTARTS   AGE       IP            NODE
     po/nginx-76b7c8fff4-cx9gw   1/1       Running   0          2m        10.38.3.128   kubew03
@@ -423,6 +429,12 @@ Check the status of the deploy
     po/nginx-76b7c8fff4-pm5rp   1/1       Running   0          2m        10.38.5.140   kubew05
 
 Now there is a new replica set now taking control of the pods. This replica set control new pods having image ``nginx:1.13``. The old replica set is still there and can be used in case of downgrade.
+
+To downgrade, undo the rollout
+
+    kubectl rollout undo deploy nginx
+
+This will report the deploy to the previous state.
 
 When the strategy update is set to ``type: Recreate``, all existing Pods are killed before new ones are created. The Recreate strategy causes all old pods to be deleted first and then the new ones are created. This strategy should be used only when the application does not support running multiple versions in parallel and requires the old version to be stopped completely before the new one is started.
 

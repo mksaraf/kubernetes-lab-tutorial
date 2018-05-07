@@ -1,0 +1,21 @@
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  namespace:
+  name: tomcat
+spec:
+  tls:
+  - hosts:
+    - tomcat.cloud.noverit.com
+    secretName: tomcat-tls-secret
+  - hosts:
+    - tomcat.noverit.com
+    secretName: tomcat-tls-secret
+  rules:
+  - host: tomcat.cloud.noverit.com
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: taas
+          servicePort: 8000

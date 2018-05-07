@@ -231,9 +231,9 @@ metadata:
 spec:
   ports:
   - protocol: TCP
-    port: 80
+    port: 88
     targetPort: 80
-    nodePort: 8090
+    nodePort: 30080
   selector:
     run: nginx
   type: NodePort

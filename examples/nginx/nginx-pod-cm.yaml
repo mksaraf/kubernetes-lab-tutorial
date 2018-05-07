@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx-cm
+  namespace:
+  labels:
+spec:
+  containers:
+  - name: nginx
+    image: nginx:latest
+    ports:
+    - containerPort: 80
+    volumeMounts:
+      - name: config
+        mountPath: /etc/nginx/conf.d
+        readOnly: true
+  volumes:
+    - name: config
+      configMap:
+        name: nginxconfig

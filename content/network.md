@@ -231,7 +231,7 @@ metadata:
 spec:
   ports:
   - protocol: TCP
-    port: 88
+    port: 80
     targetPort: 80
     nodePort: 30080
   selector:

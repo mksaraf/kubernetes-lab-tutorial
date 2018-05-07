@@ -19,6 +19,7 @@
     * [Deployments](./content/basics.md#deployments)
     * [Services](./content/basics.md#services)
     * [Volumes](./content/basics.md#volumes)
+    * [Config Maps](./content/basics.md#config-maps)
     * [Daemons](./content/basics.md#daemons)
     * [Jobs](./content/basics.md#jobs)
     * [Cron Jobs](./content/basics.md#cron-jobs)

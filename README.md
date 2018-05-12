@@ -26,15 +26,16 @@
     * [Namespaces](./content/basics.md#namespaces)
     * [Quotas and Limits](./content/basics.md#quotas-and-limits)
     
-3. [Networking](./content/network.md)
+3. [Cluster Networking](./content/network.md)
     * [Pod Networking](./content/network.md#pod-networking)
     * [Exposing services](./content/network.md#exposing-services)
     * [Service discovery](./content/network.md#service-discovery)
     * [Accessing services](./content/network.md#accessing-services)
+    * [External services](./content/network.md#external-services)
     * [Ingress controller](./content/ingress.md)
     * [Static Pods](./content/static.md)
 
-4. [Storage](./content/storage.md)
+4. [Data Management](./content/storage.md)
     * [Local Persistent Volumes](./content/storage.md#local-persistent-volumes)
     * [Volume Access Mode](./content/storage.md#volume-access-mode)
     * [Volume State](./content/storage.md#volume-state)

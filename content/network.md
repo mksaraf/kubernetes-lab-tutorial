@@ -11,6 +11,7 @@ In the following sections we're going into a walk-through in kubernetes networki
    * [Exposing services](#exposing-services)
    * [Service discovery](#service-discovery)
    * [Accessing services](#accessing-services)
+   * [External services](#external-services)
 
 ## Pod Networking
 In a kubernetes cluster, when a pod is deployed, it gets an IP address from the cluster IP address range defined in the inital setup.

@@ -38,11 +38,11 @@ A pod definition is a declaration of a desired state. Desired state is a very im
 
 Create a pod containing an nginx server from the pod-nginx.yaml file
 
-    [root@kubem00 ~]# kubectl create -f pod-nginx.yaml
+    kubectl create -f pod-nginx.yaml
 
 List all pods:
 
-    [root@kubem00 ~]# kubectl get pods -o wide
+    kubectl get pods -o wide
     NAME      READY     STATUS    RESTARTS   AGE       IP            NODE
     mynginx   1/1       Running   0          8m        172.30.21.2   kuben03
 
@@ -118,28 +118,25 @@ metadata:
 
 To label a running pod
 
-      [root@kubem00 ~]# kubectl label pod mynginx type=webserver
-      pod "mynginx" labeled
+      kubectl label pod mynginx type=webserver
 
 To list pods based on labels
 
-      [root@kubem00 ~]# kubectl get pods -l type=webserver
+      kubectl get pods -l type=webserver
       NAME      READY     STATUS    RESTARTS   AGE
       mynginx   1/1       Running   0          21m
 
 Labels can be applied not only to pods but also to other Kuberntes objects like nodes. For example, we want to label or worker nodes based on the their position in the datacenter
 
-      [root@kubem00 ~]# kubectl label node kuben01 rack=rack01
-      node "kuben01" labeled
+      kubectl label node kuben01 rack=rack01
       
-      [root@kubem00 ~]# kubectl get nodes -l rack=rack01
+      kubectl get nodes -l rack=rack01
       NAME      STATUS    AGE
       kuben01   Ready     2d
       
-      [root@kubem00 ~]# kubectl label node kuben02 rack=rack01
-      node "kuben02" labeled
+      kubectl label node kuben02 rack=rack01
       
-      [root@kubem00 ~]# kubectl get nodes -l rack=rack01
+      kubectl get nodes -l rack=rack01
       NAME      STATUS    AGE
       kuben01   Ready     2d
       kuben02   Ready     2d
@@ -184,12 +181,11 @@ spec:
 
 Create a replica controller
 
-    [root@kubem00 ~]# kubectl create -f nginx-rc.yaml
-    replicationcontroller "nginx" created
+    kubectl create -f nginx-rc.yaml
 
 List and describe a replica controller
 
-    [root@kubem00 ~]# kubectl get rc
+    kubectl get rc
     NAME      DESIRED   CURRENT   READY     AGE
     nginx     3         3         3         1m
 
@@ -205,19 +201,17 @@ List and describe a replica controller
 
 The Replica Controller makes it easy to scale the number of replicas up or down, either manually or by an auto-scaling control agent, by simply updating the replicas field. For example, scale down to zero replicas in order to delete all pods controlled by a given replica controller
 
-    [root@kubem00 ~]# kubectl scale rc nginx --replicas=0
-    replicationcontroller "nginx" scaled
+    kubectl scale rc nginx --replicas=0
 
-    [root@kubem00 ~]# kubectl get rc nginx
+    kubectl get rc nginx
     NAME      DESIRED   CURRENT   READY     AGE
     nginx     0         0         0         7m
 
 Scale out the replica controller to create new pods
 
-    [root@kubem00 ~]# kubectl scale rc nginx --replicas=9
-    replicationcontroller "nginx" scaled
+    kubectl scale rc nginx --replicas=9
 
-    [root@kubem00 ~]# kubectl get rc nginx
+    kubectl get rc nginx
     NAME      DESIRED   CURRENT   READY     AGE
     nginx     9         9         0         9m
 
@@ -225,13 +219,11 @@ Also in case of failure of a node, the replica controller takes care of keep the
 
 To delete a replica controller
 
-    [root@kubem00 ~]# kubectl delete rc/nginx
-    replicationcontroller "nginx" deleted
+    kubectl delete rc/nginx
     
 Deleting a replica controller deletes all pods managed by that replica. But, because pods created by a replication controller are not actually an integral part of the replication controller, but only managed by it, we can delete only the replication controller and leave the pods running.
 
-    [root@kubem00 ~]# kubectl delete rc/nginx --cascade=false
-    replicationcontroller "nginx" deleted
+    kubectl delete rc/nginx --cascade=false
 
 Now there is nothing managing pods, but we can always create a new replication controller with the proper label selector and make them managed again.
 
@@ -270,10 +262,10 @@ spec:
 
 Create the replica set
 
-    [root@kubem00 ~]# kubectl create -f nginx-rs.yaml 
+    kubectl create -f nginx-rs.yaml 
     replicaset "nginx-rs" created
 
-    [root@kubem00 ~]# kubectl get rs -o wide
+    kubectl get rs -o wide
     NAME       DESIRED   CURRENT   READY     AGE       CONTAINERS   IMAGES       SELECTOR
     nginx-rs   3         3         3         13s       nginx        nginx:1.12   run=nginx
 
@@ -344,12 +336,12 @@ spec:
 
 and create the deployment
 
-    [root@kubem00 ~]# kubectl create -f nginx-deploy.yaml
+    kubectl create -f nginx-deploy.yaml
     deployment "nginx" created
 
 The deployment creates the following objects
 
-    [root@kubem00 ~]# kubectl get all -l run=nginx -o wide
+    kubectl get all -l run=nginx -o wide
 
     NAME           DESIRED   CURRENT   UP-TO-DATE   AVAILABLE   AGE       CONTAINERS   IMAGES	SELECTOR
     deploy/nginx   3         3         3            3           37s       nginx        nginx:1.12   run=nginx
@@ -366,10 +358,10 @@ According to the definitions set in the file, above, there are a deploy, three p
 
 A deployment, can be scaled up and down
 
-    [root@kubem00 ~]# kubectl scale deploy nginx --replicas=6
+    kubectl scale deploy nginx --replicas=6
     deployment "nginx" scaled
 
-    [root@kubem00 ~]# kubectl get deploy nginx
+    kubectl get deploy nginx
     NAME      DESIRED   CURRENT   UP-TO-DATE   AVAILABLE   AGE
     nginx     6         6         6            3           11m
 
@@ -377,7 +369,7 @@ In a deploy, pods are always controlled by the replica set. However, because the
 
 For example, try to scale up the replica set from the previous example to have 10 replicas
 
-    [root@kubem00 ~]# kubectl scale rs nginx-698d6b8c9f --replicas=10
+    kubectl scale rs nginx-698d6b8c9f --replicas=10
 
 we see the number of pod scaled to 10, according to the request to scale the replica set to 10 pod. After few seconds, the deploy will take priority and remove all new pod created by the scaling the replica set because the desired stae, as specified by the deploy is to 6 pods.
 
@@ -435,6 +427,8 @@ To downgrade, undo the rollout
     kubectl rollout undo deploy nginx
 
 This will report the deploy to the previous state.
+
+When creating new pods, the Rolling strategy waits for pods to become ready. If the new pods never become ready, the deployment will time out and result in a deployment failure. The deployment strategy uses readiness checks to determine if a new pod is ready for use. If a readiness check fails, the deployment is stopped.
 
 When the strategy update is set to ``type: Recreate``, all existing Pods are killed before new ones are created. The Recreate strategy causes all old pods to be deleted first and then the new ones are created. This strategy should be used only when the application does not support running multiple versions in parallel and requires the old version to be stopped completely before the new one is started.
 

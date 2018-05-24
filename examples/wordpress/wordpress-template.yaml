@@ -37,7 +37,7 @@ spec:
         - name: MARIADB_PORT
           value: '3306'
         - name: WORDPRESS_DATABASE_NAME
-          value: workpress
+          value: wordpress
         - name: WORDPRESS_DATABASE_USER
           value: bitnami
         - name: WORDPRESS_DATABASE_PASSWORD
@@ -54,17 +54,53 @@ spec:
         - name: php-data
           mountPath: /bitnami/php
 
-      volumes:
-      - name: wordpress-data
-        emptyDir: {}
-      - name: apache-data
-        emptyDir: {}
-      - name: php-data
-        emptyDir: {}
-
       dnsPolicy: ClusterFirst
       restartPolicy: Always
 
+      volumes:
+      - name: wordpress-data
+        persistentVolumeClaim:
+          claimName: wordpress-data
+      - name: apache-data
+        persistentVolumeClaim:
+          claimName: apache-data
+      - name: php-data
+        persistentVolumeClaim:
+          claimName: php-data
+
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: wordpress-data
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 500Mi
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: apache-data
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 500Mi
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: php-data
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 500Mi
 ---
 apiVersion: v1
 kind: Service
@@ -77,7 +113,20 @@ spec:
   - protocol: TCP
     port: 80
     targetPort: 80
-    nodePort: 31080
   selector:
     run: blog
-  type: NodePort
+
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: blog
+spec:
+  rules:
+  - host: blog.cloud.noverit.com
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: wordpress
+          servicePort: 80

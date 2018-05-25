@@ -392,7 +392,7 @@ spec:
       storage: 1Gi
   selector:
     matchLabels:
-      volumeName: "share00"
+      volumeName: "share01"
 ```
 
 Create the claim
@@ -407,21 +407,19 @@ The claim remains pending because there are no matching volumes
 	
 	kubectl get pv
 	NAME      CAPACITY   ACCESS MODES   RECLAIM POLICY   STATUS      CLAIM     
-	share00   1Gi        RWX            Recycle          Available             
 	share01   1Gi        RWX            Recycle          Available             
 	share02   1Gi        RWX            Recycle          Available             
 
-Pick the volume named ``share00`` and label it
+Pick the volume named ``share01`` and label it
 
-	kubectl label pv share00 volumeName="share00"
-	persistentvolume "share00" labeled
+	kubectl label pv share00 volumeName="share01"
+	persistentvolume "share01" labeled
 	
 And check if the claim bound the volume
 
 	kubectl get pv
 	NAME      CAPACITY   ACCESS MODES   RECLAIM POLICY   STATUS      CLAIM                         
-	share00   1Gi        RWX            Recycle          Bound       project/pvc-volume-selector   
-	share01   1Gi        RWX            Recycle          Available                                 
+	share01   1Gi        RWX            Recycle          Bound       project/pvc-volume-selector     
 	share02   1Gi        RWX            Recycle          Available                                 
 
 ## Storage Classes

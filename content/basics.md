@@ -151,9 +151,9 @@ A Replica Set configuration consists of:
  * The pod definition
  * The selector to bind the managed pod
 
-A selector is a label assigned to the pods that are managed by the replica controller. Labels are included in the pod definition that the replica set instantiates. The replica set uses the selector to determine how many instances of the pod are already running in order to adjust as needed.
+A selector is a label assigned to the pods that are managed by the replica set. Labels are included in the pod definition that the replica set instantiates. The replica set uses the selector to determine how many instances of the pod are already running in order to adjust as needed.
 
-In the ``nginx-rs.yaml`` file, define a replica controller with replica 1 for our nginx pod.
+In the ``nginx-rs.yaml`` file, define a replica set with replica 1 for our nginx pod.
 ```yaml
 apiVersion: extensions/v1beta1
 kind: ReplicaSet
@@ -202,7 +202,7 @@ List and describe a replica set
     Pods Status:    3 Running / 0 Waiting / 0 Succeeded / 0 Failed
     No volumes.
 
-The Replica Set makes it easy to scale the number of replicas up or down, either manually or by an auto-scaling control agent, by simply updating the replicas field. For example, scale down to zero replicas in order to delete all pods controlled by a given replica controller
+The Replica Set makes it easy to scale the number of replicas up or down, either manually or by an auto-scaling control agent, by simply updating the replicas field. For example, scale down to zero replicas in order to delete all pods controlled by a given replica set
 
     kubectl scale rs nginx --replicas=0
 
@@ -390,7 +390,7 @@ When creating new pods, the Rolling strategy waits for pods to become ready. If 
 When the strategy update is set to ``type: Recreate``, all existing Pods are killed before new ones are created. The Recreate strategy causes all old pods to be deleted first and then the new ones are created. This strategy should be used only when the application does not support running multiple versions in parallel and requires the old version to be stopped completely before the new one is started.
 
 ## Services
-Kubernetes pods, as containers, are ephemeral. Replication Controllers create and destroy pods dynamically, e.g. when scaling up or down or when doing rolling updates. While each pod gets its own IP address, even those IP addresses cannot be relied upon to be stable over time. This leads to a problem: if some set of pods provides functionality to other pods inside the Kubernetes cluster, how do those pods find out and keep track of which other?
+Kubernetes pods, as containers, are ephemeral. Replication Sets create and destroy pods dynamically, e.g. when scaling up or down or when doing rolling updates. While each pod gets its own IP address, even those IP addresses cannot be relied upon to be stable over time. This leads to a problem: if some set of pods provides functionality to other pods inside the Kubernetes cluster, how do those pods find out and keep track of which other?
 
 A Kubernetes Service is an abstraction which defines a logical set of pods and a policy by which to access them. The set of pods targeted by a Service is usually determined by a label selector. Kubernetes offers a simple Endpoints API that is updated whenever the set of pods in a service changes.
 
@@ -415,16 +415,17 @@ spec:
 
 Create the service
 
-    [root@kubem00 ~]# kubectl create -f nginx-service.yaml
+    kubectl create -f nginx-service.yaml
     service "nginx" created
     
-    [root@kubem00 ~]# kubectl get service -l run=nginx
+    kubectl get service -l run=nginx
     NAME      CLUSTER-IP     EXTERNAL-IP   PORT(S)   AGE
     nginx     10.254.60.24   <none>        8000/TCP    38s
 
 Describe the service
 
-    [root@kubem00 ~]# kubectl describe service nginx
+    kubectl describe service nginx
+    
     Name:                   nginx
     Namespace:              default
     Labels:                 run=nginx
@@ -456,10 +457,9 @@ spec:
 
 Create the new pod
 
-    [root@kubem00 ~]# kubectl create -f nginx-pod.yaml
-    pod "mynginx" created
+    kubectl create -f nginx-pod.yaml
 
-    [root@kubem00 ~]# kubectl get pods
+    kubectl get pods
     NAME                    READY     STATUS    RESTARTS   AGE
     mynginx                 1/1       Running   0          11s
     nginx-664452237-6h8zw   1/1       Running   0          16m
@@ -468,19 +468,19 @@ Create the new pod
 
 The just created new pod is not still associated to the nginx service
 
-    [root@kubem00 ~]# kubectl get endpoints | grep nginx
+    kubectl get endpoints | grep nginx
     NAME         ENDPOINTS                                    AGE
     nginx        172.30.21.2:80,172.30.4.2:80,172.30.4.3:80   40m
 
 
 Now, let's to lable the new pod with ``run=nginx`` label
 
-    [root@kubem00 ~]# kubectl label pod mynginx run=nginx
+    kubectl label pod mynginx run=nginx
     pod "mynginx" labeled
 
 We can see a new endpoint is added to the service
 
-    [root@kubem00 ~]# kubectl get endpoints | grep nginx
+    kubectl get endpoints | grep nginx
     NAME         ENDPOINTS                                                AGE
     nginx        172.30.21.2:80,172.30.4.2:80,172.30.4.3:80 + 1 more...   46m
 
@@ -506,10 +506,10 @@ spec:
 
 We'll use this pod to address the nginx service
 
-    [root@kubem00 ~]# kubectl create -f busybox.yaml
+    kubectl create -f busybox.yaml
     pod "busybox" created
 
-    [root@kubem00 ~]# kubectl exec -it busybox sh
+    kubectl exec -it busybox sh
     / # wget -O - 10.254.60.24:8000
     Connecting to 10.254.60.24:8000 (10.254.60.24:8000)
     <!DOCTYPE html>
@@ -525,7 +525,7 @@ We'll use this pod to address the nginx service
     </body>
     </html>
     / # exit
-    [root@kubem00 ~]#
+    
 
 In kubernetes, the service abstraction acts as stable entrypoint for any application, no matter wich is the IP address of the pod(s) running that application. We can destroy all nginx pods and recreate but service will be always the same IP address and port.
 

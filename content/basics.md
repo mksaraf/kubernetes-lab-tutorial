@@ -3,7 +3,6 @@ In this section we're going through core concepts of Kubernetes:
 
    * [Pods](#core)
    * [Labels](#labels)
-   * [Replica Controllers](#replica-controllers)
    * [Replica Sets](#replica-sets)
    * [Deployments](#deployments)
    * [Services](#services)
@@ -143,96 +142,19 @@ Labels can be applied not only to pods but also to other Kuberntes objects like 
 
 Labels are also used as selector for services and deployments.
 
-## Replica Controllers
-A Replica Controller ensures that a specified number of pod replicas are running at any one time. In other words, a Replica Controller makes sure that a pod or homogeneous set of pods are always up and available. If there are too many pods, it will kill some. If there are too few, it will start more. Unlike manually created pods, the pods maintained by a Replica Controller are automatically replaced if they fail, get deleted, or are terminated.
+## Replica Set
+A Replica Set ensures that a specified number of pod replicas are running at any one time. In other words, a Replica Set makes sure that a pod or homogeneous set of pods are always up and available. If there are too many pods, it will kill some. If there are too few, it will start more. Unlike manually created pods, the pods maintained by a Replica Set are automatically replaced if they fail, get deleted, or are terminated.
 
-A Replica Controller configuration consists of:
+A Replica Set configuration consists of:
 
  * The number of replicas desired
  * The pod definition
  * The selector to bind the managed pod
 
-A selector is a label assigned to the pods that are managed by the replica controller. Labels are included in the pod definition that the replica controller instantiates. The replica controller uses the selector to determine how many instances of the pod are already running in order to adjust as needed.
+A selector is a label assigned to the pods that are managed by the replica controller. Labels are included in the pod definition that the replica set instantiates. The replica set uses the selector to determine how many instances of the pod are already running in order to adjust as needed.
 
-In the ``nginx-rc.yaml`` file, define a replica controller with replica 1 for our nginx pod.
+In the ``nginx-rs.yaml`` file, define a replica controller with replica 1 for our nginx pod.
 ```yaml
----
-apiVersion: v1
-kind: ReplicationController
-metadata:
-  name: nginx
-  namespace: default
-spec:
-  replicas: 3
-  selector:
-    run: nginx
-  template:
-    metadata:
-      name: nginx
-      labels:
-        run: nginx
-    spec:
-      containers:
-      - name: nginx
-        image: nginx:latest
-        ports:
-        - containerPort: 80
-```
-
-Create a replica controller
-
-    kubectl create -f nginx-rc.yaml
-
-List and describe a replica controller
-
-    kubectl get rc
-    NAME      DESIRED   CURRENT   READY     AGE
-    nginx     3         3         3         1m
-
-    [root@kubem00 ~]# kubectl describe rc nginx
-    Name:           nginx
-    Namespace:      default
-    Image(s):       nginx:latest
-    Selector:       run=nginx
-    Labels:         run=nginx
-    Replicas:       3 current / 3 desired
-    Pods Status:    3 Running / 0 Waiting / 0 Succeeded / 0 Failed
-    No volumes.
-
-The Replica Controller makes it easy to scale the number of replicas up or down, either manually or by an auto-scaling control agent, by simply updating the replicas field. For example, scale down to zero replicas in order to delete all pods controlled by a given replica controller
-
-    kubectl scale rc nginx --replicas=0
-
-    kubectl get rc nginx
-    NAME      DESIRED   CURRENT   READY     AGE
-    nginx     0         0         0         7m
-
-Scale out the replica controller to create new pods
-
-    kubectl scale rc nginx --replicas=9
-
-    kubectl get rc nginx
-    NAME      DESIRED   CURRENT   READY     AGE
-    nginx     9         9         0         9m
-
-Also in case of failure of a node, the replica controller takes care of keep the same number of pods by scheduling the containers running on the failed node to the remaining nodes in the cluster.
-
-To delete a replica controller
-
-    kubectl delete rc/nginx
-    
-Deleting a replica controller deletes all pods managed by that replica. But, because pods created by a replication controller are not actually an integral part of the replication controller, but only managed by it, we can delete only the replication controller and leave the pods running.
-
-    kubectl delete rc/nginx --cascade=false
-
-Now there is nothing managing pods, but we can always create a new replication controller with the proper label selector and make them managed again.
-
-## Replica Sets
-A Replica Set object is very similar to the replica controller object we practiced before.
-
-The ``nginx-rs.yaml`` configuration file defines a replica set for the nginx pod
-```yaml
----
 apiVersion: extensions/v1beta1
 kind: ReplicaSet
 metadata:
@@ -260,20 +182,55 @@ spec:
       restartPolicy: Always
 ```
 
-Create the replica set
+Create a replica set
 
-    kubectl create -f nginx-rs.yaml 
-    replicaset "nginx-rs" created
+    kubectl create -f nginx-rs.yaml
 
-    kubectl get rs -o wide
-    NAME       DESIRED   CURRENT   READY     AGE       CONTAINERS   IMAGES       SELECTOR
-    nginx-rs   3         3         3         13s       nginx        nginx:1.12   run=nginx
+List and describe a replica set
 
-A replica set behaves exactly like a replication controller, but it has more powerful pod selectors. Whereas a replication controller label selector only allows matching pods that include a certain label, the replica set pod selector also allows matching pods that lack a certain label or pods that include a certain label key, regardless of its value.
+    kubectl get rs
+    NAME      DESIRED   CURRENT   READY     AGE
+    nginx     3         3         3         1m
 
-For example, a single replication controller can’t match pods with the label ``env=production`` and those with the label ``env=dev`` at the same time. It can only match either pods with the first label or pods with the second one. A replica set is able to match both sets of pods and treat them as a single group.
+    kubectl describe rs nginx
+    Name:           nginx
+    Namespace:      default
+    Image(s):       nginx:latest
+    Selector:       run=nginx
+    Labels:         run=nginx
+    Replicas:       3 current / 3 desired
+    Pods Status:    3 Running / 0 Waiting / 0 Succeeded / 0 Failed
+    No volumes.
 
-Similarly, a replication controller can’t match pods simply based on the presence of a label key, regardless of its value, while a replica set does. For example, we can match all pods that include a label with the key ``run``, whatever its actual value is, acting as some similar to ``run=*``.
+The Replica Set makes it easy to scale the number of replicas up or down, either manually or by an auto-scaling control agent, by simply updating the replicas field. For example, scale down to zero replicas in order to delete all pods controlled by a given replica controller
+
+    kubectl scale rs nginx --replicas=0
+
+    kubectl get rs nginx
+    NAME      DESIRED   CURRENT   READY     AGE
+    nginx     0         0         0         7m
+
+Scale out the replica set to create new pods
+
+    kubectl scale rs nginx --replicas=9
+
+    kubectl get rs nginx
+    NAME      DESIRED   CURRENT   READY     AGE
+    nginx     9         9         0         9m
+
+Also in case of failure of a node, the replica set takes care of keep the same number of pods by scheduling the containers running on the failed node to the remaining nodes in the cluster.
+
+To delete a replica set
+
+    kubectl delete rs/nginx
+    
+Deleting a replica set deletes all pods managed by that replica. But, because pods created by a controller are not actually an integral part of the replication set, but only managed by it, we can delete only the replication set and leave the pods running.
+
+    kubectl delete rs/nginx --cascade=false
+
+Now there is nothing managing pods, but we can always create a new replication set with the proper label selector and make them managed again.
+
+A single replica set can match pods with the label ``env=production`` and those with the label ``env=dev`` at the same time. Also we can match all pods that include a label with the key ``run``, whatever its actual value is, acting as some similar to ``run=*``.
 
 ```yaml
 ...

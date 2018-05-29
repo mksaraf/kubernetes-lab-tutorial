@@ -142,7 +142,7 @@ Labels can be applied not only to pods but also to other Kuberntes objects like 
 
 Labels are also used as selector for services and deployments.
 
-## Replica Set
+## Replica Sets
 A Replica Set ensures that a specified number of pod replicas are running at any one time. In other words, a Replica Set makes sure that a pod or homogeneous set of pods are always up and available. If there are too many pods, it will kill some. If there are too few, it will start more. Unlike manually created pods, the pods maintained by a Replica Set are automatically replaced if they fail, get deleted, or are terminated.
 
 A Replica Set configuration consists of:

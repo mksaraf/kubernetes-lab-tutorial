@@ -14,7 +14,6 @@
 2. [Core Concepts](./content/basics.md)
     * [Pods](./content/basics.md#pods)
     * [Labels](./content/basics.md#labels)
-    * [Replica Controllers](./content/basics.md#replica-controllers)
     * [Replica Sets](./content/basics.md#replica-sets)
     * [Deployments](./content/basics.md#deployments)
     * [Services](./content/basics.md#services)

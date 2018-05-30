@@ -12,6 +12,6 @@ spec:
   accessModes:
   - ReadWriteMany
   nfs:
-    path: "/nfs/share-01"
+    path: "/mnt/share-01"
     server: fileserver
   persistentVolumeReclaimPolicy: Recycle

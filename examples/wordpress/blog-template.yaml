@@ -85,6 +85,21 @@ spec:
 
 ---
 apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: blog
+spec:
+  rules:
+  - host: blog.cloud.noverit.com
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: wordpress
+          servicePort: 80
+
+---
+apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
   generation: 1

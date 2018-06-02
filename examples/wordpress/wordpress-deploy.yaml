@@ -37,7 +37,7 @@ spec:
         - name: MARIADB_PORT
           value: '3306'
         - name: WORDPRESS_DATABASE_NAME
-          value: workpress
+          value: wordpress
         - name: WORDPRESS_DATABASE_USER
           value: bitnami
         - name: WORDPRESS_DATABASE_PASSWORD
@@ -47,21 +47,11 @@ spec:
         - name: WORDPRESS_PASSWORD
           value: password
         volumeMounts:
-        - name: wordpress-data
-          mountPath: /bitnami/wordpress
-        - name: apache-data
-          mountPath: /bitnami/apache
-        - name: php-data
-          mountPath: /bitnami/php
-
+        - name: data
+          mountPath: /bitnami
       volumes:
-      - name: wordpress-data
+      - name: data
         emptyDir: {}
-      - name: apache-data
-        emptyDir: {}
-      - name: php-data
-        emptyDir: {}
-
+      terminationGracePeriodSeconds: 10
       dnsPolicy: ClusterFirst
       restartPolicy: Always
-

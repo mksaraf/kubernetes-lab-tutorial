@@ -33,17 +33,17 @@ spec:
         - name: MARIADB_ROOT_PASSWORD
           value: bitnami123
         - name: MARIADB_DATABASE
-          value: workpress
+          value: wordpress
         - name: MARIADB_USER
           value: bitnami
         - name: MARIADB_PASSWORD
           value: bitnami123
         volumeMounts:
-        - name: mariadb-data
+        - name: data
           mountPath: /bitnami/mariadb
 
       volumes:
-      - name: mariadb-data
+      - name: data
         emptyDir: {}
       dnsPolicy: ClusterFirst
       restartPolicy: Always

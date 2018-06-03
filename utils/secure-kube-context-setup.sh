@@ -1,33 +1,78 @@
-#!/bin/bash
+#!/bin/bash 
 #
 # Copyright 2017 - Adriano Pezzuto
 # https://github.com/kalise
 #
-# Make sure the kube-context-setup.sh script is in the home dir of granting user
 # Make sure certificates: ca.pem, client.pem, client-key.pem are in the ~/.kube home dir of granting user
-# Usage: sudo ./secure-kube-context-setup.sh <SERVER> <PORT>
+# Usage: sudo ./secure-kube-context-setup.sh $(whoami) <HOST> <PORT>
+# e.g sudo ./secure-kube-context-setup.sh $(whoami) kubernetes 6443
 #
-SERVER=$1:$2
+GRANT_USER=$1
+echo "Granting user is " $GRANT_USER
+SERVER=https://$2:$3
 for i in `seq -w 01 12`;
 do
+
      USER=user$i
-     echo "copy certificates for" $USER
+     echo "create token for" $USER
+     TOKEN=$(head -c 16 /dev/urandom | od -An -t x | tr -d ' ')
+     echo $TOKEN,$USER,100$i >> /etc/kubernetes/pki/tokens.csv
+     
+     echo "create kubectl env for user" $USER
      mkdir /home/$USER/.kube
-     cp /home/$GRANT_USER/.kube/ca.pem /home/$USER/.kube/ca.pem
-     cp /home/$GRANT_USER/.kube/user.pem /home/$USER/.kube/$USER.pem
-     cp /home/$GRANT_USER/.kube/user-key.pem /home/$USER/.kube/$USER-key.pem
-     chmod 600 /home/$USER/.kube/*.pem
-     chown $USER:$USER /home/$USER/.kube/*.pem
-     echo "setting the context" $NAMESPACE/$CLUSTER/$USER "for" $USER
+     chown -R $USER:$USER /home/$USER/.kube
+     
+     CLUSTER=kubernetes
      NAMESPACE=project${USER:4:2}
-     CLUSTER=secure-cluster
-     su -c "kubectl config set-credentials $USER --client-certificate=$USER.pem --client-key=$USER-key.pem" -s /bin/bash $USER
-     su -c "kubectl config set-cluster $CLUSTER --server=$SERVER --certificate-authority=ca.pem" -s /bin/bash $USER
+     echo "creating the namespace" $NAMESPACE
+     cat > namespace.yaml << EOF
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ${NAMESPACE}
+  labels:
+    type: project
+EOF
+
+     cat > namespace-quota.yaml << EOF
+---
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: ${NAMESPACE}-quota
+  namespace: ${NAMESPACE}
+spec:
+  hard:
+    pods: 16
+EOF
+
+     cat > tenant-admin-role-binding.yaml << EOF
+---
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: RoleBinding
+metadata:
+  name: ${NAMESPACE}:admin
+  namespace: ${NAMESPACE}
+subjects:
+- kind: User
+  name: ${USER}
+  namespace: ${NAMESPACE}
+roleRef:
+  kind: ClusterRole
+  name: admin
+  apiGroup: rbac.authorization.k8s.io
+EOF
+
+     kubectl create -f namespace.yaml
+     kubectl create -f namespace-quota.yaml
+     kubectl create -f tenant-admin-role-binding.yaml
+     rm -f namespace.yaml namespace-quota.yaml tenant-admin-role-binding.yaml
+
+     echo "setting the context" $NAMESPACE/$CLUSTER/$USER "for" $USER
+     su -c "kubectl config set-credentials $USER --token=$TOKEN" -s /bin/bash $USER
+     su -c "kubectl config set-cluster $CLUSTER --server=$SERVER --certificate-authority=/etc/kubernetes/pki/ca.pem --embed-certs=true" -s /bin/bash $USER
      su -c "kubectl config set-context $NAMESPACE/$CLUSTER/$USER --cluster=$CLUSTER --namespace=$NAMESPACE --user=$USER" -s /bin/bash $USER
      su -c "kubectl config use-context $NAMESPACE/$CLUSTER/$USER" -s /bin/bash $USER
-     echo "creating the namespace" $NAMESPACE
-     su -c "kubectl create namespace $NAMESPACE" -s /bin/bash $USER
-     su -c "kubectl label namespace $NAMESPACE type=project" -s /bin/bash $USER
-     su -c "kubectl create quota besteffort --hard=pods=10" -s /bin/bash $USER
-     su -c "kubectl describe namespace $NAMESPACE" -s /bin/bash $USER
+
 done

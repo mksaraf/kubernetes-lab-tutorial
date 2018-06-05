@@ -16,12 +16,12 @@ kubectl delete rolebinding pods-viewer-all --namespace=kube-system
 kubectl delete role pods-viewer --namespace=kube-system
 kubectl delete clusterrolebinding nodes-viewer-all volumes-viewer-all storage-classes-viewer-all
 kubectl delete clusterrole nodes-viewer volumes-viewer storage-classes-viewer
-for i in `seq -w 00 11;
+for i in `seq -w 00 01`;
 do
    USER=user$i;
    echo
    echo "====================================================================="
-   echo "delete user " $USER
+   echo "delete " $USER
    echo "====================================================================="
    
    echo "Delete service account"
@@ -30,7 +30,6 @@ do
    echo "Delete namespace"
    NAMESPACE=tenant${USER:4:2}
    kubectl delete ns $NAMESPACE
-   kubectl delete quota $NAMESPACE
    
    echo "Remove the user and his own home dir"
    userdel -rf $USER
@@ -40,3 +39,4 @@ rm -rf .kube/user*.json
 echo "Following service accounts remain"
 gcloud iam service-accounts list
 echo "Flush of users complete."
+echo

@@ -101,7 +101,7 @@ Create the pod and check the IP address
 However, with the ``hostNetwork: true`` we cannot start more than one pod listening on the same host port. In general, pods with host network are only used for system or daemon applications that do not need to be scaled.
 
 ## Exposing services
-In kubernetes, services are used not only to provides access to other pods inside the same cluster but also to clients outside the cluster. In this section, we're going to create a deploy of two nginx replicas and expose them to the external world via nginx service.
+In kubernetes, services are used not only to provides access to other pods inside the same cluster but also to clients outside the cluster. In this section, we're going to create a deploy of two nginx replicas and expose them to the external world via a nginx service.
 
 Create the deploy
 
@@ -157,27 +157,23 @@ spec:
 
 Any other pod in the cluster is able to access the nginx service without worring about pod IP addresses
 
-    [root@kubem00 ~]# kubectl create -f busybox.yaml
-    pod "busybox" created
+    kubectl create -f busybox.yaml
 
-    [root@kubem00 ~]# kubectl exec -it busybox sh
+    kubectl exec -it busybox sh
     / # wget -O - 10.254.247.153:80
     Welcome to nginx!
 
 However, the service is not reachable from any cluster host. If we try to access the service we do not get anything
 
-    [root@kubem00 ~]# curl 10.254.247.153:80
-    ^C
-    [root@kubem00 ~]#
+    curl 10.254.247.153:80
 
 Without specifying the type of service, kubernetes by default uses the ``Type: ClusterIP`` option, which means that the new service is only exposed only within the cluster. It is kind of like internal kubernetes service, so not particularly useful if you want to accept external traffic.
 
-When creating a service, currently, kubernetes provides four options of service types:
+When creating a service, kubernetes provides different options of service types:
 
-   * **ClusterIP**: it exposes the service only on a cluster internal IP making the service only reachable from within the cluster. This is the default Service Type.
+   * **ClusterIP**: it exposes the service only on a cluster internal IP making the service only reachable from within the cluster. This is the default service type.
    * **NodePort**: it exposes the service on each node public IP on a static port as defined in the NodePort option. It will be possible to access the service, from outside the cluster.
-   * **LoadBalancer**: it exposes the service by creating an external load balancer. It works only on some public cloud providers. *To make this working, remember to set the option ``--cloud-provider`` in the kube controller manager startup file*
-   * **ExternalName**: it maps the service to the contents of the externalName option, e.g. search.google.com, by returning a name record with its value.
+   * **LoadBalancer**: it exposes the service by creating an external load balancer. It works only on some public cloud providers. To make this working, remember to set the option ``--cloud-provider`` in the kube controller manager startup file.
 
 In this section we are going to use the NodePort service type to expose the service.
 
@@ -220,7 +216,7 @@ The kube-proxy service on the worker node, is in charge of doing this job by con
     [root@centos ~]# curl 10.10.10.86:31608
     Welcome to nginx!
 
-The NodePort is randomly selected from the 30000-32767 range. If you want to force a specific port, define it in a file``nginx-nodeport-svc.yaml``  
+The NodePort is randomly selected from the 30000-32767 range. If you want to force a specific port, define it in a file ``nginx-nodeport-svc.yaml``  
     
 ```yaml
 apiVersion: v1
@@ -240,7 +236,34 @@ spec:
   type: NodePort
 ```
 
-Now that we have a port open on every worker node, we can configure an external load balancer or edge router to route the traffic to any of the worker nodes.
+Now that we have a port open on every worker node, we can configure an external load balancer or edge router to route the traffic to any of the worker nodes. Please, note, the service port, if specified, must be in the range defined by the ``--service-node-port-range`` option in the Controller Manager configuration file.
+
+To use the LoadBalancer service type, delete the previous nginx service and change the configuration of the service as in the following ``nginx-loadbalancer-svc.yaml`` configuration file
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx
+  labels:
+    run: nginx
+spec:
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 80
+  selector:
+    run: nginx
+  type: LoadBalancer
+```
+
+In this case, an external load balancer is created on top of the kubernetes worker nodes. This load balancer exposes on the Internet the service port specified in the file. In the example above, we have the nginx service exposed on port 80 of the load balancer. To check the public external IP assigned to the load balancer, inspect the service
+
+    kubectl get svc nginx -o wide
+    NAME            TYPE           CLUSTER-IP      EXTERNAL-IP      PORT(S)        AGE    SELECTOR
+    service/nginx   LoadBalancer   10.32.108.201   104.155.43.158   80:30473/TCP   40m    run=nginx
+
+By accessing the load balancer frontend on its public own IP and port 80, a client's request will be forwarded to the nginx pods passing through the service node port 30473. The service type LoadBalancer is quite expensive because, a separate load balancer will be created for each exposed service.
 
 ## Service discovery
 To enable service name discovery in a kubernetes cluster, we need to configure an embedded DNS service to resolve all DNS queries from pods trying to access services. The embedded DNS should be manually installed during cluster setup since it is part of the cluster architecture, unless users are going to use other custom solutions for service discovery, e.g. consul.

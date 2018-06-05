@@ -1,0 +1,16 @@
+#!/bin/bash
+NAME=kube
+PODS_NETWORK_CIDR=10.38.0.0/16
+SERVICES_NETWORK_CIDR=10.32.0.0/16
+CLUSTER_VERSION=1.10.2-gke.3
+NODE_VERSION=1.10.2-gke.3
+DISK_SIZE=100
+IMAGE_TYPE=UBUNTU
+MACHINE_TYPE=n1-standard-1
+NETWORK=kubernetes
+SUBNETWORK=kubernetes
+ZONE=europe-west1-c
+NUM_NODES=3
+MAX_NODES=5
+MIN_NODES=3
+gcloud container clusters delete $NAME --zone=$ZONE

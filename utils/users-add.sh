@@ -3,21 +3,17 @@
 # Copyright 2018 - Adriano Pezzuto
 # https://github.com/kalise
 #
-# Usage: sudo ./users-add.sh $(whoami)
+# Usage: sudo ./users-add.sh
 #
-if [[ $# -eq 0 ]] ; then
-    echo "Please, provide a granting user"
-    exit 1
-fi
 echo
 echo "========================================================"
 echo "Starting setup ..."
 echo "========================================================"
 echo
-GRANT_USER=$1
+GRANT_USER=adriano_pezzuto
 echo "GRANT_USER is   " $GRANT_USER
 PROJECT=wallet-200410
-echo "PROJECT is  .   " $PROJECT
+echo "PROJECT is      " $PROJECT
 REGION=europe-west1
 echo "REGION is       " $REGION
 ZONE=europe-west1-c
@@ -26,7 +22,6 @@ CLUSTER=kube
 echo "CLUSTER is      " $CLUSTER
 echo
 echo "Check the pre-requisites here:"
-echo
 echo "1.kubectl, 2.docker, 3.jq" 
 echo
 echo "Set the primary service account"
@@ -36,7 +31,7 @@ echo "Set the environment"
 gcloud config set compute/region $REGION
 gcloud config set compute/zone $ZONE
 echo
-echo "Get credentials to work with cluster"
+echo "Get user/password credentials to work as cluster administrator"
 gcloud container clusters get-credentials $CLUSTER
 USERNAME=$(gcloud container clusters describe $CLUSTER | grep username | awk '{print $2}')
 PASSWORD=$(gcloud container clusters describe $CLUSTER | grep password | awk '{print $2}')
@@ -76,6 +71,7 @@ do
         usermod -aG docker $USER
         echo
         echo "create service account"
+        rm -rf /home/$GRANT_USER/.kube/$USER-sa.json
         gcloud iam service-accounts create $USER --display-name=$USER
         gcloud iam service-accounts keys create --iam-account $USER@$PROJECT.iam.gserviceaccount.com /home/$GRANT_USER/.kube/$USER-sa.json
         echo
@@ -101,7 +97,7 @@ do
         echo "create the user's namespace and quotas"
         NAMESPACE=tenant${USER:4:2}
         kubectl create namespace $NAMESPACE
-        kubectl create quota $NAMESPACE --hard=pods=16,cpu=1,memory=1G,persistentvolumeclaims=16 --namespace=$NAMESPACE
+        kubectl create quota $NAMESPACE --hard=pods=16 --namespace=$NAMESPACE
         echo
         echo "create the user's RBAC authorizations"
         kubectl create rolebinding tenant-admin --clusterrole=admin --user=$USER@$PROJECT.iam.gserviceaccount.com --namespace=$NAMESPACE
@@ -117,9 +113,15 @@ do
         su -c "kubectl config set-context $(kubectl config current-context) --namespace=$NAMESPACE --user=$USER" -s /bin/bash $USER
         echo
 done
+echo "Get user/password credentials to work as cluster administrator"
+gcloud container clusters get-credentials $CLUSTER
+USERNAME=$(gcloud container clusters describe $CLUSTER | grep username | awk '{print $2}')
+PASSWORD=$(gcloud container clusters describe $CLUSTER | grep password | awk '{print $2}')
+kubectl config set-credentials $USERNAME --username=$USERNAME --password=$PASSWORD
+kubectl config set-context $(kubectl config current-context) --namespace=default --user=$USERNAME
 echo
 echo "Following service accounts are now active"
 gcloud iam service-accounts list
 echo
-echo "Setup complete."
+echo "Setup completed."
 echo

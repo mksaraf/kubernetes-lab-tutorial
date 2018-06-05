@@ -266,7 +266,7 @@ In this case, an external load balancer is created on top of the kubernetes work
 By accessing the load balancer frontend on its public own IP and port 80, a client's request will be forwarded to the nginx pods passing through the service node port 30473. The service type LoadBalancer is quite expensive because, a separate load balancer will be created for each exposed service.
 
 ## Service discovery
-To enable service name discovery in a kubernetes cluster, we need to configure an embedded DNS service to resolve all DNS queries from pods trying to access services. The embedded DNS should be manually installed during cluster setup since it is part of the cluster architecture, unless users are going to use other custom solutions for service discovery, e.g. consul.
+To enable service name discovery in a kubernetes cluster, we need to configure an embedded DNS service to resolve all DNS queries from pods trying to access services. The embedded DNS should be manually installed during cluster setup since it is part of the cluster architecture, unless users are going to use other custom solutions for service discovery.
 
 The embedded DNS lives in the kube-system namespace
 
@@ -275,14 +275,14 @@ The embedded DNS lives in the kube-system namespace
     rc/kube-dns-v20   1         1         1         1d
 
     NAME           CLUSTER-IP     EXTERNAL-IP   PORT(S)         AGE
-    svc/kube-dns   10.254.3.100   <none>        53/UDP,53/TCP   1d
+    svc/kube-dns   10.32.0.10     <none>        53/UDP,53/TCP   1d
 
     NAME                    READY     STATUS    RESTARTS   AGE
     po/kube-dns-v20-3xk4v   3/3       Running   3          1d
 
 It consists of a controller, a service and a pod running a DNS server, a dnsmaq for caching and healthz for liveness probe. Each time a user starts a new pod, kubernetes injects certain nameservice lookup configuration into new pods allowing to query the DNS records in the cluster. Each time a new service is created, kubernetes registers this service name into the embedded DNS server allowing all pods to query the DNS server for service name resolution.
 
-Create a nginx deploy and create the service. Since we're not interested (yet) to expose the service outside the cluster, we leave the default service type, i.e. the ClusterIP mode. This allows only pods inside the cluster can access the service.
+Create a nginx deploy and create the service. Since we're not interested to expose the service outside the cluster, we leave the default service type, i.e. the ClusterIP mode. This allows only pods inside the cluster can access the service.
 
     kubectl create -f nginx-deploy.yaml
     deployment "nginx" created
@@ -294,7 +294,7 @@ Create a nginx deploy and create the service. Since we're not interested (yet) t
     NAME           DESIRED   CURRENT   UP-TO-DATE   AVAILABLE   AGE
     deploy/nginx   2         2         2            2           3m
     NAME                CLUSTER-IP     EXTERNAL-IP   PORT(S)    AGE
-    svc/nginx-service   10.254.30.44   <none>        8080/TCP   33s
+    svc/nginx-service   10.32.0.44     <none>        8080/TCP   33s
     NAME                 DESIRED   CURRENT   READY     AGE
     rs/nginx-664452237   2         2         2         3m
     NAME                       READY     STATUS    RESTARTS   AGE
@@ -306,28 +306,64 @@ Start a test pod and check if it access the nginx service
     kubectl create -f busybox.yaml
     pod "busybox" created
 
-    kubectl exec -ti busybox -- wget 10.254.30.44:8080
-    Connecting to 10.254.30.44:8080 (10.254.30.44:8080)
+    kubectl exec -ti busybox -- wget 10.32.0.44:8080
     index.html  200 OK  
 
 Check if service DNS lookup configuration has been injectd by kubernetes
 
     kubectl exec -ti busybox -- cat /etc/resolv.conf
     search default.svc.cluster.local svc.cluster.local cluster.local
-    nameserver 10.254.3.100
-    nameserver 10.10.10.1
+    nameserver 10.32.0.10
     nameserver 8.8.8.8
     options ndots:5
 
 Now check if service discovery works by resolv the service name
 
     kubectl exec -ti busybox -- nslookup nginx-service
-    Server:    10.254.3.100
-    Address 1: 10.254.3.100 kube-dns.kube-system.svc.cluster.local
+    Server:    10.32.0.10
+    Address 1: 10.32.0.10 kube-dns.kube-system.svc.cluster.local
     Name:      nginx-service
-    Address 1: 10.254.30.44 nginx-service.default.svc.cluster.local
+    Address 1: 10.32.0.44 nginx-service.default.svc.cluster.local
 
-This mechanism permits kubernetes pods to be linked each other without dealing with IP service assignment.
+By default, the Kubernetes DNS server returns the service's cluster IP address. This IP address is static throughout the lifetime of the service. When sending traffic to this IP the iptables on the node will load balance packets across the ready pods that match the selectors of the service. These iptables are programmed automatically by the kube-proxy service running on each node.
+
+If we want service discovery but would rather have the DNS service return the IP addresses of the pods rather than the service IP, we can provision the service with the ClusterIP field set to none which makes the service headless. In this case, the DNS server returns a list of A records that map the DNS name of the service to the A records of the running pods that match the service label selectors.
+
+For example, create a nginx service as in the ``nginx-headless-svc.yaml`` descriptor
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx
+  labels:
+    run: nginx
+spec:
+  clusterIP: None
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 80
+  selector:
+    run: nginx
+```
+
+The service has missing IP
+
+    kubectl get svc
+    NAME        TYPE           CLUSTER-IP      EXTERNAL-IP      PORT(S)          AGE
+    nginx       ClusterIP      None            <none>           80/TCP           4m
+
+Now check the service discovery by resolving the service name
+
+    kubectl exec -it busybox -- nslookup nginx
+
+    Name:      nginx
+    Address 1: 10.38.2.5
+    Address 2: 10.38.2.6
+    Address 3: 10.38.2.7
+
+We see the DNS server responding with the pod's IP addresses.
 
 ## Accessing services
 In this section, we're going to deploy a WordPress application made of two services:

@@ -410,7 +410,7 @@ spec:
         - name: MARIADB_ROOT_PASSWORD
           value: bitnami123
         - name: MARIADB_DATABASE
-          value: workpress
+          value: wordpress
         - name: MARIADB_USER
           value: bitnami
         - name: MARIADB_PASSWORD
@@ -520,7 +520,7 @@ spec:
         - name: MARIADB_PORT
           value: '3306'
         - name: WORDPRESS_DATABASE_NAME
-          value: workpress
+          value: wordpress
         - name: WORDPRESS_DATABASE_USER
           value: bitnami
         - name: WORDPRESS_DATABASE_PASSWORD

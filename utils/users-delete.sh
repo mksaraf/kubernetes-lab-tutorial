@@ -16,7 +16,7 @@ kubectl delete rolebinding pods-viewer-all --namespace=kube-system
 kubectl delete role pods-viewer --namespace=kube-system
 kubectl delete clusterrolebinding nodes-viewer-all volumes-viewer-all storage-classes-viewer-all
 kubectl delete clusterrole nodes-viewer volumes-viewer storage-classes-viewer
-for i in `seq -w 00 01`;
+for i in `seq -w 00 11`;
 do
    USER=user$i;
    echo

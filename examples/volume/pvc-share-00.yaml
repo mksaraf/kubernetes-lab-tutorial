@@ -2,7 +2,7 @@
 kind: PersistentVolumeClaim
 apiVersion: v1
 metadata:
-  name: pvc-share-01
+  name: pvc-share-00
 spec:
   storageClassName: ""
   accessModes:
@@ -12,4 +12,4 @@ spec:
       storage: 1Gi
   selector:
     matchLabels:
-      name: "share01"
+      name: "share-00"

@@ -2,9 +2,9 @@
 apiVersion: v1
 kind: PersistentVolume
 metadata:
-  name: share01
+  name: share-00
   labels:
-    name: share01
+    name: share-00
 spec:
   capacity:
     storage: 1Gi
@@ -12,6 +12,6 @@ spec:
   accessModes:
   - ReadWriteMany
   nfs:
-    path: "/mnt/share-01"
+    path: "/mnt/share-00"
     server: fileserver
   persistentVolumeReclaimPolicy: Recycle

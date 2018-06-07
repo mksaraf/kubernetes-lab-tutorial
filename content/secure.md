@@ -468,7 +468,15 @@ roleRef:
 
 In the above, the user ``adriano`` will have admin powers only for the ``project`` namespace. It gives full control over every resource in that namespace, including the namespace itself.
 
-Details on the other system roles and bindings can be found on the product documentation.
+To check user's permissions, we'll use the ``kubectl auth can-i`` command test user accounts against the RBAC policies in place. For example, to verify access to pods in a given namespace:
+
+    kubectl auth can-i get pods --namespace project --as adriano
+    yes
+
+Do we have access to persistent volumes at cluster level?
+
+    kubectl auth can-i create pv
+    no - Required "container.persistentVolumes.create" permission
 
 ## Admission Control
 Many advanced features in Kubernetes require an **Admission Control** plugin to be enabled in order to properly support the feature. An admission control plugin intercepts requests to the API server after the request is authenticated and authorized. Each admission control plugin is run in sequence before a request is accepted by the API server. If any of the plugins in the sequence reject the request, the entire request is rejected.

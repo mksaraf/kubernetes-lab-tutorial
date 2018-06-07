@@ -7,8 +7,8 @@ spec:
   - host: blog.cloud.clastix.io
     http:
       paths:
-      - path: /
-      # path: /*
+      - path: /*
+      # path: /
         backend:
           serviceName: wordpress
           servicePort: 80

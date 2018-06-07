@@ -3,6 +3,8 @@ kind: Ingress
 metadata:
   namespace:
   name: tomcat
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
 spec:
   tls:
   - hosts:

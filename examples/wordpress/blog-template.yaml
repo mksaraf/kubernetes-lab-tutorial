@@ -124,8 +124,8 @@ spec:
     spec:
       # set the pod to mount volumes as root group
       # to prevent pod fails to write on the volumes
-      # securityContext:
-      #   fsGroup: 0
+      securityContext:
+        fsGroup: 0
       containers:
       - image: bitnami/mariadb:latest
         imagePullPolicy: IfNotPresent

@@ -6,7 +6,7 @@ metadata:
     kubernetes.io/ingress.class: "nginx"
 spec:
   rules:
-  - host: consul.cloud.example.com
+  - host: consul.cloud.noverit.com
     http:
       paths:
       - path: /

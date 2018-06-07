@@ -4,10 +4,11 @@ metadata:
   name: blog
 spec:
   rules:
-  - host: blog.cloud.noverit.com
+  - host: blog.cloud.clastix.io
     http:
       paths:
       - path: /
+      # path: /*
         backend:
           serviceName: wordpress
           servicePort: 80

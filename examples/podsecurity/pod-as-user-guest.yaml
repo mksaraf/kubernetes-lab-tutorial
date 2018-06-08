@@ -5,10 +5,10 @@ metadata:
   namespace:
   labels:
 spec:
-  securityContext:
-    runAsUser: 405
-    fsGroup: 100
   containers:
   - name: busybox
     image: busybox:latest
     command: ["/bin/sleep", "3600"]
+    securityContext:
+      runAsUser: 405
+      fsGroup: 100

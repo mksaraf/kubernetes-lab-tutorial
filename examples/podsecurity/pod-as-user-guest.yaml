@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod-as-user-guest
+  namespace:
+  labels:
+spec:
+  securityContext:
+    runAsUser: 405
+    fsGroup: 100
+  containers:
+  - name: busybox
+    image: busybox:latest
+    command: ["/bin/sleep", "3600"]

@@ -41,6 +41,8 @@ This container is running as user ID (uid) 0, which is root, and group ID (gid) 
 
 Note: *the user the container runs as is specified in the container image. In a Dockerfile, this is done using the ``USER`` directive. If omitted, the container always runs as root.*
 
+In the next examples, we'll set the security context of an individual container. Several of these options can also be set at the pod level: they serve as a default for all the pod’s containers but can be overridden at the container level.
+
 ## Run a pod as a specified user
 To run a pod under a different user id than that is specified into the container image, we’ll need to set the pod’s security context to run as a different user as shown in the ``pod-as-user-guest.yaml`` descriptor file 
 
@@ -134,13 +136,123 @@ For example, a container usually isn’t allowed to change the system time. Chec
     kubectl exec -it pod-default-scc -- date +%T -s "12:00:00"
     date: can't set date: Operation not permitted
 
-To allow the container to change the system time, add a capability called ``CAP_SYS_TIME`` to the container’s capabilities list, as shown in the following ```` descriptor file.
+To allow the container to change the system time, add a capability called ``CAP_SYS_TIME`` to the container’s capabilities list, as shown in the following ``pod-with-settime-cap.yaml`` descriptor file
 
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod-with-settime-cap
+  namespace:
+  labels:
+spec:
+  containers:
+  - name: busybox
+    image: busybox:latest
+    command: ["/bin/sleep", "3600"]
+    securityContext:
+      capabilities:
+        add:
+        - SYS_TIME
+```
+
+Start the pod above and change the time of the worker node where the pod is running
+
+    kubectl create -f pod-with-settime-cap.yaml
+    
     kubectl exec -it pod-with-settime-cap -- date +%T -s "12:00:00"
+    
     kubectl exec -it pod-with-settime-cap -- date
     Fri Jun  8 12:00:32 UTC 2018
 
 
+## Dropping capabilities from a container
+We can also drop capabilities that may otherwise be available to the container. For example, the default capabilities include the ``CAP_CHOWN`` capability, which allows container to change the ownership of files in its filesystem.
+
+    kubectl exec -it pod-default-scc -- touch /tmp/myfile
+    
+    kubectl exec -it pod-default-scc -- chown 405 /tmp/myfile
+    
+    kubectl exec -it pod-default-scc -- ls -l /tmp
+    -rw-r--r--  1 405  root 0 Jun  8 12:30 myfile
+
+To prevent the container from doing that, drop the ``CHOWN`` capability as shown in the following ``pod-drop-chown-cap.yaml`` descriptor file
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod-drop-chown-cap
+  namespace:
+  labels:
+spec:
+  containers:
+  - name: busybox
+    image: busybox:latest
+    command: ["/bin/sleep", "3600"]
+    securityContext:
+      capabilities:
+        drop:
+        - CHOWN
+```
+
+Start the pod above and check the capability
+
+    kubectl create -f pod-drop-chown-cap.yaml
+
+    kubectl exec -it pod-drop-chown-cap -- touch /tmp/myfile
+    
+    kubectl exec -it pod-drop-chown-cap -- chown 405 /tmp/myfile
+    chown: /tmp/myfile: Operation not permitted
+    command terminated with exit code 1
+    
+    kubectl exec -it pod-drop-chown-cap -- ls -l /tmp/myfile
+    -rw-r--r--    1 root root 0 Jun  8 12:40 /tmp/myfile
+
+A list of supported capabilities can be displayed with the ``capsh --print`` command.
 
 
+## Preventing container from writing to the filesystem
+In this example, we want to prevent the the container from writing to its filesystem, and only allow it to write to mounted volumes. 
 
+Create a pod as in the following ``pod-with-readonly-filesystem.yaml`` descriptor file
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod-with-readonly-filesystem
+  namespace:
+  labels:
+spec:
+  containers:
+  - name: busybox
+    image: busybox:latest
+    command: ["/bin/sleep", "3600"]
+    securityContext:
+      readOnlyRootFilesystem: true
+    volumeMounts:
+    - name: myvolume
+      mountPath: /volume
+      readOnly: false
+  volumes:
+  - name: myvolume
+    emptyDir:
+```
+
+Create a pod from the file above
+
+    kubectl create -f pod-with-readonly-filesystem.yaml
+
+The container inside the pod is running as root, which has write permissions to all the filesystem, but trying to write a file there is failing
+
+    kubectl exec -it pod-with-readonly-filesystem -- touch /tmp/myfile
+    touch: /tmp/myfile: Read-only file system
+    command terminated with exit code 1
+
+On the other end, the same container is able to write on the mounted volume
+
+    kubectl exec -it pod-with-readonly-filesystem -- touch /volume/myfile
+
+    kubectl exec -it pod-with-readonly-filesystem -- ls -l /volume/myfile
+    -rw-r--r--    1 root     root             0 Jun  8 12:47 /volume/myfile

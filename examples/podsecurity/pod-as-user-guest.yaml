@@ -11,4 +11,3 @@ spec:
     command: ["/bin/sleep", "3600"]
     securityContext:
       runAsUser: 405
-      fsGroup: 100

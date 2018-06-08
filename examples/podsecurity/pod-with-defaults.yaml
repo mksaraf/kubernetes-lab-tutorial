@@ -1,1 +1,13 @@
-
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod-default-scc
+  namespace:
+  labels:
+spec:
+  securityContext: {}
+  containers:
+  - name: mynginx
+    image: nginx:latest
+    ports:
+    - containerPort: 80

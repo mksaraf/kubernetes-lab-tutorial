@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: Pod
 metadata:
-  name: pod-with-readonly-filesystem.yaml
+  name: pod-with-readonly-filesystem
   namespace:
   labels:
 spec:

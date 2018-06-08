@@ -5,9 +5,9 @@ metadata:
   namespace:
   labels:
 spec:
-  securityContext:
-    runAsNonRoot: true
   containers:
   - name: busybox
     image: busybox:latest
     command: ["/bin/sleep", "3600"]
+    securityContext:
+      runAsNonRoot: true

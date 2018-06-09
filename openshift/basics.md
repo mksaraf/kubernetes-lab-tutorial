@@ -94,24 +94,9 @@ oc get project demo
 
 NAME      DISPLAY NAME     STATUS
 demo      OpenShift Demo   Active
-
-oc describe project demo
-
-Name:                   demo
-Namespace:              <none>
-Created:                8 seconds ago
-Labels:                 <none>
-Annotations:            openshift.io/description=This is the first demo project with OpenShift
-                        openshift.io/display-name=OpenShift Demo
-Display Name:           OpenShift Demo
-Description:            This is the first demo project with OpenShift
-Status:                 Active
-Node Selector:          <none>
-Quota:                  <none>
-Resource limits:        <none>
 ```
 
-Projects provide for easier multi tenancy than standard namespaces. Having stricter validation than namespaces, projects are actually indirectly created by the server by a request mechanism. Thus you do not need to give users the ability to create projects directly.
+In OpenShift, a project is a Kubernetes namespace with additional annotations. Projects provide for easier multi tenancy than standard namespaces. Having stricter validation than namespaces, projects are actually indirectly created by the server by a request mechanism. Thus you do not need to give users the ability to create projects directly.
 
 The project list is a special endpoint that determines what projects you should be able to see. This is not possible to express via RBAC authorizations, i.e. list namespaces means you can see all namespaces.
 
@@ -246,7 +231,6 @@ A selector is a label assigned to the pods that are managed by the replica contr
 
 In the ``rc-hello-world.yaml`` file, define a replica controller with replica 1.
 ```yaml
----
 apiVersion: v1
 kind: ReplicationController
 metadata:
@@ -292,17 +276,6 @@ oc create -f rc-hello-world.yaml
 oc get rc
 NAME       DESIRED   CURRENT   READY     AGE
 rc-hello   1         1         1         1m
-
-oc describe rc rc-hello
-Name:           rc-hello
-Namespace:      demo
-Image(s):       docker.io/kalise/nodejs-web-app:latest
-Selector:       name=hello
-Labels:         name=hello
-Replicas:       1 current / 1 desired
-Pods Status:    1 Running / 0 Waiting / 0 Succeeded / 0 Failed
-No volumes.
-Events:
 ```
 
 We can see the pod just created
@@ -363,40 +336,11 @@ router            172.30.201.143   <none>        80/TCP,443/TCP,1936/TCP   110d
 ...
 ```
 
-Describe the router pod, and see that it is running on the master node
-```
-oc describe pod router-1-8pthc
-
-Name:                   router-1-8pthc
-Namespace:              default
-Security Policy:        hostnetwork
-Node:                   master.openshift.com/10.10.10.19
-Start Time:             Thu, 19 Jan 2017 16:22:13 +0100
-Labels:                 deployment=router-1
-                        deploymentconfig=router
-                        router=router
-Status:                 Running
-IP:                     10.10.10.19
-Controllers:            ReplicationController/router-1
-Containers:
-  router:
-    Container ID:       docker://ae58e353155ef37042baa
-    Image:              openshift3/ose-haproxy-router:v3.3.0.34
-    Image ID:           docker://sha256:bd71278b612ca8
-    Ports:              80/TCP, 443/TCP, 1936/TCP
-    Requests:
-      cpu:              100m
-      memory:           256Mi
-    State:              Running
-...
-```
-
 ### Expose the service
 Please, note that the router is bound to ports 80 and 443 on the host interface. When the router receives a request for an FQDN that it knows about, it will proxy the request to a specific service and then to the running pod providing the service.
 
 To get our router aware of the Hello World service, we need to create a route as ``route-hello-world.yaml`` file that instructs the router where to forward the requests. 
 ```yaml
----
 kind: Route
 apiVersion: v1
 metadata:
@@ -490,10 +434,6 @@ oc login -u sam -p demo123
 
 Server [https://localhost:8443]:
 Login successful.
-You have one project on this server: "tomcat"
-Using project "tomcat".
-Welcome! See 'oc help' to get started.
-
 
 oc create -f pod-hello-world.yaml
 pod "hello-pod" created
@@ -534,8 +474,7 @@ However, demo user cannot make changes
 oc delete pod hello-pod
 Error from server: User "demo" cannot delete pods in project "tomcat"
 ```
-
-Howewer, the project admin (or the system admin) can give demo user the edit rights on tomcat project
+The project admin (or the system admin) can give demo user the edit rights on tomcat project
 ```
 oc project tomcat
 Now using project "tomcat" on server "https://master.openshift.com:8443".

@@ -154,12 +154,20 @@ spec:
     ports:
     - containerPort: 8080
       protocol: TCP
-    terminationMessagePath: "/dev/termination-log"
     imagePullPolicy: IfNotPresent
+    volumeMounts:
+    - mountPath: /var/log
+      name: logs
     securityContext:
       privileged: false
+      runAsUser: 1001250000
   restartPolicy: Always
   dnsPolicy: ClusterFirst
+  volumes:
+  - emptyDir: {}
+    name: logs
+  securityContext:
+    fsGroup: 1001250000
 ```
 
 As demo user, create the pod from the yaml file

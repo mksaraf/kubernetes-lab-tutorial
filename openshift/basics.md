@@ -388,7 +388,7 @@ We also can check the Replica Set created by the Deployment
 
     oc get rs -o wide
     NAME                     DESIRED CURRENT READY AGE CONTAINERS IMAGES                     SELECTOR
-    deploy-hello-57db4fc656  3       3       3     2m  hello      kalise/nodejs-web-app:1.1  name=hello,pod-template-hash=1386097212
+    deploy-hello-57db4fc656  3       3       3     2m  hello      kalise/nodejs-web-app:1.1  name=hello
 
 To see the rolling update in action, modify the deploy to use a different version of the same image
 

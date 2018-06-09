@@ -1,0 +1,30 @@
+kind: Pod
+apiVersion: v1
+metadata:
+  name: hello-pod
+  labels:
+    name: hello
+spec:
+  containers:
+  - env:
+    - name: MESSAGE
+      value: "Hello OpenShift"
+    name: hello
+    image: docker.io/kalise/nodejs-web-app:latest
+    ports:
+    - containerPort: 8080
+      protocol: TCP
+    imagePullPolicy: IfNotPresent
+    volumeMounts:
+    - mountPath: /var/log
+      name: logs
+    securityContext:
+      privileged: false
+      runAsUser: 1001250000
+  restartPolicy: Always
+  dnsPolicy: ClusterFirst
+  volumes:
+  - emptyDir: {}
+    name: logs
+  securityContext:
+    fsGroup: 1001250000

@@ -1,5 +1,7 @@
 # Creating Applications in OpenShift
-In the real world of applications development and deployment, OpenShift users need a repository where they can pull docker images and then deploy the application on OpenShift. Another approach is to use the OpenShift to develop and deploy the application starting from a source code so that they can build the docker images on OpenShift itself and then deploy the applications. In this section, we're going to walk through both the approaches.
+OpenShift runs containers using an arbitrarily assigned user ID. This behavior provides additional security against processes escaping the container due to a container engine vulnerability and thereby achieving escalated permissions on the host node. Due to this restriction, images that run as root will not deploy as expected on OpenShift.
+
+A different approach is to use the OpenShift to develop and deploy the application starting from a source code so that they can build the docker images on OpenShift itself and then deploy the applications according to the security policy constraints of OpenShift. In this section, we're going to walk through this approach.
 
   * [Application Templates](#application-templates)
   * [Create an application from a template](#create-applications-from-a-template)

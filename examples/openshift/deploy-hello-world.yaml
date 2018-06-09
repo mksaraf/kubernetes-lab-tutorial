@@ -1,0 +1,43 @@
+kind: Deployment
+metadata:
+  generation: 1
+  name: deploy-hello
+  namespace:
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      name: hello
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        name: hello
+    spec:
+      containers:
+      - env:
+        - name: MESSAGE
+          value: "Hello OpenShift"
+        name: hello
+        image: docker.io/kalise/nodejs-web-app:1.1
+        ports:
+        - name: http
+          containerPort: 8080
+          protocol: TCP
+        volumeMounts:
+        - mountPath: /var/log
+          name: logs
+        securityContext:
+          privileged: false
+          runAsUser: 1001250000
+      restartPolicy: Always
+      dnsPolicy: ClusterFirst
+      volumes:
+      - emptyDir: {}
+        name: logs
+      securityContext:
+        fsGroup: 1001250000

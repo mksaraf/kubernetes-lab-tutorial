@@ -395,13 +395,21 @@ To see the rolling update in action, modify the deploy to use a different versio
     oc set image deploy deploy-hello hello=docker.io/kalise/nodejs-web-app:1.2
     deployment "deploy-hello" image updated
 
-Now check the new Replica Set and the new pods
+Now check the new Replica Set 
 
     oc get rs -o wide
     NAME                     DESIRED CURRENT READY AGE CONTAINERS IMAGES                     SELECTOR
-    deploy-hello-57db4fc656  3       3       3     2m  hello      kalise/nodejs-web-app:1.1  name=hello,pod-template-hash=1386097212
-    deploy-hello-68cdbc59f   3       3       3     3m  hello      kalise/nodejs-web-app:1.2   name=hello,pod-template-hash=247867159
-    
+    deploy-hello-57db4fc656  0       0       0     20m hello      kalise/nodejs-web-app:1.1  name=hello
+    deploy-hello-68cdbc59f   3       3       3     3m  hello      kalise/nodejs-web-app:1.2  name=hello
+
+and the new pods
+
+    oc get pods
+    NAME                           READY     STATUS    RESTARTS   AGE
+    deploy-hello-68cdbc59f-gn44z   1/1       Running   0          5m
+    deploy-hello-68cdbc59f-hqclv   1/1       Running   0          2m
+    deploy-hello-68cdbc59f-rs8zc   1/1       Running   0          2m
+
 
 ## The Routing Layer
 The OpenShift routing layer is how client traffic enters the OpenShift environment so that it can ultimately reach pods. In our Hello World example, the service abstraction defines a logical set of pods enabling clients to refer the service by a consistent address and port. However, our service is not reachable from external clients.

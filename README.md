@@ -78,13 +78,15 @@
    * [Authorization](./content/secure.md#authorization)
    * [Admission Control](./content/secure.md#admission-control)
    * [Accessing the APIs server](./content/secure.md#accessing-the-apis-server)
+   
+9. [Pod Context Security](./content/podsecurity.md) 
 
-9. [OpenShift Container Platform](./content/info.md)
+10. [OpenShift Container Platform](./content/info.md)
    * [Setup](./openshift/setup.md)
    * [Getting started](./openshift/basics.md)
    * [Creating Applications](./openshift/applications.md)
 
-10. [CoreOS Kubernetes](./content/coreos.md)
+11. [CoreOS Kubernetes](./content/coreos.md)
 
 ## Disclaimer
 This tutorial is for personal use only. This is just a lab guide, not a documentation for Kubernets, please go to their online

@@ -262,22 +262,22 @@ spec:
         - name: http
           containerPort: 8080
           protocol: TCP
-        terminationMessagePath: "/dev/termination-log"
-        imagePullPolicy: IfNotPresent
+        volumeMounts:
+        - mountPath: /var/log
+          name: logs
         securityContext:
           privileged: false
-        livenessProbe:
-          tcpSocket:
-            port: 8080
-          timeoutSeconds: 1
-          initialDelaySeconds: 10
+          runAsUser: 1001250000
       restartPolicy: Always
       dnsPolicy: ClusterFirst
-      nodeSelector:
-        region: primary
+      volumes:
+      - emptyDir: {}
+        name: logs
+      securityContext:
+        fsGroup: 1001250000
 ```
 
-Create a Replica Controller
+Create the Replica Controller
 ```
 oc create -f rc-hello-world.yaml
 
@@ -318,7 +318,90 @@ oc get pods
 No resources found.
 ```
 
-Please note that the Replica Controller does not autoscale. This job is done by a metering service by piloting the Replica Controller, based on memory and cpu load or other criteria.
+## Create a Deployment
+A Deployment provides declarative updates for pods and replicas. The Deployment object defines the strategy for transitioning between deployments of the same application.
+
+In the ``deploy-hello-world.yaml`` file, define a deploy with Rolling Update strategy.
+```yaml
+kind: Deployment
+metadata:
+  generation: 1
+  name: deploy-hello
+  namespace:
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      name: hello
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        name: hello
+    spec:
+      containers:
+      - env:
+        - name: MESSAGE
+          value: "Hello OpenShift"
+        name: hello
+        image: docker.io/kalise/nodejs-web-app:1.1
+        ports:
+        - name: http
+          containerPort: 8080
+          protocol: TCP
+        volumeMounts:
+        - mountPath: /var/log
+          name: logs
+        securityContext:
+          privileged: false
+          runAsUser: 1001250000
+      restartPolicy: Always
+      dnsPolicy: ClusterFirst
+      volumes:
+      - emptyDir: {}
+        name: logs
+      securityContext:
+        fsGroup: 1001250000
+```
+
+Create the Deployment
+
+    oc create -f deploy-hello-world.yaml
+
+    oc get deploy -o wide
+    NAME           DESIRED   CURRENT   UP-TO-DATE   AVAILABLE   AGE
+    deploy-hello   3         3         3            3           14m
+
+and check the pods created
+
+    oc get pods 
+    NAME                            READY     STATUS    RESTARTS   AGE
+    deploy-hello-6564548567-4rtlg   1/1       Running   0          15m
+    deploy-hello-6564548567-qfrn4   1/1       Running   0          6m
+    deploy-hello-6564548567-tlsjx   1/1       Running   0          15m
+
+We also can check the Replica Set created by the Deployment
+
+    oc get rs -o wide
+    NAME                     DESIRED CURRENT READY AGE CONTAINERS IMAGES                     SELECTOR
+    deploy-hello-57db4fc656  3       3       3     2m  hello      kalise/nodejs-web-app:1.1  name=hello,pod-template-hash=1386097212
+
+To see the rolling update in action, modify the deploy to use a different version of the same image
+
+    oc set image deploy deploy-hello hello=docker.io/kalise/nodejs-web-app:1.2
+    deployment "deploy-hello" image updated
+
+Now check the new Replica Set and the new pods
+
+    oc get rs -o wide
+    NAME                     DESIRED CURRENT READY AGE CONTAINERS IMAGES                     SELECTOR
+    deploy-hello-57db4fc656  3       3       3     2m  hello      kalise/nodejs-web-app:1.1  name=hello,pod-template-hash=1386097212
+    deploy-hello-68cdbc59f   3       3       3     3m  hello      kalise/nodejs-web-app:1.2   name=hello,pod-template-hash=247867159
+    
 
 ## The Routing Layer
 The OpenShift routing layer is how client traffic enters the OpenShift environment so that it can ultimately reach pods. In our Hello World example, the service abstraction defines a logical set of pods enabling clients to refer the service by a consistent address and port. However, our service is not reachable from external clients.

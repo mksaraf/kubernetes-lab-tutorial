@@ -111,6 +111,10 @@ Quota:                  <none>
 Resource limits:        <none>
 ```
 
+Projects provide for easier multi tenancy than standard namespaces. Having stricter validation than namespaces, projects are actually indirectly created by the server by a request mechanism. Thus you do not need to give users the ability to create projects directly.
+
+The project list is a special endpoint that determines what projects you should be able to see. This is not possible to express via RBAC authorizations, i.e. list namespaces means you can see all namespaces.
+
 Now that we have a new project, login as demo user
 ```
 su - demo 

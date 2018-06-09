@@ -149,7 +149,6 @@ users:
 ## Create a pod
 An application in OpenShift lives inside a pod. Here the file ``pod-hello-world.yaml`` containing the definition of our pod in yaml format:
 ```yaml
----
 kind: Pod
 apiVersion: v1
 metadata:
@@ -177,7 +176,6 @@ spec:
 As demo user, create the pod from the yaml file
 ```
 oc create -f pod-hello-world.yaml
-pod "hello-pod" created
 ```
 
 Check the status of the pod
@@ -187,39 +185,6 @@ oc get pods
 NAME      READY     STATUS    RESTARTS   AGE
 hello-pod 1/1       Running   0          1m
 
-oc describe pod hello-pod
-
-Name:                   hello-pod
-Namespace:              demo
-Security Policy:        restricted
-Node:                   nodeb.openshift.com/10.10.10.17
-Start Time:             Sat, 28 Jan 2017 12:36:29 +0100
-Labels:                 name=hello
-Status:                 Running
-IP:                     10.1.0.2
-Controllers:            <none>
-Containers:
-  hello:
-    Container ID:       docker://8d4dc403d6597c2d2ccafeb45f684e37e789fcd32b43f35
-    Image:              openshift/hello-openshift:latest
-    Image ID:           docker-pullable://docker.io/openshift/hello-openshift
-    Port:               8080/TCP
-    State:              Running
-      Started:          Sat, 28 Jan 2017 12:38:08 +0100
-    Ready:              True
-    Restart Count:      0
-    Volume Mounts:
-      /var/run/secrets/kubernetes.io/serviceaccount from default-token-56m1i (ro)
-    Environment Variables:      <none>
-
-Conditions:
-...
-Volumes:
-...
-QoS Class:      BestEffort
-Tolerations:    <none>
-Events:
-...
 ```
 
 To verify that our application is really working, issue a curl to the pod's address and port:
@@ -231,8 +196,8 @@ curl 10.1.0.2:8080
 Our simple Hello World application is a backed by a container inside a pod running on a single compute node. Pods can be added to or removed from a service arbitrarily while the service remains consistently available, enabling any client to refer the service by a consistent address. 
 
 Define a service for our simple Hello World application in a ``service-hello-world.yaml`` file.
+
 ```yaml
----
 kind: Service
 apiVersion: v1
 metadata:
@@ -247,14 +212,11 @@ spec:
     port: 9000
     targetPort: 8080
 ```
-The above service is associated to our previous Hello World pod. The service selector field tells OpenShift that all pods with the label ``hello`` are associated to this service, and should have traffic distributed amongst them. In other words, the service provides an abstraction layer, and is the input point to reach all of the pods. 
 
 As demo user, create the service
+
 ```
 oc create -f service-hello-world.yaml
-
-service "hello-world-service" created
-pod "hello-pod" created
 ```
 
 Check the status of the service
@@ -263,47 +225,9 @@ oc get service
 
 NAME                  CLUSTER-IP      EXTERNAL-IP   PORT(S)    AGE
 hello-world-service   172.30.42.123   <none>        9000/TCP   5m
-
-oc describe service hello-world-service
-
-Name:                   hello-world-service
-Namespace:              demo
-Labels:                 name=hello
-Selector:               name=hello
-Type:                   ClusterIP
-IP:                     172.30.42.123
-Port:                   <unset> 9000/TCP
-Endpoints:              <none>
-Session Affinity:       None
-No events.
 ```
 
-Pods can be added to the service arbitrarily. Make sure that the selector label ``hello`` is in the definition yaml file of any pod we would to bind to the service.
-```
-oc create -f pod-hello-world.yaml
-
-oc create -f pod1-hello-world.yaml
-
-oc describe service hello-world-service
-
-Name:                   hello-world-service
-Namespace:              demo
-Labels:                 name=hello
-Selector:               name=hello
-Type:                   ClusterIP
-IP:                     172.30.42.123
-Port:                   <unset> 9000/TCP
-Endpoints:              10.1.0.11:8080,10.1.2.11:8080
-Session Affinity:       None
-No events.
-```
-
-The service will act as an internal load balancer in order to proxy the connections it receives from the clients toward the pods bound to the service. We can check if the service is reaching our application
-```
-curl 172.30.42.123:9000
-```
-
-The service also provide a name resolution for the associated pods. For example, in the case above, the hello pods can be reached by other pods in the same namespace by the name ``hello-world-service`` instead of the address:port ``172.30.42.123:9000``. This is very useful when we need to link different applications.
+The service will act as an internal load balancer in order to proxy the connections it receives from the clients toward the pods bound to the service. The service also provide a name resolution for the associated pods. For example, in the case above, the hello pods can be reached by other pods in the same namespace by the name ``hello-world-service`` instead of the address:port ``172.30.42.123:9000``. This is very useful when we need to link different applications.
 
 ## Create a replica controller
 A Replica Controller ensures that a specified number of pod *"replicas"* are running at any time. In other words, a Replica Controller makes sure that a pod or set of pods are always up and available. If there are too many pods, it will kill some; if there are too few, it will start more.

@@ -1,4 +1,4 @@
- #!/bin/bash
+#!/bin/bash
 #
 # Copyright 2018 - Adriano Pezzuto
 # https://github.com/kalise

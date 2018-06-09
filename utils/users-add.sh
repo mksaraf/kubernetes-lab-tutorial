@@ -1,4 +1,4 @@
-#!/bin/bash
+ #!/bin/bash
 #
 # Copyright 2018 - Adriano Pezzuto
 # https://github.com/kalise
@@ -54,9 +54,13 @@ echo "- storage classes viewer"
 kubectl create clusterrole storage-classes-viewer --verb=get --verb=list --verb=watch --resource=sc
 kubectl create clusterrolebinding storage-classes-viewer-all --clusterrole=storage-classes-viewer --group=system:authenticated
 echo
-for i in `seq -w 00 11`;
+echo "Install the gcloud-token-renew script as system binary"
+cp ./gcloud-token-renew /usr/bin
+chmod ugo+x /usr/bin/gcloud-token-renew
+
+for i in `seq -w 00 01`;
 do
-        USER=user$i;
+        USER=noverit$i;
         echo
         echo "====================================================================="
         echo "add" $USER
@@ -104,13 +108,8 @@ do
         cp /home/$GRANT_USER/.kube/$USER-sa.json /home/$USER/.kube/sa.json
         chown $USER:$USER -R /home/$USER/.kube
         echo
-        echo "copy token-renew script to the user's home dir"
-        cp /home/$GRANT_USER/token-renew /home/$USER/token-renew.sh
-        chown $USER:$USER /home/$USER/token-renew.sh
-        chmod u+x /home/$USER/token-renew.sh
-        echo
         echo "create the user's namespace and quotas"
-        NAMESPACE=tenant${USER:4:2}
+        NAMESPACE=project${USER:7:2}
         kubectl create namespace $NAMESPACE
         kubectl create quota $NAMESPACE --hard=pods=16 --namespace=$NAMESPACE
         echo
@@ -120,6 +119,7 @@ do
         echo "let the user gets his own cluster credentials"
         su -c "gcloud config set compute/region $REGION" -s /bin/bash $USER
         su -c "gcloud config set compute/zone $ZONE" -s /bin/bash $USER
+        su -c "gcloud config set container/cluster $CLUSTER" -s /bin/bash $USER
         su -c "gcloud container clusters get-credentials $CLUSTER" -s /bin/bash $USER
         echo
         echo "let the user configures his own kubeconfig file"

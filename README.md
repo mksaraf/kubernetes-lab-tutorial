@@ -81,13 +81,6 @@
    
 9. [Pod Context Security](./content/podsecurity.md) 
 
-10. [OpenShift Container Platform](./content/info.md)
-   * [Setup](./openshift/setup.md)
-   * [Getting started](./openshift/basics.md)
-   * [Creating Applications](./openshift/applications.md)
-
-11. [CoreOS Kubernetes](./content/coreos.md)
-
 ## Disclaimer
 This tutorial is for personal use only. This is just a lab guide, not a documentation for Kubernets, please go to their online
 documentation sites for more details about what Kubernets is and how does it work.

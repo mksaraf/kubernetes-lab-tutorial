@@ -8,7 +8,7 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: external-mysql
+  name: mysql
   namespace:
 spec:
   ports:
@@ -21,11 +21,11 @@ spec:
 apiVersion: v1
 kind: Endpoints
 metadata:
-  name: external-mysql
+  name: mysql
   namespace:
 subsets:
 - addresses:
-  - ip: 10.10.10.3
+  - ip: 10.10.10.5
   ports:
   - port: 3306
     protocol: TCP

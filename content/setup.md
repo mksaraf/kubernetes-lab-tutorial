@@ -127,7 +127,7 @@ Create the configuration file ``ca-csr.json`` for the **Certification Authority*
 
 ```json
 {
-  "CN": "Clastix.io CA",
+  "CN": "NoverIT CA",
   "key": {
     "algo": "rsa",
     "size": 2048
@@ -198,7 +198,7 @@ Create the server key pair
 This will produce the ``apiserver.pem`` certificate file containing the public key and the ``apiserver-key.pem`` file, containing the private key. Just as reference, to verify that a certificate was issued by a specific CA, given that CA's certificate
 
     openssl x509 -in apiserver.pem -noout -issuer -subject
-      issuer= /C=IT/ST=Italy/L=Milan/CN=Clastix.io CA
+      issuer= /C=IT/ST=Italy/L=Milan/CN=NoverIT CA
       subject= /CN=apiserver
     
     openssl verify -verbose -CAfile ca.pem  apiserver.pem
@@ -1115,7 +1115,7 @@ Take a look inside the ``resolv.conf file`` of the busybox container
     
     kubectl exec busybox cat /etc/resolv.conf
     nameserver 10.32.0.10
-    search kube-system.svc.cluster.local svc.cluster.local cluster.local clastix.io
+    search kube-system.svc.cluster.local svc.cluster.local cluster.local noverit.com
     options ndots:5
 
 Each time a new service starts on the cluster, it will register with the DNS letting all the pods to reach the new service.

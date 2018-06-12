@@ -175,7 +175,7 @@ The master node IP addresses and names will be included in the list of subject a
     "kubernetes.default",
     "kubernetes.default.svc",
     "kubernetes.default.svc.cluster.local",
-    "kubernetes.clastix.io"
+    "kubernetes.noverit.com"
   ],
   "key": {
     "algo": "rsa",

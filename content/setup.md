@@ -12,7 +12,7 @@ This tutorial refers to a cluster of nodes (virtual, physical or a mix of both) 
    * [Configure DNS service](#configure-dns-service)
 
 ## Requirements
-Our initial cluster will be made of 1 Master node and 3 Workers nodes. All machines can be virtual or physical or a mix of both. Minimum hardware requirements are: 1 vCPUs, 2GB of RAM, 16GB HDD for OS. All machines will be installed with a minimal Linux CentOS 7. Firewall and Selinux will be disabled. An NTP server is installed and running on all machines. On worker nodes, Docker uses a separate 10GB HDD. Internet access.
+Our initial cluster will be made of 1 Master node and 3 Workers nodes. All machines can be virtual or physical or a mix of both. Minimum hardware requirements are: 1 vCPUs, 2GB of RAM, 16GB HDD for OS. All machines will be installed with a minimal Linux CentOS 7. Firewall and Selinux will be disabled. An NTP server is installed and running on all machines. On worker nodes, Docker may use a separate 10GB HDD. Internet access.
 
 Here the hostnames and addresses:
 

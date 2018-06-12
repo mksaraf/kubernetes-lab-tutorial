@@ -79,7 +79,7 @@
    * [Admission Control](./content/secure.md#admission-control)
    * [Accessing the APIs server](./content/secure.md#accessing-the-apis-server)
    
-9. [Pod Context Security](./content/podsecurity.md) 
+9. [Pod Security Context](./content/podsecurity.md) 
 
 ## Disclaimer
 This tutorial is for personal use only. This is just a lab guide, not a documentation for Kubernets, please go to their online

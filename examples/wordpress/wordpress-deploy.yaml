@@ -45,6 +45,8 @@ spec:
           value: admin
         - name: WORDPRESS_PASSWORD
           value: password
+        - name: WORDPRESS_BLOG_NAME
+          value: Adriano's Blog
         volumeMounts:
         - name: data
           mountPath: /bitnami

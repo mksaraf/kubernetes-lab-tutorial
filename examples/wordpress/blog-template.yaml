@@ -48,7 +48,7 @@ spec:
           value: password
         - name: WORDPRESS_BLOG_NAME
           value: Adriano's Blog
-      volumeMounts:
+        volumeMounts:
         - name: data
           mountPath: /bitnami
       dnsPolicy: ClusterFirst

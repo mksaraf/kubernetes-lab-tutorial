@@ -6,7 +6,7 @@ metadata:
     kubernetes.io/ingress.class: "nginx"
 spec:
   rules:
-  - host: blog.cloud.noverit.com
+  - host: user.blog.noverit.com
     http:
       paths:
       - path: /

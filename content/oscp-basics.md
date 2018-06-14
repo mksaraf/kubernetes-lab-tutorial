@@ -607,7 +607,7 @@ labels:
 metadata:
   annotations:
     description: This is an example of application template in OpenShift
-    iconClass: default
+    iconClass: default, icon-nodejs
     tags: hello, world
   name: hello-world-template
   namespace:

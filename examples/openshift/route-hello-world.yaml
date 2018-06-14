@@ -1,0 +1,12 @@
+kind: Route
+apiVersion: v1
+metadata:
+  name: hello-route
+  labels:
+    name: hello
+spec:
+  host: hello-world.openshift.noverit.com
+  to:
+    name: hello-world-service
+  tls:
+    termination: edge

@@ -1,5 +1,5 @@
 # Getting started with OpenShift
-It is now time to create the **Hello World** application using some sample code. It is simple http server written in nodejs returning a greating message as contained into the MESSAGE env variable. The application is available as Docker image and the source code is [here](https://github.com/kalise/nodejs-web-app).
+It is now time to create the **Hello World** application using some sample code. It is simple http server written in nodejs returning a greeting message as contained into the MESSAGE env variable. The application is available as Docker image and the source code is [here](https://github.com/kalise/nodejs-web-app).
 
 ## Create a demo user
 OpenShift platform supports a number of mechanisms for authentication. The simplest use case for testing purposes is htpasswd-based authentication. To start, we will need the ``htpasswd`` binary on the Master node
@@ -595,7 +595,7 @@ parameters:
   name: SERVICE_PORT
   value: "9000"
   required: true
-- description: Greating message
+- description: Greeting message
   name: GREETING_MESSAGE
   value: "Hello OpenShift"
 ```

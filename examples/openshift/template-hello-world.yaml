@@ -86,6 +86,6 @@ parameters:
   name: SERVICE_PORT
   value: "9000"
   required: true
-- description: Greating message
+- description: Greeting message
   name: GREETING_MESSAGE
   value: "Hello OpenShift"

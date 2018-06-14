@@ -224,7 +224,7 @@ NAME                  CLUSTER-IP      EXTERNAL-IP   PORT(S)    AGE
 hello-world-service   172.30.42.123   <none>        9000/TCP   5m
 ```
 
-The service will act as an internal load balancer in order to proxy the connections it receives from the clients toward the pods bound to the service. The service also provide a name resolution for the associated pods. For example, in the case above, the hello pods can be reached by other pods in the same namespace by the name ``hello-world-service`` instead of the address:port ``172.30.42.123:9000``. This is very useful when we need to link different applications.
+The service will act as an internal load balancer in order to proxy the connections it receives from the clients toward the pods bound to the service. The service also provide a name resolution for the associated pods. For example, in the case above, the hello pods can be reached by other pods in the same namespace by the name ``hello-world-service`` instead of the address:port ``172.30.42.123:9000``.
 
 ## Create a replica controller
 A Replica Controller ensures that a specified number of pod *"replicas"* are running at any time. In other words, a Replica Controller makes sure that a pod or set of pods are always up and available. If there are too many pods, it will kill some; if there are too few, it will start more.
@@ -414,7 +414,7 @@ and the new pods
 ## The Routing Layer
 The OpenShift routing layer is how client traffic enters the OpenShift environment so that it can ultimately reach pods. In our Hello World example, the service abstraction defines a logical set of pods enabling clients to refer the service by a consistent address and port. However, our service is not reachable from external clients.
 
-To get pods reachable from external clients we need for a Routing Layer. In a simplification of the process, the OpenShift Routing Layer consists in an instance of a pre-configured HAProxy running in a dedicated pod as well as the related services
+To get pods reachable from external clients we need for a Routing Layer. In a simplification of the process, the OpenShift Routing Layer consists in an instance of a pre-configured HAProxy running in a pod as well as the related service.
 
 The installation process installs a preconfigured router pod running on the master node. To see details, login as system admin
 ```
@@ -447,7 +447,7 @@ metadata:
   labels:
     name: hello
 spec:
-  host: hello-world.cloud.openshift.com
+  host: hello-world.openshift.noverit.com
   to:
     name: hello-world-service
   tls:
@@ -465,15 +465,15 @@ oc create -f route-hello-world.yaml
 
 oc get route
 NAME          HOST/PORT                         PATH      SERVICES              PORT      TERMINATION
-hello-route   hello-world.cloud.openshift.com             hello-world-service   <all>     edge
+hello-route   hello-world.openshift.noverit.com           hello-world-service   <all>     edge
 ```
 
 Now our Hello World service is reachable from any client with its FQDN
 ```
-curl https://hello-world.cloud.openshift.com -k
+curl https://hello-world.openshift.noverit.com -k
 ```
 
-In the setup, we required a wildcard DNS entry to point at the master node ``*.cloud.openshift.com. 300 IN  A 10.10.10.19`` Our wildcard DNS entry points to the public IP address of the master. Since there is only the master in the infra region, we know we can point the wildcard DNS entry at the master and we'll be all set. Once the FQDN request reaches the router pod running on the master node, it will be forwarded to the pods on the compute nodes actually running the Hello World application.
+In the setup, we required a wildcard DNS entry to point at the master node ``*.openshift.noverit.com. 300 IN  A 10.10.10.19`` Our wildcard DNS entry points to the public IP address of the master. Since there is only the master in the infra region, we know we can point the wildcard DNS entry at the master and we'll be all set. Once the FQDN request reaches the router pod running on the master node, it will be forwarded to the pods on the compute nodes actually running the Hello World application.
 
 The fowarding process is based on HAProxy configurations set by the route we defined before. To see the HAProxy configuration, login as root to the master node and inspect the router pod configuration
 ```

@@ -69,8 +69,8 @@ do
         echo
         echo "set password"
         echo $USER:password | chpasswd
-        echo "set sudo permissions"
-        usermod -aG wheel $USER
+        #echo "set sudo permissions"
+        #usermod -aG wheel $USER
         echo "set permissions to run docker commands"
         usermod -aG docker $USER
         echo "copy ssh key"

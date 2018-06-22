@@ -21,13 +21,13 @@ In Kubernetes, a group of one or more containers is called a pod. Containers in 
 apiVersion: v1
 kind: Pod
 metadata:
-  name: mynginx
-  namespace: default
+  name: nginx
+  namespace:
   labels:
     run: nginx
 spec:
   containers:
-  - name: mynginx
+  - name: nginx
     image: nginx:latest
     ports:
     - containerPort: 80
@@ -42,13 +42,15 @@ Create a pod containing an nginx server from the pod-nginx.yaml file
 List all pods:
 
     kubectl get pods -o wide
+    
     NAME      READY     STATUS    RESTARTS   AGE       IP            NODE
-    mynginx   1/1       Running   0          8m        172.30.21.2   kuben03
+    nginx     1/1       Running   0          8m        172.30.21.2   kuben03
 
 Describe the pod:
 
-    [root@kubem00 ~]# kubectl describe pod mynginx
-    Name:           mynginx
+    kubectl describe pod nginx
+    
+    Name:           nginx
     Namespace:      default
     Node:           kuben03/10.10.10.83
     Start Time:     Wed, 05 Apr 2017 11:17:28 +0200
@@ -57,7 +59,7 @@ Describe the pod:
     IP:             172.30.21.2
     Controllers:    <none>
     Containers:
-      mynginx:
+      nginx:
         Container ID:       docker://a35dafd66ac03f28ce4213373eaea56a547288389ea5c901e27df73593aa5949
         Image:              nginx:latest
         Image ID:           docker-pullable://docker.io/nginx
@@ -85,9 +87,7 @@ Describe the pod:
 
 Delete the pod:
 
-    [root@kubem00 ~]# kubectl delete pod mynginx
-    pod "mynginx" deleted
-
+    kubectl delete pod nginx
 
 A pod can be in one of the following phases:
 
@@ -117,25 +117,28 @@ metadata:
 
 To label a running pod
 
-      kubectl label pod mynginx type=webserver
+      kubectl label pod nginx type=webserver
 
 To list pods based on labels
 
       kubectl get pods -l type=webserver
+      
       NAME      READY     STATUS    RESTARTS   AGE
-      mynginx   1/1       Running   0          21m
+      nginx     1/1       Running   0          21m
 
 Labels can be applied not only to pods but also to other Kuberntes objects like nodes. For example, we want to label or worker nodes based on the their position in the datacenter
 
       kubectl label node kuben01 rack=rack01
       
       kubectl get nodes -l rack=rack01
+      
       NAME      STATUS    AGE
       kuben01   Ready     2d
       
       kubectl label node kuben02 rack=rack01
       
       kubectl get nodes -l rack=rack01
+      
       NAME      STATUS    AGE
       kuben01   Ready     2d
       kuben02   Ready     2d

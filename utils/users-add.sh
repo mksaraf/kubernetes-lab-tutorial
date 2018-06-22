@@ -6,7 +6,6 @@
 # Usage: sudo ./users-add.sh
 # Make sure the private ssh key ~/.ssh/gcp.pem is present in granting user home dir
 # Also ~/.ssh/config contains the "IdentityFile ~/.ssh/gcp.pem" string
-
 echo
 echo "========================================================"
 echo "Starting setup ..."
@@ -57,10 +56,9 @@ echo
 echo "Install the gcloud-token-renew script as system binary"
 cp ./gcloud-token-renew /usr/bin
 chmod ugo+x /usr/bin/gcloud-token-renew
-
-for i in `seq -w 00 01`;
+for i in `seq -w 00 09`;
 do
-        USER=noverit$i;
+        USER=user$i;
         echo
         echo "====================================================================="
         echo "add" $USER
@@ -109,7 +107,7 @@ do
         chown $USER:$USER -R /home/$USER/.kube
         echo
         echo "create the user's namespace and quotas"
-        NAMESPACE=project${USER:7:2}
+        NAMESPACE=space${USER:4:2}
         kubectl create namespace $NAMESPACE
         kubectl create quota $NAMESPACE --hard=pods=16 --namespace=$NAMESPACE
         echo

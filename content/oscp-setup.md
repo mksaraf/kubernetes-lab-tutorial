@@ -39,27 +39,11 @@ On all the OpenShift hosts, enable the proper subscriptions and install the setu
 yum install -y atomic-openshift-utils
 ```
 
-Install Docker on all master and node hosts and configure the Docker storage options before installing OpenShift Container Platform.
+Install Docker on all master and worker node hosts
 ```
 yum install -y docker
-vi /etc/sysconfig/docker-storage-setup
-DEVS=/dev/sdb
-VG=docker
-
-docker-storage-setup
-systemctl star docker
 systemctl enable docker
-
-lsblk
-NAME                          MAJ:MIN RM  SIZE RO TYPE MOUNTPOINT
-...
-sdb                             8:16   0   20G  0 disk
-└─sdb1                          8:17   0   20G  0 part
-  ├─docker-docker--pool_tmeta 253:2    0   24M  0 lvm
-  │ └─docker-docker--pool     253:4    0    8G  0 lvm
-  └─docker-docker--pool_tdata 253:3    0    8G  0 lvm
-    └─docker-docker--pool     253:4    0    8G  0 lvm
-...
+systemctl start docker
 ```
 
 ## Host Access

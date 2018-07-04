@@ -21,9 +21,9 @@ node02.openshift.noverit.com     A   10.10.10.22
 node03.openshift.noverit.com     A   10.10.10.23
 ```
 
-Resolving hostnames only via ``/etc/hosts`` file is not enough. There an appendix section in this tutorial on configuring DNSmasq for the OpenShift requirements. Remember that the NetworkManager may make changes the DNS configuration and resolver. Properly configure interfaces' DNS settings and/or configure NetworkManager appropriately.
+Resolving hostnames only via ``/etc/hosts`` file is not enough. Remember that the NetworkManager may make changes the DNS configuration and resolver. Properly configure interfaces' DNS settings and/or configure NetworkManager appropriately.
 
-Also configure a DNS entry to route all the user application to the Master node. This is accomplished by configuring a wildcard mask on the DNS server. For example, create a wildcard DNS entry for cloud applications that has a low time-to-live value (TTL) and points to the public IP address of the host where the router will be deployed
+Also configure a DNS entry to route all the user applications to the Master node. This is accomplished by configuring a wildcard mask on the DNS server. For example, create a wildcard DNS entry for cloud applications that has a low time-to-live value (TTL) and points to the public IP address of the host where the router will be deployed
 ```
 *.cloud.openshift.noverit.com. 300 IN  A 10.10.10.20
 ```

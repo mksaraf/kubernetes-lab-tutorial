@@ -2,9 +2,8 @@ apiVersion: extensions/v1beta1
 kind: ReplicaSet
 metadata:
   labels:
-    run: nginx
   namespace:
-  name: nginx-rs
+  name: nginx
 spec:
   replicas: 3
   selector:

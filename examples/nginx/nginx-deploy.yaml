@@ -20,7 +20,7 @@ spec:
         run: nginx
     spec:
       containers:
-      - image: nginx:latest
+      - image: nginx:1.12
         imagePullPolicy: Always
         name: nginx
         ports:

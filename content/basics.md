@@ -464,7 +464,7 @@ Create the new pod
 
     kubectl get pods
     NAME                    READY     STATUS    RESTARTS   AGE
-    mynginx                 1/1       Running   0          11s
+    nginx                   1/1       Running   0          11s
     nginx-664452237-6h8zw   1/1       Running   0          16m
     nginx-664452237-kmmqk   1/1       Running   0          15m
     nginx-664452237-xhnjt   1/1       Running   0          16m
@@ -1065,7 +1065,7 @@ metadata:
     run: nginx
 spec:
   containers:
-  - name: mynginx
+  - name: nginx
     image: nginx:latest
     ports:
     - containerPort: 80

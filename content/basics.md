@@ -617,7 +617,7 @@ emptyDir:
 ### Host Path Volume
 The other volume type we're gooing to use is ``hostPath``. With this volume type, the volume is mount from an existing directory on the file system of the node hosting the pod. Data inside the host directory are safe to container crashes and restarts as well as to pod deletion. However, if the pod is moved from a node to another one, data on the initial node are no more accessible from the new instance of the pod.
 
-Based on the previous example, define a nginx pod using the host path ``/data/nginx/html`` as data volume for html content
+Based on the previous example, define a nginx pod using the host dir ``/mnt`` as data volume for html content
 ```yaml
 apiVersion: v1
 kind: Pod

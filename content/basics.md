@@ -447,12 +447,12 @@ Pods can be added to the service arbitrarily. Make sure that the label ``run=ngi
 apiVersion: v1
 kind: Pod
 metadata:
-  name: mynginx
+  name: nginx
   namespace: default
   labels:
 spec:
   containers:
-  - name: mynginx
+  - name: nginx
     image: nginx:latest
     ports:
     - containerPort: 80
@@ -478,8 +478,8 @@ The just created new pod is not still associated to the nginx service
 
 Now, let's to lable the new pod with ``run=nginx`` label
 
-    kubectl label pod mynginx run=nginx
-    pod "mynginx" labeled
+    kubectl label pod nginx run=nginx
+    pod "nginx" labeled
 
 We can see a new endpoint is added to the service
 

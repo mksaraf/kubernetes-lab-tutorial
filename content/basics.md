@@ -567,7 +567,7 @@ spec:
 
 The file defines an nginx pod where the served html content directory ``/usr/share/nginx/html`` is mounted as volume. The volume type is ``emptyDir``. This type of volume is created when the pod is assigned to a node, and it exists as long as that pod is running on that node. As the name says, it is initially empty. When the pod is removed from the node for any reason, the data in the emptyDir volume is deleted too.
 
-The Empty Dir volumes are placed on the ``/var/lib/kubelet/pods/POD_ID/volumes/volumes/kubernetes.io~empty-dir/content-data`` of the worker node where the pod is currently running. Please, note that a container crash does not remove a pod from a node, so the data in an emptyDir volume is safe across a container crash.
+The Empty Dir volumes are placed on the ``/var/lib/kubelet/pods/POD_UID/volumes/kubernetes.io~empty-dir/`` of the worker node where the pod is currently running. Please, note that a container crash does not remove a pod from a node, so the data in an emptyDir volume is safe across a container crash.
 
 Create the nginx pod above
 
@@ -593,13 +593,13 @@ we get *forbidden* since the html content dir (mounted as volume) is initially e
 
 Login to the worker node and populate the volume dir with an html file
 
-    [root@kubew03 ~]# cd /var/lib/kubelet/pods/<POD_ID>/volumes/kubernetes.io~empty-dir/content-data
+    [root@kubew03 ~]# cd /var/lib/kubelet/pods/<POD_UID>/volumes/kubernetes.io~empty-dir/content-data
     echo "Hello World from " $(pwd) > index.html
 
 Now we should be able to get an answer from the pod
 
     curl 10.38.3.167
-    Hello World from /var/lib/kubelet/pods/<POD_ID>/volumes/kubernetes.io~empty-dir/content-data
+    Hello World from /var/lib/kubelet/pods/<POD_UID>/volumes/kubernetes.io~empty-dir/content-data
 
 With the ``emptyDir`` volume type, data in the volume is removed when the pod is deleted from the node where it was running. To achieve data persistence across pod deletion or relocation, we need for a persistent shared storage alternative.
 
@@ -634,21 +634,15 @@ spec:
     volumeMounts:
     - name: content-data
       mountPath: /usr/share/nginx/html
-  nodeSelector:
-    kubernetes.io/hostname: kubew05
   volumes:
   - name: content-data
     hostPath:
-      path: /data/nginx/html
+      path: /mnt
 ```
 
-Please, note that host dir must be present on the node hosting the pod before the pod is created by kubernetes. For this reason, we force kubernetes to schedule the pod on a specific node having hostname ``kuben05`` where the volume directory has been first created.
+Please, note that host dir ``/mnt`` must be present on the node hosting the pod before the pod is created by kubernetes.
 
-Login to the worker node and create the host directory
-
-    [root@kubew05 ~]# mkdir -p /data/nginx/html
-
-Back to the master node and schedule the pod
+Schedule the pod
 
     kubectl create -f nginx-host-volume.yaml
     pod "nginx" created
@@ -669,7 +663,7 @@ we get *forbidden* since the html content dir (mounted as volume on the host nod
 
 Login to the host node pod populate the volume dir
 
-    [root@kubew05 ~]# echo "Hello from $(hostname)"  > /data/nginx/html/index.html
+    echo "Hello from $(hostname)"  > /mnt/index.html
 
 Back to the master node and access the service
 
@@ -690,7 +684,7 @@ Data in host dir volume will survive to any crash and restart of both container 
     curl 172.30.41.7:80
     Hello from kubew05
 
-This works because we forced kubernetes to schedule the nginx pod always on the same host node.
+This works only when kubernetes schedules the nginx pod on the same worker node as before.
 
 ## Config Maps
 Kubernetes allows separating configuration options into a separate object called **ConfigMap**, which is a map containing key/value pairs with the values ranging from short literals to full config files.

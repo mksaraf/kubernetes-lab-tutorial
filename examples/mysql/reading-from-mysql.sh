@@ -5,6 +5,6 @@ while true;
 do
     echo "Sending next query"
     sleep 2; 
-    mysql -h mysql-read -D employees -u root -ppassword -e 'SELECT @@server_id,NOW(); SELECT COUNT(*) FROM employees'
+    mysql -h mysql-ro -D employees -u root -e 'SELECT @@server_id,NOW(); SELECT COUNT(*) FROM employees'
     echo ""
 done

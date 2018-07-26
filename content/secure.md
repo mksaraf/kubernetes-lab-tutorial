@@ -6,6 +6,7 @@ In this section we are going to cover additional concepts related to the authent
    * [Authorization](#authorization)
    * [Admission Control](#admission-control)
    * [Accessing the APIs server](#accessing-the-apis-server)
+   * [Pods Security Context](#pods-security-context)
    
 
 In kubernetes, users access the API server via HTTP(S) requests. When a request reaches the API, it goes through several stages:

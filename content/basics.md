@@ -15,10 +15,7 @@ In this section we're going through core concepts of Kubernetes:
    * [Quotas and Limits](#quotas-and-limits)
          
 ## Pods    
-In Kubernetes, a group of one or more containers is called a pod. Containers in a pod are deployed together, and are started, stopped, and replicated as a group. The simplest pod definition describes the deployment of a single container. For example, an nginx web server pod might be defined as such
-
-<details>
-<summary>pod-nginx.yaml</summary>
+In Kubernetes, a group of one or more containers is called a pod. Containers in a pod are deployed together, and are started, stopped, and replicated as a group. The simplest pod definition describes the deployment of a single container. For example, an nginx web server pod might be defined as such ``pod-nginx.yaml`` file
 
 ```yaml
 apiVersion: v1
@@ -35,8 +32,6 @@ spec:
     ports:
     - containerPort: 80
 ```
-</details>
-
 
 A pod definition is a declaration of a desired state. Desired state is a very important concept in the Kubernetes model. Many things present a desired state to the system, and it is Kubernetes’ responsibility to make sure that the current state matches the desired state. For example, when you create a Pod, you declare that you want the containers in it to be running. If the containers happen to not be running (e.g. program failure), Kubernetes will continue to (re-)create them for you in order to drive them to the desired state. This process continues until the Pod is deleted.
 

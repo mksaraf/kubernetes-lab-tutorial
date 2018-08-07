@@ -19,16 +19,28 @@ and then access the API Server on its listening port, i.e, ``apiserver:8443`` by
 
     curl https://apiserver:8443/api/ --header "Authorization: Bearer $TOKEN" -k
 
-We can also access the API Server from a pod by using its service account
+We can also access the API Server from a pod by using its service account as in the following example.
 
+Create an ephemeral pod from a ``curl`` image and login into
 
+    kubectl run -it --rm curl --image=kalise/curl:latest /bin/sh
 
+Oncle logged, find the service address and port of the API Server by checking the pod env variables
 
-### Accessing from client
+    / # env | grep KUBERNETES_SERVICE
 
-### Accessing from appplication
+    KUBERNETES_SERVICE_PORT=443
+    KUBERNETES_SERVICE_HOST=10.32.0.1
 
-### Accessing from proxy
+To be authenticated by the API server, we need to use the service account token signed by the controller manager via the key specified ``--service-account-private-key-file`` option. This token is mounted as secret into each container and used by its service account
+
+    / # TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
+
+Once we have the token, we can access the API Server from within the pod
+
+    / # curl https://$KUBERNETES_SERVICE_HOST:$KUBERNETES_SERVICE_PORT/api/ --header "Authorization: Bearer $TOKEN" -k
+
+Now we can browse the API Server.
 
 ## Exploring APIs Server 
 

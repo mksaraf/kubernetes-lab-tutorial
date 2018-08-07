@@ -1,11 +1,10 @@
-# Secure Access
+# Secure access to the APIs Server
 In this section we are going to cover additional concepts related to the authentication, authorization and user management.
 
    * [Service Accounts](#service-accounts)
    * [Authentication](#authentication)
    * [Authorization](#authorization)
    * [Admission Control](#admission-control)
-   * [Accessing the APIs server](#accessing-the-apis-server)
    * [Pods Security Context](#pods-security-context)
    
 
@@ -116,6 +115,58 @@ Service accounts are tied to a set of credentials stored as secrets which are mo
 To achieve token creation for service accounts, we have to pass a private key file to the controller manager via the ``--service-account-private-key-file`` option. The controller manager will use the private key to sign the generated service account tokens. Similarly, we have to pass the corresponding public key to the API server using the ``--service-account-key-file`` option.
 
 *Please, note that each time the public and private certificate keys change, we have to delete the service accounts, including the default service account for each namespace.*
+
+Service accounts are useful when the pod needs to access the pod metadata stored in the API server. For example, the following ``nodejs-pod-namespace.yaml`` definition file implements an API call to read the pod namespace and put it into a pod env variable
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nodejs-web-app
+  namespace:
+  labels:
+    app:nodejs
+spec:
+  containers:
+  - name: nodejs
+    image: kalise/nodejs-web-app:latest
+    ports:
+    - containerPort: 8080
+    env:
+    - name: POD_NAMESPACE
+      valueFrom:
+        fieldRef:
+          fieldPath: metadata.namespace
+    - name: MESSAGE
+      value: "Hello $(POD_NAMESPACE)"
+  serviceAccount: default
+```
+
+Create the pod above and access the pod
+
+    kubectl create -f nodejs-pod-namespace.yaml
+
+    kubectl get pod -l app=nodejs -o wide
+    NAME             READY     STATUS    RESTARTS   AGE       IP          NODE
+    nodejs-web-app   1/1       Running   0          13m       10.38.4.9   kubew04
+
+    curl 10.38.4.9:8080
+    <html><head></head><body>Hello project from 10.38.4.9</body></html>
+
+we get an answer from the pod being in the namespace name ``project``.
+
+Pods use service accounts to access the following information:
+
+  * name of the pod
+  * IP address of the pod
+  * labels of the pod
+  * annotations of the pod
+  * namespace the pod belongs to
+  * name of the node the pod is running on
+  * name of the service account used by the pod 
+  * CPU and memory requests for each container
+  * CPU and memory limits for each container
+
+A pod uses exactly one Service Account belonging to the same namespace, but multiple pods inside the same namespace can use the same Service Account.
 
 ## Authentication
 Kubernetes uses different ways to authenticate users: certificates, tokens, passwords as long enhanced methods as OAuth. Multiple methods can be used at same time, depending on the use case. At least two methods:
@@ -483,123 +534,6 @@ Do we have access to persistent volumes at cluster level?
 Many advanced features in Kubernetes require an **Admission Control** plugin to be enabled in order to properly support the feature. An admission control plugin intercepts requests to the API server after the request is authenticated and authorized. Each admission control plugin is run in sequence before a request is accepted by the API server. If any of the plugins in the sequence reject the request, the entire request is rejected.
 
 The admission control plugins are enabled by starting the apiserver with the ``--admission-control`` option. A complete list of admission control plugins are available on the product documentation.
-
-
-## Accessing the APIs server
-Service accounts are useful when the pod needs to access the pod metadata stored in the API server. For example, the following ``nodejs-pod-namespace.yaml`` definition file implements an API call to read the pod namespace and put it into a pod env variable
-```yaml
-apiVersion: v1
-kind: Pod
-metadata:
-  name: nodejs-web-app
-  namespace:
-  labels:
-    app:nodejs
-spec:
-  containers:
-  - name: nodejs
-    image: kalise/nodejs-web-app:latest
-    ports:
-    - containerPort: 8080
-    env:
-    - name: POD_NAMESPACE
-      valueFrom:
-        fieldRef:
-          fieldPath: metadata.namespace
-    - name: MESSAGE
-      value: "Hello $(POD_NAMESPACE)"
-  serviceAccount: default
-```
-
-Create the pod above and access the pod
-
-    kubectl create -f nodejs-pod-namespace.yaml
-
-    kubectl get pod -l app=nodejs -o wide
-    NAME             READY     STATUS    RESTARTS   AGE       IP          NODE
-    nodejs-web-app   1/1       Running   0          13m       10.38.4.9   kubew04
-
-    curl 10.38.4.9:8080
-    <html><head></head><body>Hello project from 10.38.4.9</body></html>
-
-we get an answer from the pod being in the namespace name ``project``.
-
-Pods use service accounts to access the following information:
-
-  * name of the pod
-  * IP address of the pod
-  * labels of the pod
-  * annotations of the pod
-  * namespace the pod belongs to
-  * name of the node the pod is running on
-  * name of the service account used by the pod 
-  * CPU and memory requests for each container
-  * CPU and memory limits for each container
-
-A pod uses exactly one Service Account belonging to the same namespace, but multiple pods inside the same namespace can use the same Service Account.
-
-Service account can also be used to access the APIs server content when working inside a pod. Create a pod from the ``curl.yaml`` file and login into it
-
-    kubectl create -f curl.yaml
-    kubectl exec -it curl sh
-    / # 
-
-Find the service address of the APIs server by checking the env variables
-
-    / # env | grep KUBERNETES_SERVICE
-    KUBERNETES_SERVICE_PORT=443
-    KUBERNETES_SERVICE_PORT_HTTPS=443
-    KUBERNETES_SERVICE_HOST=10.32.0.1
-
-Trying to access the APIs server from the pod
-
-    / # curl https://$KUBERNETES_SERVICE_HOST:443/version
-    curl: (60) SSL certificate problem: unable to get local issuer certificate
-
-we get an error because we're not able to verify the identity of the APIs server. To verify we are talking to the right APIs server and not to a faker, we need to check if the server’s certificate is signed by the known Certification Authority (CA).
-
-    / # ls -l /var/run/secrets/kubernetes.io/serviceaccount/
-    total 0
-    lrwxrwxrwx    1 root     root            13 Mar 19 15:39 ca.crt -> ..data/ca.crt
-    lrwxrwxrwx    1 root     root            16 Mar 19 15:39 namespace -> ..data/namespace
-    lrwxrwxrwx    1 root     root            12 Mar 19 15:39 token -> ..data/token
-
-The ``ca.crt`` file above holds the certificate of the Certificate Authority (CA) used to sign the kubernetes API server’s certificate
-
-    / # export CURL_CA_BUNDLE=/var/run/secrets/kubernetes.io/serviceaccount/ca.crt
-    / # curl https://$KUBERNETES_SERVICE_HOST:443/version
-    {
-      "kind": "Status",
-      "apiVersion": "v1",
-      "metadata": {
-
-      },
-      "status": "Failure",
-      "message": "forbidden: User \"system:anonymous\" cannot get path \"/version\"",
-      "reason": "Forbidden",
-      "details": {
-
-      },
-      "code": 403
-    }
-
-We made some progress but still not authenticated by the APIs server. To be authenticate, we'll use the service account token signed by the controller manager via the key specified ``--service-account-private-key-file`` option. That token is mounted as secret into each container
-
-    / # TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
-    / # curl -H "Authorization: Bearer $TOKEN" https://$KUBERNETES_SERVICE_HOST:443/version
-    {
-      "major": "1",
-      "minor": "9",
-      "gitVersion": "v1.9.2",
-      "gitCommit": "5fa2db2bd46ac79e5e00a4e6ed24191080aa463b",
-      "gitTreeState": "clean",
-      "buildDate": "2018-01-18T09:42:01Z",
-      "goVersion": "go1.9.2",
-      "compiler": "gc",
-      "platform": "linux/amd64"
-    }
-
-Now we're authenticated by the APIs server.
 
 ## Pods Security Context
 Besides allowing the pod to use the Linux namespaces, other security-related features can also be configured on the pod and its container through the security context. The ``securityContext`` properties can be specified under the pod spec directly or inside the spec of individual containers.

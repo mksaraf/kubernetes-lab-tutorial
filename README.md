@@ -33,6 +33,7 @@
     * [External services](./content/network.md#external-services)
     * [Ingress controller](./content/ingress.md)
     * [Static Pods](./content/static.md)
+    * [Network Policies](./content/network.md#network-policies)
 
 4. [Data Management](./content/storage.md)
     * [Local Persistent Volumes](./content/storage.md#local-persistent-volumes)

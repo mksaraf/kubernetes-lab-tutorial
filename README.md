@@ -52,7 +52,7 @@
     * [Control Plane Failure](./content/admin.md#control-plane-failure)
     * [Worker Failure](./content/admin.md#worker-failure)
 
-6. [Setup a Secure Cluster](./content/setup.md)
+6. [Setup a secure cluster](./content/setup.md)
    * [Requirements](./content/setup.md#requirements)
    * [Install binaries](./content/setup.md#install-binaries)
    * [Create TLS certificates](./content/setup.md#create-tls-certificates)
@@ -72,12 +72,11 @@
    * [APIs server redundancy](./content/hacp.md#apis-server-redundancy)   
    * [Controllers redundancy](./content/hacp.md#controllers-redundancy)
 
-8. [Accessing a Secure Cluster](./content/secure.md)
+8. [Accessing a secure cluster](./content/secure.md)
    * [Service Accounts](./content/secure.md#service-accounts)
    * [Authentication](./content/secure.md#authentication)
    * [Authorization](./content/secure.md#authorization)
    * [Admission Control](./content/secure.md#admission-control)
-   * [Accessing the APIs server](./content/secure.md#accessing-the-apis-server)
    * [Pod Security Context](./content/secure.md#pods-security-context) 
 
 ## Disclaimer

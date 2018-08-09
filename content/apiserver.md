@@ -115,9 +115,10 @@ Another grouping is based on the version of the API. For the core APIs group ``/
 
 In addition to the resource types themselves, there is much interesting information in the API object that describes the API itself, the so-called meta API object. For example, getting the core APIs 
 
-curl http://127.0.0.1:8080/api/v1/
+    curl http://127.0.0.1:8080/api/v1/
 
-for pods object, we get 
+check for the pods object
+
 ```json
     {
       "name": "pods",
@@ -151,7 +152,9 @@ For example, to watch notifications from pods we can add the query parameter ``?
 
     curl http://127.0.0.1:8080/api/v1/namespaces/default/pods?watch=true
 
-The API server switches into watch mode, and it leaves the connection between client and server open. The data returned by the API server is no longer just the API object, it is a different object which contains both the type of the change, e.g. created, modified, deleted, as well as the API object itself. In this way a client can “watch” and observe all changes to that object, or set of objects instead of polling at some interval for possible updates, which introduces load and latency.
+The API server switches into watch mode, and it leaves the connection between client and server open.
+
+The data returned by the API server is no longer just the API object, it is a different object which contains both the type of the change, e.g. created, modified, deleted, as well as the API object itself. In this way a client can watch and observe all changes to that object, or set of objects instead of polling at some interval for possible updates, which introduces load and latency.
 
 
 ## API Aggregation

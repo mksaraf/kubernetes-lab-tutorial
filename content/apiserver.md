@@ -167,6 +167,138 @@ For example, the metric-server is deployed as stand-alone APIs service running a
     metrics-server-86bd9d7667-mx9jp   1/1       Running   0          10d
 
 ## Custom Resources
+Kubernetes APIs server can be extended by defining custom resources. To define a new resource type, we need to post a **Custom Resource Definition** object or **CRD** to the APIs server. The CRD object is the description of the custom resource type. Once the CRD is posted, we can then create instances of the custom resource by posting JSON or YAML manifests to the API server, the same we do with any other Kubernetes resource.
 
+In this section, we want to allow users of kubernetes cluster to run static websites as easily as possible, without having to deal with pods, services, and other Kubernetes resources. What we want to achieve is for users to create objects of type Website that contain nothing more than the website’s name and the source Git repository from which the website’s
+files should be obtained.
+
+When a user creates an instance of the Website resource, we want the cluster to spin up a new webserver deployment, a volume pointing to the Git reposistory, a configmap and expose it to the external through a service.
+
+To make Kubernetew aware of a new custom resource type, we need to create the related CRD as in the following ``website-crd.yaml`` definition file
+
+```yaml
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  # name must match the spec fields below, and be in the form: <plural>.<group>
+  name: websites.kubeo.clastix.io
+spec:
+  # either Namespaced or Cluster
+  scope: Namespaced
+  # group name to use for REST API: /apis/<group>/<version>
+  group: kubeo.clastix.io
+  # multiple versions of the same API can be served at same type
+  versions:
+    - name: v1
+      served: true
+      storage: true
+    - name: v1beta1
+      served: true
+      storage: false      
+    - name: v1alfa2
+      served: false
+      storage: false
+  names:
+    kind: Website
+    singular: website
+    plural: websites
+    shortNames:
+    - ws
+  subresources:
+    status:
+    scale:
+      specReplicasPath: .spec.replicas
+      statusReplicasPath: .status.replicas
+  validation:
+    # openAPIV3Schema is the schema for validating custom objects.
+    openAPIV3Schema:
+      properties:
+        spec:
+          properties:
+            gitRepo:
+              type: string
+            serviceType:
+              type: string
+            configType:
+              type: string
+            replicas:
+              type: integer
+              minimum: 0
+              maximum: 9
+  additionalPrinterColumns:
+    - name: podReplicas
+      type: integer
+      description: The number of pods running
+      JSONPath: .spec.replicas
+    - name: ServiceType
+      type: string
+      description: How the website is exposed to the external
+      JSONPath: .spec.serviceType
+    - name: gitRepo
+      type: string
+      description: The Git repo where config files are stored
+      JSONPath: .spec.gitRepo
+    - name: ConfigType
+      type: string
+      description: How configurations are passed to pods
+      JSONPath: .spec.configType      
+    - name: Age
+      type: date
+      description: Creation timestamp
+      JSONPath: .metadata.creationTimestamp
+```
+
+Create the resource definition
+
+    kubectl apply -f website-crd.yaml
+
+Custom Resources Definitions are no namespaced objects and can be retrieved as any other kubernetes object
+
+    kubectl get crd
+
+    NAME                        CREATED AT
+    websites.kubeo.clastix.io   2018-08-09T14:17:58Z
+
+After we post the descriptor to Kubernetes, it will allow us to create any number of instances of the custom Website resource. For example, create a new website as in the following ``website.yaml`` descriptor file
+
+```
+apiVersion: "kubeo.clastix.io/v1"
+kind: Website
+metadata:
+  namespace:
+  name: kubia01
+  labels:
+spec:
+  replicas: 3
+  serviceType: LoadBalancer
+  gitRepo: https://github.com/kalise/kubia.git
+  configType: ConfigMap
+```
+
+Create a new website
+
+    kubectl apply -f website.yaml
+
+The custom resources can be retrieved as any other kubernetes default object
+
+    kubectl get websites
+    NAME      PODREPLICAS   SERVICETYPE    GITREPO                               CONFIGTYPE   AGE
+    kubia01   3             LoadBalancer   https://github.com/kalise/kubia.git   ConfigMap    5m
+
+According to its semantic, a custom resource can be scaled. In our case we can scale up to 9 pod replicas since the hard limits we set inthe custom resouce definition
+
+
+    kubectl scale website kubia01 --replicas=9
+
+    kubectl get websites
+
+    NAME      PODREPLICAS   SERVICETYPE    GITREPO                               CONFIGTYPE   AGE
+    kubia01   9             LoadBalancer   https://github.com/kalise/kubia.git   ConfigMap    8m
+
+However, creating a CRD so that users can create objects of the new type is unuseful if those objects don’t make something tangible happening in the cluster. In our case, the website we just created, only is an object stored into etcd and it is not running anything.
+
+To make this an useful feature, each custom resource definition needs an associated controller, i.e. an active component doing something on the worker nodes, basing on the custom objects, the same way that all the core Kubernetes resources have an associated controller.
+
+Writing a new controller for custom resources is not an easy task, unless we use some special frameworks built for this scope. 
 
 ## The Operator framework

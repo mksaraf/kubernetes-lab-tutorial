@@ -38,9 +38,10 @@ To be authenticated by the API server, we need to use the service account token 
 
 Once we have the token, we can access the API Server from within the pod
 
-    / # curl https://$KUBERNETES_SERVICE_HOST:$KUBERNETES_SERVICE_PORT/api/ --header "Authorization: Bearer $TOKEN" -k
+    / # curl https://$KUBERNETES_SERVICE_HOST:$KUBERNETES_SERVICE_PORT/api/ \
+             --header "Authorization: Bearer $TOKEN" -k
 
-Now we can browse the API Server.
+Now we can explore the API Server.
 
 ## Exploring APIs Server 
 

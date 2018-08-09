@@ -68,7 +68,7 @@ Once we have the token, we can access the API Server from within the pod
 
 Now we can explore the API Server.
 
-## Exploring APIs Server
+## Exploring the APIs Server
 All Kubernetes requests begin with the the core APIs prefix ``/api/`` or with the grouped APIs prefix ``/apis/``. The two different sets of paths are primarily historical: API Groups did not originally exist in the Kubernetes API, so the original or core objects like Pods and Services are maintained under the core APIs without an API group. Subsequently, APIs have generally been added under API groups, so they follow the ``/apis/<api-group>/`` path.
 
 For example, to get the list of pods
@@ -89,13 +89,13 @@ An additional classification of resource paths is whether or not the resource is
 
 Here are the components of the two different paths for namespaced resource types
 
-    http://<server>:<port>/api/v1/namespaces/<namespace-name>/<resource-type-name>/<resource-name>
-    http://<server>:<port>/apis/<api-group>/<api-version>/namespaces/<namespace-name>/<resource-type-name>/<resource-name>
+    http://<server>:<port>/api/v1/namespaces/<namespace>/<resource-type>/<resource>
+    http://<server>:<port>/apis/<api-group>/<api-version>/namespaces/<namespace>/<resource-type>/<resource>
 
 Here are the components of the two different paths for no namespaced resource types
 
-    http://<server>:<port>/api/v1/<resource-type-name>/<resource-name>
-    http://<server>:<port>/apis/<api-group>/<api-version>/<resource-type-name>/<resource-name>
+    http://<server>:<port>/api/v1/<resource-type>/<resource>
+    http://<server>:<port>/apis/<api-group>/<api-version>/<resource-type>/<resource>
 
 For example, to get all the pods running in the ``kube-system`` namespace
 
@@ -156,8 +156,14 @@ The API server switches into watch mode, and it leaves the connection between cl
 
 The data returned by the API server is no longer just the API object, it is a different object which contains both the type of the change, e.g. created, modified, deleted, as well as the API object itself. In this way a client can watch and observe all changes to that object, or set of objects instead of polling at some interval for possible updates, which introduces load and latency.
 
-
 ## API Aggregation
+The aggregation layer allows Kubernetes to be extended with additional APIs, beyond what is offered by default. It enables installing additional Kubernetes-style APIs in the cluster. These can either be pre-built, existing 3rd party solutions, such as a service-catalog, or user-created APIs servers. The can either run as pods in the same kubernetes cluster or run as standalone services.
+
+
+
+
+
+
 
 ## Custom Resources
 

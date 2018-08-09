@@ -31,6 +31,18 @@ To access as a specific user, we can use his own key-pair certificates. For exam
          --cacert ca.pem \
          https://apiserver:8443/api/ 
 
+To simplify the usage of the ``curl`` command with certificates, create a configuration file ``.curlrc`` as following
+
+    $ cat .curlrc
+    
+    --key admin-key.pem
+    --cert admin.pem
+    --cacert ca.pem 
+
+When ``curl`` is invoked, it always checks for a default config file and uses it if found. Now we can access the API server directly
+
+    curl  https://apiserver:8443/api/ 
+
 ### Accessing from an application
 We can also access the API Server from an application running in a pod by using its service account as in the following example.
 

@@ -68,7 +68,91 @@ Once we have the token, we can access the API Server from within the pod
 
 Now we can explore the API Server.
 
-## Exploring APIs Server 
+## Exploring APIs Server
+All Kubernetes requests begin with the the core APIs prefix ``/api/`` or with the grouped APIs prefix ``/apis/``. The two different sets of paths are primarily historical: API Groups did not originally exist in the Kubernetes API, so the original or core objects like Pods and Services are maintained under the core APIs without an API group. Subsequently, APIs have generally been added under API groups, so they follow the ``/apis/<api-group>/`` path.
+
+For example, to get the list of pods
+
+    curl http://127.0.0.1:8080/api/v1/pods
+
+or services
+
+    curl http://127.0.0.1:8080/api/v1/services
+
+they are part of the core APIs.
+
+The Deployment object is part of the app API group and it is found here
+
+    http://127.0.0.1:8080/apis/apps/v1/deployments
+
+An additional classification of resource paths is whether or not the resource is namespaced.
+
+Here are the components of the two different paths for namespaced resource types
+
+    http://<server>:<port>/api/v1/namespaces/<namespace-name>/<resource-type-name>/<resource-name>
+    http://<server>:<port>/apis/<api-group>/<api-version>/namespaces/<namespace-name>/<resource-type-name>/<resource-name>
+
+Here are the components of the two different paths for no namespaced resource types
+
+    http://<server>:<port>/api/v1/<resource-type-name>/<resource-name>
+    http://<server>:<port>/apis/<api-group>/<api-version>/<resource-type-name>/<resource-name>
+
+For example, to get all the pods running in the ``kube-system`` namespace
+
+    curl http://127.0.0.1:8080/api/v1/namespaces/kube-system/pods
+    
+To get a specific pod in the default namespace
+
+    http://127.0.0.1:8080/api/v1/namespaces/default/pods/nginx
+
+To get all the nodes
+
+    curl http://127.0.0.1:8080/api/v1/nodes
+
+because the node resource type is not namespaced.
+
+Another grouping is based on the version of the API. For the core APIs group ``/api/`` there is only one, i.e. the ``/api/v1/`` where for the other APIs group there are many, e.g. ``/apis/<api-group>/v1``, ``/apis/<api-group>/v1beta1``, ``/apis/<api-group>/v1alpha1``, depending on the stability of the resource implementation. A particular release of Kubernetes may support multiple different versions: alpha, beta and GA for a given resource type.
+
+In addition to the resource types themselves, there is much interesting information in the API object that describes the API itself, the so-called meta API object. For example, getting the core APIs 
+
+curl http://127.0.0.1:8080/api/v1/
+
+for pods object, we get 
+```json
+    {
+      "name": "pods",
+      "singularName": "",
+      "namespaced": true,
+      "kind": "Pod",
+      "verbs": [
+        "create",
+        "delete",
+        "deletecollection",
+        "get",
+        "list",
+        "patch",
+        "update",
+        "watch"
+      ],
+      "shortNames": [
+        "po"
+      ],
+      "categories": [
+        "all"
+      ]
+    }
+```
+
+Looking at this object, the ``name`` field provides the name of this resource. The ``namespaced`` field in the object description indicates if the object is namespaced or not. The ``Kind`` field provides the string that is present in the API object’s JSON representation to indicate what kind of object it is. The ``verbs`` field indicates what kind of actions can be taken on that object. The pods object contains all of the possible verbs: create, delete, get, list, and so on.
+
+The watch verb indicates that we can establish a watch for the resource. A watch is long running operation which provides notifications about changes to the object.
+
+For example, to watch notifications from pods we can add the query parameter ``?watch=true`` to an API server request
+
+    curl http://127.0.0.1:8080/api/v1/namespaces/default/pods?watch=true
+
+The API server switches into watch mode, and it leaves the connection between client and server open. The data returned by the API server is no longer just the API object, it is a different object which contains both the type of the change, e.g. created, modified, deleted, as well as the API object itself. In this way a client can “watch” and observe all changes to that object, or set of objects instead of polling at some interval for possible updates, which introduces load and latency.
+
 
 ## API Aggregation
 

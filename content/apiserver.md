@@ -113,7 +113,40 @@ because the node resource type is not namespaced.
 
 Another grouping is based on the version of the API. For the core APIs group ``/api/`` there is only one, i.e. the ``/api/v1/`` where for the other APIs group there are many, e.g. ``/apis/<api-group>/v1``, ``/apis/<api-group>/v1beta1``, ``/apis/<api-group>/v1alpha1``, depending on the stability of the resource implementation. A particular release of Kubernetes may support multiple different versions: alpha, beta and GA for a given resource type.
 
-In addition to the resource types themselves, there is much interesting information in the API object that describes the API itself, the so-called meta API object. For example, getting the core APIs 
+To check which API-versions our cluster can handle, simply run
+
+    $ kubectl api-versions
+    
+    admissionregistration.k8s.io/v1beta1
+    apiextensions.k8s.io/v1beta1
+    apiregistration.k8s.io/v1
+    apiregistration.k8s.io/v1beta1
+    apps/v1
+    apps/v1beta1
+    apps/v1beta2
+    authentication.k8s.io/v1
+    authentication.k8s.io/v1beta1
+    authorization.k8s.io/v1
+    authorization.k8s.io/v1beta1
+    autoscaling/v1
+    autoscaling/v2beta1
+    batch/v1
+    batch/v1beta1
+    certificates.k8s.io/v1beta1
+    events.k8s.io/v1beta1
+    extensions/v1beta1
+    metrics.k8s.io/v1beta1
+    networking.k8s.io/v1
+    policy/v1beta1
+    rbac.authorization.k8s.io/v1
+    rbac.authorization.k8s.io/v1beta1
+    scheduling.k8s.io/v1beta1
+    storage.k8s.io/v1
+    storage.k8s.io/v1beta1
+    v1
+
+
+There is much interesting information in the API objects that describes the API itself, the so-called meta API objects. For example, getting the core APIs 
 
     curl http://127.0.0.1:8080/api/v1/
 
@@ -152,9 +185,7 @@ For example, to watch notifications from pods we can add the query parameter ``?
 
     curl http://127.0.0.1:8080/api/v1/namespaces/default/pods?watch=true
 
-The API server switches into watch mode, and it leaves the connection between client and server open.
-
-The data returned by the API server is no longer just the API object, it is a different object which contains both the type of the change, e.g. created, modified, deleted, as well as the API object itself. In this way a client can watch and observe all changes to that object, or set of objects instead of polling at some interval for possible updates, which introduces load and latency.
+The API server switches into watch mode, and it leaves the connection between client and server open. The data returned by the API server is no longer just the API object, it is a different object which contains both the type of the change, e.g. created, modified, deleted, as well as the API object itself. In this way a client can watch and observe all changes to that object, or set of objects instead of polling at some interval for possible updates, which introduces load and latency.
 
 ## API Aggregation
 The aggregation layer allows Kubernetes to be extended with additional APIs, beyond what is offered by default. It enables installing additional Kubernetes-style APIs in the cluster. These can either be pre-built, existing 3rd party solutions, such as a service-catalog, or user-created APIs servers. They can either run as pods in the same kubernetes cluster or run as standalone services.
@@ -347,4 +378,5 @@ However, creating a CRD, so that users can define custom objects of a new type, 
 
 To make this an useful feature, each custom resource definition needs an associated controller, i.e. an active component doing something on the worker nodes, basing on the custom objects, the same way that all the core Kubernetes resources have an associated controller. For example, in our case, a custom website controller, will be responsible for watching the website creation events and create all the required objects, including the pods and the service, that concretely implement the website. Writing a new controller for custom resources is not an easy task, unless we use some special frameworks expressly built for this scope. 
 
-## The Operator framework
+## The Operators
+Custom Resources need associated controllers that actually implement the custom resource objects and take care of them, for example, by watching events and taking appropriate actions. These custom controllers are called **Operators**. There are many operators out there and in this section, we'll se in action the  

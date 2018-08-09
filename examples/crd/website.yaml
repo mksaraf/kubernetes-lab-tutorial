@@ -1,0 +1,11 @@
+apiVersion: "kubeo.noverit.com/v1"
+kind: Website
+metadata:
+  namespace:
+  name: kubia01
+  labels:
+spec:
+  replicas: 3
+  serviceType: LoadBalancer
+  gitRepo: https://github.com/kalise/kubia.git
+  configType: ConfigMap

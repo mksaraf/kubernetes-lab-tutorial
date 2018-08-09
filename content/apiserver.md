@@ -181,12 +181,12 @@ apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
   # name must match the spec fields below, and be in the form: <plural>.<group>
-  name: websites.kubeo.clastix.io
+  name: websites.kubeo.noverit.com
 spec:
   # either Namespaced or Cluster
   scope: Namespaced
   # group name to use for REST API: /apis/<group>/<version>
-  group: kubeo.clastix.io
+  group: kubeo.noverit.com
   # multiple versions of the same API can be served at same type
   versions:
     - name: v1
@@ -256,13 +256,61 @@ Custom Resources Definitions are no namespaced objects and can be retrieved as a
 
     kubectl get crd
 
-    NAME                        CREATED AT
-    websites.kubeo.clastix.io   2018-08-09T14:17:58Z
+    NAME                         CREATED AT
+    websites.kubeo.noverit.com   2018-08-09T14:17:58Z
 
-After we post the descriptor to Kubernetes, it will allow us to create any number of instances of the custom Website resource. For example, create a new website as in the following ``website.yaml`` descriptor file
+After we post the descriptor to Kubernetes, a new API group is available in the API server
+
+    curl http://127.0.0.1:8080/apis/kubeo.noverit.com/v1
+
+returns the following API object descriptor
+
+```json
+{
+  "kind": "APIResourceList",
+  "apiVersion": "v1",
+  "groupVersion": "kubeo.noverit.com/v1",
+  "resources": [
+    {
+      "name": "websites",
+      "singularName": "website",
+      "namespaced": true,
+      "kind": "Website",
+      "verbs": [
+        "delete",
+        "deletecollection",
+        "get",
+        "list",
+        "patch",
+        "create",
+        "update",
+        "watch"
+      ],
+      "shortNames": [
+        "ws"
+      ]
+    },
+    {
+      "name": "websites/scale",
+      "singularName": "",
+      "namespaced": true,
+      "group": "autoscaling",
+      "version": "v1",
+      "kind": "Scale",
+      "verbs": [
+        "get",
+        "patch",
+        "update"
+      ]
+    }
+  ]
+}
+```
+
+CRD will allow users to create any number of instances of the custom resource. For example, create a new website as in the following ``website.yaml`` descriptor file
 
 ```
-apiVersion: "kubeo.clastix.io/v1"
+apiVersion: "kubeo.noverit.com/v1"
 kind: Website
 metadata:
   namespace:
@@ -279,13 +327,13 @@ Create a new website
 
     kubectl apply -f website.yaml
 
-The custom resources can be retrieved as any other kubernetes default object
+The custom resources can be also listed, retrieved, described, updated, and deleted, as any other kubernetes object, with the ``kubectl`` command line
 
     kubectl get websites
     NAME      PODREPLICAS   SERVICETYPE    GITREPO                               CONFIGTYPE   AGE
     kubia01   3             LoadBalancer   https://github.com/kalise/kubia.git   ConfigMap    5m
 
-According to its semantic, a custom resource can be scaled. In our case we can scale up to 9 pod replicas since the hard limits we set inthe custom resouce definition
+According to its semantics, a custom resource can be also scaled up and down. In our case we can scale up to 9 pod replicas since the hard limits we set in the custom resouce definition
 
 
     kubectl scale website kubia01 --replicas=9
@@ -295,10 +343,8 @@ According to its semantic, a custom resource can be scaled. In our case we can s
     NAME      PODREPLICAS   SERVICETYPE    GITREPO                               CONFIGTYPE   AGE
     kubia01   9             LoadBalancer   https://github.com/kalise/kubia.git   ConfigMap    8m
 
-However, creating a CRD so that users can create objects of the new type is unuseful if those objects don’t make something tangible happening in the cluster. In our case, the website we just created, only is an object stored into etcd and it is not running anything.
+However, creating a CRD, so that users can define custom objects of a new type, is unuseful if those objects don’t make something tangible happening in the cluster. In our case, for example, the website we just created, only is an object stored into etcd and served by the API server but it is not running anything.
 
-To make this an useful feature, each custom resource definition needs an associated controller, i.e. an active component doing something on the worker nodes, basing on the custom objects, the same way that all the core Kubernetes resources have an associated controller.
-
-Writing a new controller for custom resources is not an easy task, unless we use some special frameworks built for this scope. 
+To make this an useful feature, each custom resource definition needs an associated controller, i.e. an active component doing something on the worker nodes, basing on the custom objects, the same way that all the core Kubernetes resources have an associated controller. For example, in our case, a custom website controller, will be responsible for watching the website creation events and create all the required objects, including the pods and the service, that concretely implement the website. Writing a new controller for custom resources is not an easy task, unless we use some special frameworks expressly built for this scope. 
 
 ## The Operator framework

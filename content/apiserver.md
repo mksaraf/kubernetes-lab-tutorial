@@ -157,14 +157,16 @@ The API server switches into watch mode, and it leaves the connection between cl
 The data returned by the API server is no longer just the API object, it is a different object which contains both the type of the change, e.g. created, modified, deleted, as well as the API object itself. In this way a client can watch and observe all changes to that object, or set of objects instead of polling at some interval for possible updates, which introduces load and latency.
 
 ## API Aggregation
-The aggregation layer allows Kubernetes to be extended with additional APIs, beyond what is offered by default. It enables installing additional Kubernetes-style APIs in the cluster. These can either be pre-built, existing 3rd party solutions, such as a service-catalog, or user-created APIs servers. The can either run as pods in the same kubernetes cluster or run as standalone services.
+The aggregation layer allows Kubernetes to be extended with additional APIs, beyond what is offered by default. It enables installing additional Kubernetes-style APIs in the cluster. These can either be pre-built, existing 3rd party solutions, such as a service-catalog, or user-created APIs servers. They can either run as pods in the same kubernetes cluster or run as standalone services.
 
+For example, the metric-server is deployed as stand-alone APIs service running as pod in kube-system namespace
 
-
-
-
-
+    kubectl get pods -n kube-system
+    NAME                              READY     STATUS    RESTARTS   AGE
+    kube-dns-598d7bf7d4-bn9pq         3/3       Running   0          17d
+    metrics-server-86bd9d7667-mx9jp   1/1       Running   0          10d
 
 ## Custom Resources
+
 
 ## The Operator framework

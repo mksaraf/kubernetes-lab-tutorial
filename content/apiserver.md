@@ -2,7 +2,10 @@
 The API Server is the central touch point for a Kubernetes cluster that is accessed by all users. The API server implements a RESTful API over HTTP(S), it performs all API operations and is responsible for storing API objects into a persistent storage backend, i.e. the etcd kay-value distributed database.
 
 ## Accessing the APIs Server
-To make easy to explore the API server through its RESTful interface, run the ``kubectl`` tool in proxy mode to expose an unauthenticated API server on ``localhost:8080`` using the following command:
+There are many ways to access the API server through its RESTful interface. In this section, we'll see few.
+
+### Accessing through a proxy
+To make easy to explore the API server run the ``kubectl`` tool in proxy mode to expose an unauthenticated API server on ``localhost:8080`` using the following command:
 
     kubectl proxy --port=8080 &
 
@@ -10,7 +13,8 @@ Then you can explore the API with ``curl``, ``wget``, or a browser.
 
     curl http://localhost:8080/api/
 
-Alternately, without the proxy, we need first to get the bearer token
+### Accessing with a bearer token
+Alternately, without the proxy, we need first to get a bearer token
 
     SECRET=$(kubectl get secrets | grep ^default | cut -f1 -d ' ')
     TOKEN=$(kubectl describe secret $SECRET | grep -E '^token' | cut -f2 -d':' | tr -d " ")
@@ -19,7 +23,16 @@ and then access the API Server on its listening port, i.e, ``apiserver:8443`` by
 
     curl https://apiserver:8443/api/ --header "Authorization: Bearer $TOKEN" -k
 
-We can also access the API Server from a pod by using its service account as in the following example.
+### Accessing with a certificate
+To access as a specific user, we can use his own key-pair certificates. For example, to access as cluster admin, we need to have access to his certificates: ``admin-key.pem`` and ``admin.pem`` as well as the certification authority ``ca.pem``
+
+    curl --key admin-key.pem \
+         --cert admin.pem \
+         --cacert ca.pem \
+         https://apiserver:8443/api/ 
+
+### Accessing from an application
+We can also access the API Server from an application running in a pod by using its service account as in the following example.
 
 Create an ephemeral pod from a ``curl`` image and login into
 

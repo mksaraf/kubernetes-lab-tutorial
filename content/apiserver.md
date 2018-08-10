@@ -200,12 +200,11 @@ For example, the metric-server is deployed as stand-alone APIs service running a
 ## Custom Resources
 Kubernetes APIs server can be extended by defining custom resources. To define a new resource type, we need to post a **Custom Resource Definition** object or **CRD** to the APIs server. The CRD object is the description of the custom resource type. Once the CRD is posted, we can then create instances of the custom resource by posting JSON or YAML manifests to the API server, the same we do with any other Kubernetes resource.
 
-In this section, we want to allow users of kubernetes cluster to run static websites as easily as possible, without having to deal with pods, services, and other Kubernetes resources. What we want to achieve is for users to create objects of type Website that contain nothing more than the website’s name and the source Git repository from which the website’s
-files should be obtained.
+In this section, we want to allow users of kubernetes cluster to run static websites as easily as possible, without having to deal with pods, services, and other Kubernetes resources. What we want to achieve is to let users to create objects of type Website.
 
-When a user creates an instance of the Website resource, we want the cluster to spin up a new webserver deployment, a volume pointing to the Git reposistory, a configmap and expose it to the external through a service.
+When a user creates an instance of the Website resource, we want the cluster to spin up a new deployment, a volume pointing to the Git reposistory, a configmap and expose it to the external through a service with a single action.
 
-To make Kubernetew aware of a new custom resource type, we need to create the related CRD as in the following ``website-crd.yaml`` definition file
+To make Kubernetew aware of a new custom resource type, we need to create first the related CRD as in the following ``website-crd.yaml`` definition file
 
 ```yaml
 apiVersion: apiextensions.k8s.io/v1beta1
@@ -294,7 +293,7 @@ After we post the descriptor to Kubernetes, a new API group is available in the 
 
     curl http://127.0.0.1:8080/apis/kubeo.noverit.com/v1
 
-returns the following API object descriptor
+returning the following API object descriptor
 
 ```json
 {
@@ -338,7 +337,7 @@ returns the following API object descriptor
 }
 ```
 
-CRD will allow users to create any number of instances of the custom resource. For example, create a new website as in the following ``website.yaml`` descriptor file
+Custom resource descriptors will allow users to create any number of instances of the custom resource. For example, create a new website as in the following ``website.yaml`` descriptor file
 
 ```
 apiVersion: "kubeo.noverit.com/v1"
@@ -374,9 +373,9 @@ According to its semantics, a custom resource can be also scaled up and down. In
     NAME      PODREPLICAS   SERVICETYPE    GITREPO                               CONFIGTYPE   AGE
     kubia01   9             LoadBalancer   https://github.com/kalise/kubia.git   ConfigMap    8m
 
-However, creating a CRD, so that users can define custom objects of a new type, is unuseful if those objects don’t make something tangible happening in the cluster. In our case, for example, the website we just created, only is an object stored into etcd and served by the API server but it is not running anything.
+However, creating a Custom Resource Definition, so that users can define custom objects of a new type, is unuseful if those objects don’t make something tangible happening in the cluster. In our case, for example, the website we just created, only is an object stored into etcd and served by the API server but it is not running anything.
 
 To make this an useful feature, each custom resource definition needs an associated controller, i.e. an active component doing something on the worker nodes, basing on the custom objects, the same way that all the core Kubernetes resources have an associated controller. For example, in our case, a custom website controller, will be responsible for watching the website creation events and create all the required objects, including the pods and the service, that concretely implement the website. Writing a new controller for custom resources is not an easy task, unless we use some special frameworks expressly built for this scope. 
 
 ## The Operators
-Custom Resources need associated controllers that actually implement the custom resource objects and take care of them, for example, by watching events and taking appropriate actions. These custom controllers are called **Operators**. There are many operators out there and in this section, we'll se in action the  
+Custom Resources need associated controllers that actually implement the custom resource objects and take care of them, for example, by watching events and taking appropriate actions. These custom controllers are called **Operators**. There are many operators out there and in this section, we'll se in action the MySQL Operator. This operator will be used to create MySQL clusters running on Kubernetes.

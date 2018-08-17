@@ -1,5 +1,5 @@
 # Kubernetes Lab Tutorial
-**Kubernetes** is an open-source platform for automating deployment, scaling, and operations of application containers across a cluster of hosts. This tutorial is for personal use only. It's just a lab guide, not a documentation for Kubernets. Please go to the project [docs](https://kubernetes.io/docs) for more details about what Kubernets is and how does it work.
+**Kubernetes** is an open-source platform for automating deployment, scaling, and operations of application containers across a cluster of hosts. This tutorial is for personal use only. It's just a lab guide, not a reference for Kubernets. Please go to the project [docs](https://kubernetes.io/docs) for more details about what Kubernets is and how does it work.
 
 ## Content
 1. [Architecture](./content/architecture.md)

@@ -693,7 +693,7 @@ An application doesn’t need to read the ConfigMap directly or even know that i
 
 For example, let's to create a ConfigMap from the ``nginx.conf`` configuration file
 
-    kubectl create kubectl create configmap nginxconfig --from-file=nginx.json
+    kubectl create configmap nginxconfig --from-file=nginx.json
 
 Define now a nginx pod mounting the config map above as volume under the ``/etc/nginx/conf.d`` as in the ``nginx-pod-cm.yaml`` manifest file
 

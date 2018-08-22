@@ -26,18 +26,18 @@ and then access the API Server on its listening port, i.e, ``apiserver:8443`` by
 ### Accessing with a certificate
 To access as a specific user, we can use his own key-pair certificates. For example, to access as cluster admin, we need to have access to his certificates: ``admin-key.pem`` and ``admin.pem`` as well as the certification authority ``ca.pem``
 
-    curl --key admin-key.pem \
-         --cert admin.pem \
-         --cacert ca.pem \
+    curl --key ./admin-key.pem \
+         --cert ./admin.pem \
+         --cacert ./ca.pem \
          https://apiserver:8443/api/ 
 
 To simplify the usage of the ``curl`` command with certificates, create a configuration file ``curlrc`` as following
 
     $ cat .curlrc
     
-    --key admin-key.pem
-    --cert admin.pem
-    --cacert ca.pem 
+    --key ./admin-key.pem
+    --cert ./admin.pem
+    --cacert ./ca.pem 
 
 Now we can access the API server as
 

@@ -344,17 +344,16 @@ returning the following API object descriptor
 Custom resource descriptors will allow users to create any number of instances of the custom resource. For example, create a new website as in the following ``website.yaml`` descriptor file
 
 ```
-apiVersion: "kubeo.noverit.com/v1"
+apiVersion: noverit.com/v1
 kind: Website
 metadata:
   namespace:
-  name: kubia01
+  name: kubeo
   labels:
 spec:
   replicas: 3
-  serviceType: LoadBalancer
-  gitRepo: https://github.com/kalise/kubia.git
-  configType: ConfigMap
+  gitRepo: https://github.com/kalise/kubeo.git
+  domain: noverit.com
 ```
 
 Create a new website
@@ -364,28 +363,28 @@ Create a new website
 The custom resources can be also listed, retrieved, described, updated, and deleted, as any other kubernetes object, with the ``kubectl`` command line
 
     kubectl get websites
-    NAME      PODREPLICAS   SERVICETYPE    GITREPO                               CONFIGTYPE   AGE
-    kubia01   3             LoadBalancer   https://github.com/kalise/kubia.git   ConfigMap    5m
+    NAME    DESIRED READY UPDATED AVAILABLE GEN AGE GITREPO                               ROUTE
+    kubeo   3       0     0       0         0   18s https://github.com/kalise/kubeo.git   kubeo.noverit.com
 
 According to its semantics, a custom resource can be also scaled up and down. In our case we can scale up to 9 pod replicas since the hard limits we set in the custom resouce definition
 
-
     kubectl scale website kubia01 --replicas=9
-
-    kubectl get websites
-
-    NAME      PODREPLICAS   SERVICETYPE    GITREPO                               CONFIGTYPE   AGE
-    kubia01   9             LoadBalancer   https://github.com/kalise/kubia.git   ConfigMap    8m
 
 However, creating a Custom Resource Definition, so that users can define custom objects of a new type, is unuseful if those objects don’t make something tangible happening in the cluster. In our case, for example, the website we just created, only is an object stored into etcd and served by the API server but it is not running anything.
 
-To make this an useful feature, each custom resource definition needs an associated controller, i.e. an active component doing something on the worker nodes, basing on the custom objects, the same way that all the core Kubernetes resources have an associated controller. For example, in our case, a custom website controller, will be responsible for watching the website creation events and create all the required objects, including the pods and the service, that concretely implement the website. In the nex section, we'll use a simple controller for our website custom resource. 
+To make this an useful feature, each custom resource definition needs an associated controller, i.e. an active component doing something on the worker nodes, basing on the custom objects, the same way that all the core Kubernetes resources have an associated controller. For example, in our case, a custom website controller, will be responsible for watching the website creation events and create all the required objects, including the pods and the service, that concretely implement the website. In the nex sections, we'll use a simple controller for our website custom resource. 
 
-## The Operators
+## Custom Controllers
 Custom Resources need associated controllers that actually implement the custom resource objects and take care of them, for example, by watching events and taking appropriate actions. These custom controllers are called **Operators**.
 
 There are many operators out there but we'll use a simple operator for our website custom resource we just created in the previous section. This operator will create and control our custom websites running as a set of resources, e.g. pods, services, deployment, running on the kubernetes cluster.
 
+To build custom controllers, at time of writing, we have three options:
+
+    1. [Kuberbuilder](https://github.com/kubernetes-sigs/kubebuilder)
+    2. [Operator Framework](https://github.com/operator-framework/)
+    3. [Metacontroller](https://metacontroller.app/)
+    
 
 
 

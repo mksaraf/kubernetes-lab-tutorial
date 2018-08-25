@@ -211,23 +211,17 @@ apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
   # name must match the spec fields below, and be in the form: <plural>.<group>
-  name: websites.kubeo.noverit.com
+  name: websites.noverit.com
 spec:
   # either Namespaced or Cluster
   scope: Namespaced
   # group name to use for REST API: /apis/<group>/<version>
-  group: kubeo.noverit.com
+  group: noverit.com
   # multiple versions of the same API can be served at same type
   versions:
     - name: v1
       served: true
       storage: true
-    - name: v1beta1
-      served: true
-      storage: false      
-    - name: v1alfa2
-      served: false
-      storage: false
   names:
     kind: Website
     singular: website
@@ -247,35 +241,45 @@ spec:
           properties:
             gitRepo:
               type: string
-            serviceType:
-              type: string
-            configType:
+            domain:
               type: string
             replicas:
               type: integer
               minimum: 0
               maximum: 9
   additionalPrinterColumns:
-    - name: podReplicas
+    - name: Desired
       type: integer
-      description: The number of pods running
+      description: The number of desired pods
       JSONPath: .spec.replicas
-    - name: ServiceType
-      type: string
-      description: How the website is exposed to the external
-      JSONPath: .spec.serviceType
-    - name: gitRepo
-      type: string
-      description: The Git repo where config files are stored
-      JSONPath: .spec.gitRepo
-    - name: ConfigType
-      type: string
-      description: How configurations are passed to pods
-      JSONPath: .spec.configType      
+    - name: Ready
+      type: integer
+      description: The number of ready pods 
+      JSONPath: .status.current
+    - name: Updated
+      type: integer
+      description: The number of updated pods 
+      JSONPath: .status.updated
+    - name: Available
+      type: integer
+      description: The number of available pods
+      JSONPath: .status.available
+    - name: Generation
+      type: integer
+      description: The observer generation
+      JSONPath: .status.generation
     - name: Age
       type: date
       description: Creation timestamp
       JSONPath: .metadata.creationTimestamp
+    - name: gitRepo
+      type: string
+      description: The Git repo where config files are stored
+      JSONPath: .spec.gitRepo
+    - name: Route
+      type: string
+      description: How the website is reachable from the external
+      JSONPath: .status.route
 ```
 
 Create the resource definition

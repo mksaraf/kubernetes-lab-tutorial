@@ -381,9 +381,9 @@ There are many operators out there but we'll use a simple operator for our websi
 
 To build custom controllers, at time of writing, we have three options:
 
-   1.[Kuberbuilder](https://github.com/kubernetes-sigs/kubebuilder)
-   2.[Operator Framework](https://github.com/operator-framework)
-   3.[Metacontroller](https://github.com/GoogleCloudPlatform/metacontroller)
+   1. [Kuberbuilder](https://github.com/kubernetes-sigs/kubebuilder)
+   2. [Operator Framework](https://github.com/operator-framework)
+   3. [Metacontroller](https://github.com/GoogleCloudPlatform/metacontroller)
     
 **Kubebuilder** and the **Operator Framework** are quite similar: both are only intended for *GO* developers and both rely on a code generator to to build custom controllers. The third option, **Metacontroller**, takes a completely different approach: it's an actual framework, as opposed to code generator, where controllers are custom resources themselves, controlled by the Metacontroller, which delegates reconciliation to simple web hooks written in any programming language understanding *JSON*.
 

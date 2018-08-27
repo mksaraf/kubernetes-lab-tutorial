@@ -387,8 +387,6 @@ To build custom controllers, at time of writing, we have three options:
     
 **Kubebuilder** and the **Operator Framework** are quite similar: both are only intended for *GO* developers and both rely on a code generator to build custom controllers. The third option, called **Metacontroller**, takes a completely different approach: it's an actual framework, as opposed to code generator, where custom controllers are simple web hooks called by the metacontroller itself which is running as a pod in the control plane.
 
-Once defined the custom resource in terms of the parent resource (e.g. the website), and the associated children resources (e.g. pods, services, deployments actually implementing the website), we instruct the metacontroller how to map the parent with the children resources. Then the metacontroller will take care of reconciliation process between the observed and the desired state of the custom resources following the business logic defined into the web hook.
+Once defined the custom resource in terms of the parent resource (e.g. the website), and the associated children resources (e.g. pods, services, deployments actually implementing the website), we instruct the metacontroller to map the parent with the children resources. Then the metacontroller will take care of reconciliation process between the observed and the desired state of the custom resources following the business logic defined into the web hook.
 
-The web hooks can be written in any programming language understanding *JSON*.
-
-Please refer to this [example](https://github.com/kalise/kube-website-controller) for an example usage of the Metacontroller.
+The web hooks can be written in any programming language understanding *JSON*. Please refer to this [repo](https://github.com/kalise/kube-website-controller) for an example.

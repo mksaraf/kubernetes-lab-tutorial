@@ -375,9 +375,9 @@ However, creating a Custom Resource Definition, so that users can define custom 
 To make this an useful feature, each custom resource definition needs an associated controller, i.e. an active component doing something on the worker nodes, basing on the custom objects, the same way that all the core Kubernetes resources have an associated controller. For example, in our case, a custom website controller, will be responsible for watching the website creation events and create all the required objects, including the pods and the service, that concretely implement the website. 
 
 ## Custom Controllers
-Custom Resources need associated controllers that actually implement the custom resource objects and take care of them, for example, by watching events and taking appropriate actions. These custom controllers are called **Operators**.
+Custom Resources need associated controllers that actually implement the custom resource objects and take care of them, for example, by watching events and taking appropriate actions. These custom controllers are generically called **Operators**.
 
-There are many operators out there but we'll use a simple operator for our website custom resource we just created in the previous section. This operator will create and control our custom websites running as a set of resources, e.g. pods, services, deployment, running on the kubernetes cluster.
+There are many operators out there but we'll define a simple operator for our website custom resource we just created in the previous section. This operator will create and control our custom websites running as a set of resources, e.g. pods, services, deployment, running on the kubernetes cluster.
 
 To build custom controllers, at time of writing, we have three options:
 
@@ -385,10 +385,10 @@ To build custom controllers, at time of writing, we have three options:
    2. [Operator Framework](https://github.com/operator-framework)
    3. [Metacontroller](https://github.com/GoogleCloudPlatform/metacontroller)
     
-**Kubebuilder** and the **Operator Framework** are quite similar: both are only intended for *GO* developers and both rely on a code generator to to build custom controllers. The third option, **Metacontroller**, takes a completely different approach: it's an actual framework, as opposed to code generator, where controllers are custom resources themselves, controlled by the Metacontroller, which delegates reconciliation to simple web hooks written in any programming language understanding *JSON*.
+**Kubebuilder** and the **Operator Framework** are quite similar: both are only intended for *GO* developers and both rely on a code generator to build custom controllers. The third option, called **Metacontroller**, takes a completely different approach: it's an actual framework, as opposed to code generator, where custom controllers are simple web hooks called by the metacontroller itself which is running as a pod in the control plane.
+
+Once defined the custom resource in terms of the parent resource (e.g. the website), and the associated children resources (e.g. pods, services, deployments actually implementing the website), we instruct the metacontroller how to map the parent with the children resources. Then the metacontroller will take care of reconciliation process between the observed and the desired state of the custom resources following the business logic defined into the web hook.
+
+The web hooks can be written in any programming language understanding *JSON*.
 
 Please refer to this [example](https://github.com/kalise/kube-website-controller) for an example usage of the Metacontroller.
-
-
-
-

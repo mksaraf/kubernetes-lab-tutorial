@@ -202,7 +202,7 @@ Kubernetes APIs server can be extended by defining custom resources. To define a
 
 In this section, we want to allow users of kubernetes cluster to run static websites as easily as possible, without having to deal with pods, services, and other Kubernetes resources. What we want to achieve is to let users to create objects of type Website.
 
-When a user creates an instance of the Website resource, we want the cluster to spin up a new deployment, a volume pointing to the Git reposistory, a configmap and expose it to the external through a service with a single action.
+When a user creates an instance of the bebsite resource, we want the cluster to spin up a new deployment, a volume pointing to a Git reposistory hosting the static HTML pages, and expose the website to the external with a single action.
 
 To make Kubernetew aware of a new custom resource type, we need to create first the related CRD as in the following ``website-crd.yaml`` definition file
 

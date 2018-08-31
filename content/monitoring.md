@@ -119,8 +119,94 @@ We can check the usage of the resources at node level by describing the node
 The resource usage is provided by the **cAdvisor** agent running into kubelet binary and exposed externally to the port 4194 on the worker node. This is an unsecure port and can be closed. If not closed, we can start a simple UI on the cAdvisor agent. The cAdvisor auto-discovers all containers running on the node and collects CPU, memory, filesystem, and network usage statistics; it cAdvisor also provides the overall machine usage by analyzing the root container. Gathering those statistics centrally for the whole cluster requires to run an additional component.
 
 ## Metric Server
-The **Metric Server** is an additional component running as pod in the cluster, making centrally accessible all the metrics colled by any cAdvisor agent running on each node. 
+The **Metric Server** is an additional component running as pod in the cluster, making centrally accessible all the metrics collected by all the cAdvisor agents running on each worker nodes. Once installed, the metric server makes it possible to obtain resource usages for nodes and individual pods through the ``kubectl top`` command.
+
+To see how much CPU and memory is being used on the worker nodes, run the command: 
+
+    kubectl top nodes
+    
+    NAME          CPU(cores)   CPU%      MEMORY(bytes)   MEMORY%   
+    kubew03       366m         18%       2170Mi          38%       
+    kubew04       102m          6%       2170Mi          38%   
+    kubew05       708m         40%       2170Mi          38%   
+
+This shows the actual, current CPU and memory usage of all the pods running on all the nodes.
+
+To see how much each individual pod is using, use the command:
+
+    kubectl top pods
+
+    NAME                    CPU(cores)   MEMORY(bytes)   
+    curl                    0m           0Mi             
+    limited-pod             200m         0Mi             
+    request-pod             999m         0Mi        
+
+To see resource usages across individual containers instead of pods, use the ``--containers`` option
+
+    kubectl top pod limited-pod --containers
+
+    POD           NAME      CPU(cores)   MEMORY(bytes)   
+    limited-pod   busybox   200m         0Mi             
+
+Metrics are also exposed as API by the kubernetes API server at ``http://cluseter.local/apis/metrics.k8s.io/v1beta1/`` address.
+
+### Setup the Metric Server
+The purpose of the Metric Server is to provide a stable, versioned API that other kubernetes components can rely on. Metric Server is part of the so-called *core metrics pipeline*.
+
+In order to get a resource metrics server up and running we first need to configure the *aggregation layer* on the cluster. The aggregation layer allows generic custom API servers to register themselves with *kube-aggregator*. The aggregator is a proxy that will forward relevant requests from clients to the these custom API servers.
+
+
+Configuring the aggregation layer involves setting a number of flags on the API Server
+
+     --proxy-client-cert-file=/etc/kubernetes/pki/front-proxy-client.crt
+     --proxy-client-key-file=/etc/kubernetes/pki/front-proxy-client.key
+     --requestheader-allowed-names=front-proxy-client
+     --requestheader-client-ca-file=/etc/kubernetes/pki/front-proxy-ca.crt
+     --requestheader-extra-headers-prefix=X-Remote-Extra-
+     --requestheader-group-headers=X-Remote-Group
+     --requestheader-username-headers=X-Remote-User
+     --enable-aggregator-routing=true
+
+using some additional certificates. See [here](https://github.com/kubernetes-incubator/apiserver-builder/blob/master/docs/concepts/auth.md).
+
+Configure the API server to enable the aggregator and restart the service.
+
+Then deploy the Metric Server in the ``kube-system`` namespace from its manifest files
+
+     kubectl apply -f auth-delegator.yaml
+     kubectl apply -f auth-reader.yaml
+     kubectl apply -f resource-reader.yaml
+     kubectl apply -f metrics-apiservice.yaml
+     kubectl apply -f metrics-server-sa.yaml
+     kubectl apply -f metrics-server-deployment.yaml
+     kubectl apply -f metrics-server-service.yaml
+
+The metric server will be deployed as pod and exposed as an internal service.
+
+    get deploy metrics-server
+
+    NAME             DESIRED   CURRENT   UP-TO-DATE   AVAILABLE   AGE
+    metrics-server   1         1         1            1           2h
+
+    kubectl get svc metrics-server
+
+    NAME             TYPE        CLUSTER-IP    EXTERNAL-IP   PORT(S)         AGE
+    metrics-server   ClusterIP   10.32.0.19    <none>        443/TCP         2h
+
+
+
+
+
+
+
 
 
 
 ## Autoscaling
+
+
+
+
+
+
+

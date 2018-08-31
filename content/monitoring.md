@@ -29,7 +29,6 @@ spec:
     resources:
       requests:
         cpu: 200m
-        memory: 10Mi
   restartPolicy: Never
 ```
 
@@ -46,30 +45,81 @@ Checking the resource usage
 
     kubectl exec requests-pod top
 
-    Mem: 1288116K used, 760368K free, 9196K shrd, 25748K buff, 814840K cached
-    CPU: 9.1% usr 42.1% sys 0.0% nic 48.4% idle 0.0% io 0.0% irq 0.2% sirq
-    Load average: 0.79 0.52 0.29 2/481 10
-    PID PPID USER STAT VSZ %VSZ CPU %CPU COMMAND
-    1 0 root R 1192 0.0 1 50.0 dd if /dev/zero of /dev/null
-    7 0 root R 1200 0.0 0 0.0 top
+    Mem: 3469164K used, 2398380K free, 310084K shrd, 2072K buff, 2264708K cached
+    CPU: 18.9% usr 36.5% sys  0.1% nic 43.9% idle  0.0% io  0.0% irq  0.3% sirq
+    Load average: 1.57 0.73 0.54 3/642 8
+      PID  PPID USER     STAT   VSZ %VSZ CPU %CPU COMMAND
+        1     0 root     R     1236  0.0   1 50.0 dd if /dev/zero of /dev/null
+        5     0 root     R     1244  0.0   1  0.0 top
 
-we see the pod taking up to 50% of total CPU of the node. On a 2 core CPU node, this corresponds to a single CPU and it's as espected because the ``dd`` command is single-thread and cannot take more than one CPU by design.
+we see the pod taking up to 50% of total of the node CPU. On a 2 core CPU node, this corresponds to a single CPU and it's as espected because the ``dd`` command is single-thread and cannot take more than one CPU by design.
 
-If we want to limit the usage of resources, we have to limit the pod.
+If we want to limit the usage of resources, we have to limit the pod as in the following ``limited-pod.yaml`` descriptor file
 
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: limited-pod
+  namespace:
+  labels:
+spec:
+  containers:
+  - image: busybox:latest
+    command: ["dd", "if=/dev/zero", "of=/dev/null"]
+    name: busybox
+    resources:
+      requests:
+        cpu: 200m
+      limits:
+        cpu: 200m
+  restartPolicy: Never
+  terminationGracePeriodSeconds: 10
+```
 
+Create the pod
 
+    kubectl apply -f limited-pod.yaml
 
+Checking the resource usage
 
-They’re specified for each container individually, not for the pod. The pod resource requests and limits are the sum of the requests and limits of all its containers. 
+    kubectl exec limited-pod top
+
+    Mem: 3458876K used, 2408668K free, 309892K shrd, 2072K buff, 2264840K cached
+    CPU:  7.6% usr  8.5% sys  0.0% nic 83.5% idle  0.0% io  0.0% irq  0.2% sirq
+    Load average: 1.97 1.14 0.74 6/621 12
+      PID  PPID USER     STAT   VSZ %VSZ CPU %CPU COMMAND
+        1     0 root     R     1236  0.0   0 10.5 dd if /dev/zero of /dev/null
+        5     0 root     S     1244  0.0   0  0.0 top
+
+We can see the pod taking 10% of the node CPU. On a 2 core CPU node, this corresponds to 200m of the single CPU.
+
+Both resources requests and limits are specified for each container individually, not for the entire pod. The pod resource requests and limits are the sum of the requests and limits of all the containers contained into the pod. 
+
+We can check the usage of the resources at node level by describing the node
+
+    kubectl describe node kubew00
+
+    ...
+
+      Namespace            Name                 CPU Requests  CPU Limits  Memory Requests  Memory Limits
+      ---------            ----                 ------------  ----------  ---------------  -------------
+      default              limited-pod          200m (10%)    200m (5%)   0 (0%)           0 (0%)
+      default              request-pod          200m (10%)    0 (0%)      0 (0%)           0 (0%)
+
+    Allocated resources:
+
+      Resource  Requests     Limits
+      --------  --------     ------
+      cpu       400m (20%)   200m (10%)
+      memory    0 (0%)       0 (0%)
 
 
 ## cAdvisor
-
-
+The resource usage is provided by the **cAdvisor** agent running into kubelet binary and exposed externally to the port 4194 on the worker node. This is an unsecure port and can be closed. If not closed, we can start a simple UI on the cAdvisor agent. The cAdvisor auto-discovers all containers running on the node and collects CPU, memory, filesystem, and network usage statistics; it cAdvisor also provides the overall machine usage by analyzing the root container. Gathering those statistics centrally for the whole cluster requires to run an additional component.
 
 ## Metric Server
-
+The **Metric Server** is an additional component running as pod in the cluster, making centrally accessible all the metrics colled by any cAdvisor agent running on each node. 
 
 
 

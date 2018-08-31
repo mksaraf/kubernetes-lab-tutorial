@@ -213,9 +213,15 @@ For example, if we set the target value to be *50%* of CPU and we have 3 pods ru
 The final step of the autoscaling process is updating the desired replica count field on the scaled resource object, e.g. the Deploy and then letting it take care of spinning up additional pods or deleting excess ones.
 
 ### Autoscaling based on CPU utilization
+The most common metric to use for autoscaling on is the amount of CPU consumed by the processes running inside the containers.
 
+Speaking about *"Consumed CPU"* we can refer to all of the following:
 
+ * the amount of node's CPU
+ * the amount of pod’s requested CPU
+ * the amount of pod's hard limit CPU
 
+For what concerns, the autoscaling, the considered amount CPU is the requested CPU specified in the pod. This means that we need to set resource requests into pod to get the autoscaling working.
 
 
 

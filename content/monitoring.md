@@ -6,7 +6,20 @@ In Kubernetes, application monitoring does not depend on a single monitoring sol
   * [Resources usage]()
   * [cAdvisor]()
   * [Metric Server]()
+  * [Autoscaling]()
   * [Prometheus]()
  
- ## Resources usage
+## Resources usage
  
+
+
+## cAdvisor
+
+
+
+## Metric Server
+
+
+
+
+## Autoscaling

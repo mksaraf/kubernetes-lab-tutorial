@@ -1,5 +1,0 @@
-# Cluster Monitoring
-
-## Metrics
-
-## Logging

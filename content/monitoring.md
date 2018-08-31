@@ -208,7 +208,19 @@ through REST calls.
 Once the autoscaler has all the metrics for all the pods belonging to the target resource, it can use those metrics to return the required number of replicas that will bring the average value of the metric as close to the configured target value as possible. When the autoscaler is configured to consider only a single metric, calculating the
 required replica count is simple: sum the metrics values of all the pods, divide that by the target value and then rounding it up to the next integer.
 
-For example, if we set the target value to be 50% of CPU and we have 3 pods running with 60%, 90%, and 50% of CPU, then the number of required replicas is (60+90+50)/50=4
+For example, if we set the target value to be *50%* of CPU and we have 3 pods running with *60%*, *90%*, and *50%* of CPU, then the resulting number is *(60+90+50)/50=4* replicas.
+
+The final step of the autoscaling process is updating the desired replica count field on the scaled resource object, e.g. the Deploy and then letting it take care of spinning up additional pods or deleting excess ones.
+
+### Autoscaling based on CPU utilization
+
+
+
+
+
+
+
+
 
 
 

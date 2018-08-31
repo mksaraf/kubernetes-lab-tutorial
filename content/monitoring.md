@@ -193,19 +193,22 @@ The metric server will be deployed as pod and exposed as an internal service.
     NAME             TYPE        CLUSTER-IP    EXTERNAL-IP   PORT(S)         AGE
     metrics-server   ClusterIP   10.32.0.19    <none>        443/TCP         2h
 
-
-
-
-
-
-
-
-
-
 ## Autoscaling
+Applications running in pods can be scaled out manually by increasing the replicas field of the Replica Set, Deploy,  or Stateful Set. However, kubernetes can monitor the pods and scale them up automatically as soon as it detects an increase in the CPU usage or some other metric. To achieve this, we need the Metric Server running on our cluster.
 
+The pods autoscaling process can be split into three steps:
 
+ 1. Obtain metrics of all the pods managed by the scaled resource object.
+ 2. Calculate the number of pods required to bring the metrics close to a target value.
+ 3. Update the replicas field of the scaled resource.
 
+The autoscaling process doesn’t perform the gathering of the pod metrics itself. It gets the metrics from the Metric Server
+through REST calls.
+
+Once the autoscaler has all the metrics for all the pods belonging to the target resource, it can use those metrics to return the required number of replicas that will bring the average value of the metric as close to the configured target value as possible. When the autoscaler is configured to consider only a single metric, calculating the
+required replica count is simple: sum the metrics values of all the pods, divide that by the target value and then rounding it up to the next integer.
+
+For example, if we set the target value to be 50% of CPU and we have 3 pods running with 60%, 90%, and 50% of CPU, then the number of required replicas is (60+90+50)/50=4
 
 
 

@@ -190,7 +190,7 @@ The metric server will be deployed as pod and exposed as an internal service.
     NAME             TYPE        CLUSTER-IP    EXTERNAL-IP   PORT(S)         AGE
     metrics-server   ClusterIP   10.32.0.19    <none>        443/TCP         2h
 
-The Metric Server can be used to enable the pods autoscaling feature.
+The Metric Server is the foundation for the pods autoscaling feature.
 
 ## Autoscaling
 Applications running in pods can be scaled out manually by increasing the replicas field of the Replica Set, Deploy, or Stateful Set. However, kubernetes can monitor the pods and scale them up automatically as soon as it detects an increase in the CPU usage or some other metric. To achieve this, we need to configure an autoscaler object. We can have multiple autoscalers, each one controlling a separated set of pods.
@@ -203,13 +203,13 @@ The pods autoscaling process is implemented as a control loop that can be split 
 
 The autoscaler controller doesn’t perform the collection of the pod metrics itself. Instead, it gets the metrics from the Metric Server through REST calls.
 
-Once the autoscaler has all the metrics for all the pods of the target resource, it can use those metrics to return the number of replicas to bring the metrics close to the target.
+Once the autoscaler gathered all the metrics for the pods, it can use those metrics to return the number of replicas to bring the metrics close to the target.
 
 When the autoscaler is configured to consider only a single metric, calculating the required replica count is simple: sum the metrics values of all the pods, divide that by the target value and then round it up to the next integer. For example, if we set the target value to be *50%* of requested CPU and we have 3 pods consuming, respectively, *60%*, *90%*, and *50%* of CPU, then the resulting number is *(60+90+50)/50=4* replicas.
 
 The final step of the autoscaler is updating the desired replica count field on the resource object, e.g. the Deploy, and then letting it take care of spinning up additional pods or deleting excess ones.
 
-*Note that pods autoscaling does not apply to objects that can’t be scaled, for example, Daemon Sets.*
+Please, note that pods autoscaling does not apply to objects that can’t be scaled, for example, Daemon Sets.
 
 ### Autoscaling based on CPU usage
 In general, speaking about *"CPU usage"* we can refer to any of the following:
@@ -225,7 +225,7 @@ The target parameter used by the autoscaler to determine the number of replicas 
 
 In this section, we're going to configure the pods autoscaler for a set on nginx pods.
 
-Create a deploy as in the following ``nginx-deploy.yaml`` descriptor file
+Define a deploy as in the following ``nginx-deploy.yaml`` descriptor file
 
 ```yaml
 apiVersion: apps/v1
@@ -260,7 +260,65 @@ spec:
             cpu: 100m
 ```
 
-Make sure to configure the CPU requests to 100 millicore. This means that each pod needs for the 5% of node's CPU to be scheduled, considering a 2 CPU node.
+Make sure to configure the requests for 100 millicore CPU. This means that, considering a standard 2 CPUs node, each pod needs for the *5%* of node's CPU to be scheduled. Having set the desired state as for 3 replicas, make sure, overall, there is *15%* of node's CPU available.
+
+Create the deploy
+
+    kubectl apply -f nginx-deploy.yaml
+
+and check the pods CPU usage
+
+    kubectl top pod
+
+    NAME                    CPU(cores)   MEMORY(bytes)   
+    nginx-945d64b6b-995tf   0m           1Mi             
+    nginx-945d64b6b-b4sc6   0m           1Mi             
+    nginx-945d64b6b-ncsnm   0m           1Mi         
+
+Please, note that it takes a while for cAdvisor to get the CPU metrics and for Metric Server to collect them. Because we’re running three pods that are currently receiving no requests, we should expect their CPU usage should be close to zero.
+
+Now we define an autoscaler as in the following ``nginx-hpa.yaml`` descriptor file
+
+```yaml
+apiVersion: autoscaling/v1
+kind: HorizontalPodAutoscaler
+metadata:
+  name: nginx
+  namespace:
+  labels:
+spec:
+  maxReplicas: 6
+  minReplicas: 1
+  scaleTargetRef:
+    apiVersion: extensions/v1beta1
+    kind: Deployment
+    name: nginx
+  targetCPUUtilizationPercentage: 20
+```
+
+This creates an autoscaler object and sets the ``nginx`` deployment as the scaling target object. We’re setting the target CPU utilization to *20%* of the requested CPU and specifying the minimum and maximum number of replicas. The autoscaler will constantly adjusting the number of replicas to keep the CPU utilization around 20% of the requested CPU, but it will never scale down to less than 1 or scale up to more than 6 replicas.
+
+Create the pods autoscaler 
+
+    kubectl apply -f nginx-hpa.yaml
+
+and check it
+
+    kubectl get hpa nginx
+
+    NAME      REFERENCE          TARGETS         MINPODS   MAXPODS   REPLICAS   AGE
+    nginx     Deployment/nginx   <unknown>/20%   1         6         0          3s
+
+Because all three pods are consuming an amount of CPU close to zero, we expect the autoscaler scale them to the minimum number of pods. Is soon scales the deploy to a single replica
+
+    kubectl get deploy nginx
+
+    NAME      DESIRED   CURRENT   UP-TO-DATE   AVAILABLE   AGE
+    nginx     1         1         1            1           10m
+
+Remember, the autoscaler only adjusts the desired replica count on the deployment. Then the deployment takes care of updating the desired replica count on its replica set, which then causes the replica set to delete the two excess
+pods, leaving only one pod running.
+
 
 ### Autoscaling based on memory usage
 

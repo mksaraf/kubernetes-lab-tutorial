@@ -153,6 +153,7 @@ The purpose of the Metric Server is to provide a stable, versioned API that othe
 
 In order to get a resource metrics server up and running, we first need to configure the *aggregation layer* on the cluster. The aggregation layer is a general feature of the API server, allowing other custom API servers to register themselves to the main API server. This is accomplished by configuring the *kube-aggregator* on the main API server. The aggregator is basically a proxy that forwards requests coming from clients to the custom API servers.
 
+![](../img/aggregator.png?raw=true)
 
 Configuring the aggregation layer involves setting a number of flags on the API Server
 

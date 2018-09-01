@@ -193,7 +193,7 @@ The metric server will be deployed as pod and exposed as an internal service.
 The Metric Server can be used to enable the pods autoscaling feature.
 
 ## Autoscaling
-Applications running in pods can be scaled out manually by increasing the replicas field of the Replica Set, Deploy, or Stateful Set. However, kubernetes can monitor the pods and scale them up automatically as soon as it detects an increase in the CPU usage or some other metric. To achieve this, we need to configure an autoscaler object. We can have multiple auoscalers, each one controlling a separated set of pods.
+Applications running in pods can be scaled out manually by increasing the replicas field of the Replica Set, Deploy, or Stateful Set. However, kubernetes can monitor the pods and scale them up automatically as soon as it detects an increase in the CPU usage or some other metric. To achieve this, we need to configure an autoscaler object. We can have multiple autoscalers, each one controlling a separated set of pods.
 
 The pods autoscaling process is implemented as a control loop that can be split into three steps:
 
@@ -209,24 +209,58 @@ When the autoscaler is configured to consider only a single metric, calculating 
 
 The final step of the autoscaler is updating the desired replica count field on the resource object, e.g. the Deploy, and then letting it take care of spinning up additional pods or deleting excess ones.
 
-The period of the autoscaler is controlled by the ``--horizontal-pod-autoscaler-sync-period`` flag of controller manager. The default value is 30 seconds. The delay between two scale up operations is controlled by using the flag  ``--horizontal-pod-autoscaler-upscale-delay``. The default value is 3 minutes. Similarly, the delay between two scale down operations is adjustible with flag  ``--horizontal-pod-autoscaler-downscale-delay``. The default value is 5 minutes. 
-
 *Note that pods autoscaling does not apply to objects that can’t be scaled, for example, Daemon Sets.*
 
 ### Autoscaling based on CPU usage
 In general, speaking about *"CPU usage"* we can refer to any of the following:
 
- * Amount of the consumed node's CPU from all pods.
  * Amount of the consumed node's CPU from the single pod.
+ * Amount of the consumed node's CPU from all the pods.
  * Amount of the requested CPU, as specified by the pod descriptor.
  * Amount of the limited CPU, as specified by the pod descriptor.
 
-The most common used metric for pods autoscaling is the CPU consumed by all the pods controlled by the autoscaler. Those values are collected from the Metric Server and evaluated as an average.
+The most common used metric for pods autoscaling is the node's CPU consumed by all the pods controlled by the autoscaler. Those values are collected from the Metric Server and evaluated as an average.
 
 The target parameter used by the autoscaler to determine the number of replicas is the requested CPU specified by the pod descriptor.
 
-As an example, if the autoscaler is configured to mantain an average CPU utilization of 50% across all pods
+In this section, we're going to configure the pods autoscaler for a set on nginx pods.
 
+Create a deploy as in the following ``nginx-deploy.yaml`` descriptor file
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+  name: nginx
+  namespace:
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      run: nginx
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        run: nginx
+    spec:
+      containers:
+      - image: nginx:1.12
+        name: nginx
+        ports:
+        - containerPort: 80
+          protocol: TCP
+        resources:
+          requests:
+            cpu: 100m
+```
+
+Make sure to configure the CPU requests to 100 millicore. This means that each pod needs for the 5% of node's CPU to be scheduled, considering a 2 CPU node.
 
 ### Autoscaling based on memory usage
 
@@ -235,3 +269,6 @@ But one metric does not fit all use cases and for different kind of applications
 
 So far we have only considered the scale-up part, but when the workload usage drops, there should be a way to scale down gracefully and without causing interruption to existing requests being processed.
 
+
+### Configuring the autoscaler
+The period of the autoscaler is controlled by the ``--horizontal-pod-autoscaler-sync-period`` flag of controller manager. The default value is 30 seconds. The delay between two scale up operations is controlled by using the flag  ``--horizontal-pod-autoscaler-upscale-delay``. The default value is 3 minutes. Similarly, the delay between two scale down operations is adjustible with flag  ``--horizontal-pod-autoscaler-downscale-delay``. The default value is 5 minutes. 

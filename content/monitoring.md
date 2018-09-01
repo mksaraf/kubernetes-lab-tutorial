@@ -193,39 +193,45 @@ The metric server will be deployed as pod and exposed as an internal service.
 The Metric Server can be used to enable the pods autoscaling feature.
 
 ## Autoscaling
-Applications running in pods can be scaled out manually by increasing the replicas field of the Replica Set, Deploy, or Stateful Set. However, kubernetes can monitor the pods and scale them up automatically as soon as it detects an increase in the CPU usage or some other metric. To achieve this, we need the Metric Server running on our cluster.
+Applications running in pods can be scaled out manually by increasing the replicas field of the Replica Set, Deploy, or Stateful Set. However, kubernetes can monitor the pods and scale them up automatically as soon as it detects an increase in the CPU usage or some other metric. To achieve this, we need to configure an autoscaler object. We can have multiple auoscalers, each one controlling a separated set of pods.
 
-The pods autoscaling process can be split into three steps:
+The pods autoscaling process is implemented as a control loop that can be split into three steps:
 
  1. Obtain metrics of all the pods managed by the scaled resource object.
  2. Calculate the number of pods required to bring the metrics close to a target value.
  3. Update the replicas field of the scaled resource.
 
-The autoscaling process doesn’t perform the collection of the pod metrics itself. It gets the metrics from the Metric Server
-through REST calls.
+The autoscaler controller doesn’t perform the collection of the pod metrics itself. Instead, it gets the metrics from the Metric Server through REST calls.
 
-Once the autoscaler has all the metrics for all the pods of the target resource, it can use those metrics to return the number of replicas to bring the metrics close to the target. When the autoscaler is configured to consider only a single metric, calculating the required replica count is simple: sum the metrics values of all the pods, divide that by the target value and then round it up to the next integer.
+Once the autoscaler has all the metrics for all the pods of the target resource, it can use those metrics to return the number of replicas to bring the metrics close to the target.
 
-For example, if we set the target value to be *50%* of CPU and we have 3 pods running with *60%*, *90%*, and *50%* of CPU, then the resulting number is *(60+90+50)/50=4* replicas.
+When the autoscaler is configured to consider only a single metric, calculating the required replica count is simple: sum the metrics values of all the pods, divide that by the target value and then round it up to the next integer. For example, if we set the target value to be *50%* of requested CPU and we have 3 pods consuming, respectively, *60%*, *90%*, and *50%* of CPU, then the resulting number is *(60+90+50)/50=4* replicas.
 
-The final step of the autoscaling process is updating the desired replica count field on the scaled resource object, e.g. the Deploy and then letting it take care of spinning up additional pods or deleting excess ones.
+The final step of the autoscaler is updating the desired replica count field on the resource object, e.g. the Deploy, and then letting it take care of spinning up additional pods or deleting excess ones.
 
-### Autoscaling based on CPU utilization
-The most common metric to use for autoscaling on is the amount of CPU consumed by the processes running inside the containers.
+The period of the autoscaler is controlled by the ``--horizontal-pod-autoscaler-sync-period`` flag of controller manager. The default value is 30 seconds. The delay between two scale up operations is controlled by using the flag  ``--horizontal-pod-autoscaler-upscale-delay``. The default value is 3 minutes. Similarly, the delay between two scale down operations is adjustible with flag  ``--horizontal-pod-autoscaler-downscale-delay``. The default value is 5 minutes. 
 
-Speaking about *"Consumed CPU"* we can refer to all of the following:
+*Note that pods autoscaling does not apply to objects that can’t be scaled, for example, Daemon Sets.*
 
- * the amount of node's CPU
- * the amount of pod’s requested CPU
- * the amount of pod's hard limit CPU
+### Autoscaling based on CPU usage
+In general, speaking about *"CPU usage"* we can refer to any of the following:
 
-For the autoscaler, the considered CPU is the requested CPU specified in the pod. This means that we need to set resource requests into pod to get the autoscaler working.
+ * Amount of the consumed node's CPU from all pods.
+ * Amount of the consumed node's CPU from the single pod.
+ * Amount of the requested CPU, as specified by the pod descriptor.
+ * Amount of the limited CPU, as specified by the pod descriptor.
+
+The most common used metric for pods autoscaling is the CPU consumed by all the pods controlled by the autoscaler. Those values are collected from the Metric Server and evaluated as an average.
+
+The target parameter used by the autoscaler to determine the number of replicas is the requested CPU specified by the pod descriptor.
+
+As an example, if the autoscaler is configured to mantain an average CPU utilization of 50% across all pods
 
 
+### Autoscaling based on memory usage
 
+### Autoscaling based on custom metrics
+But one metric does not fit all use cases and for different kind of applications, the metric might vary. For example, for a message queue, the number of messages in waiting state might be the appropriate metric. For memory intensive applications, memory consumption might be that metric. If you have a business application which handles about 1000 transactions per second for a given capacity pod, then you might want to use that metric and scale out when the TPS in pod reach above 850.
 
-
-
-
-
+So far we have only considered the scale-up part, but when the workload usage drops, there should be a way to scale down gracefully and without causing interruption to existing requests being processed.
 

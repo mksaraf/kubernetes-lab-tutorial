@@ -205,7 +205,7 @@ The autoscaler controller doesn’t perform the collection of the pod metrics it
 
 Once the autoscaler gathered all the metrics for the pods, it can use those metrics to return the number of replicas to bring the metrics close to the target.
 
-When the autoscaler is configured to consider only a single metric, calculating the required replica count is simple: sum the metrics values of all the pods, divide that by the target value and then round it up to the next integer. For example, if we set the target value to be *50%* of requested CPU and we have 3 pods consuming, respectively, *60%*, *90%*, and *50%* of requested CPU, then the resulting number is *(60+90+50)/50=4* replicas.
+When the autoscaler is configured to consider only a single metric, calculating the required replica count is simple: sum the metrics values of all the pods, divide that by the target value and then round it up to the next integer. For example, if we set the target value to be *50%* of requested CPU and we have 3 pods consuming, respectively, *60%*, *90%*, and *50%*, then the resulting number is *(60+90+50)/50=4* replicas.
 
 The final step of the autoscaler is updating the desired replica count field on the resource object, e.g. the Deploy, and then letting it take care of spinning up additional pods or deleting excess ones.
 
@@ -245,10 +245,12 @@ spec:
           protocol: TCP
         resources:
           requests:
+            cpu: 50m
+          limits:
             cpu: 100m
 ```
 
-Make sure to configure the requests for 100 millicore CPU. This means that, considering a standard 2 CPUs node, each pod needs for the *5%* of node's CPU to be scheduled. Having set the desired state as for 3 replicas, make sure, overall, there is *15%* of node's CPU available.
+We set the requests for *50m* CPU. This means that, considering a standard 2 CPUs node, each pod needs for the *2.5%* of node's CPU to be scheduled. Having set the desired state as for 3 replicas, make sure, overall, there is *7.5%* of node's CPU. Also we set *100m* CPU as hard limit for each pod. This means that the all 3 pods cannot eat more than *15%* of the node's CPU.
 
 Create the deploy
 
@@ -275,7 +277,7 @@ metadata:
   namespace:
   labels:
 spec:
-  maxReplicas: 6
+  maxReplicas: 9
   minReplicas: 1
   scaleTargetRef:
     apiVersion: extensions/v1beta1
@@ -284,7 +286,7 @@ spec:
   targetCPUUtilizationPercentage: 20
 ```
 
-This creates an autoscaler object and sets the ``nginx`` deployment as the scaling target object. We’re setting the target CPU utilization to *20%* of the requested CPU and specifying the minimum and maximum number of replicas. The autoscaler will constantly adjusting the number of replicas to keep the CPU utilization around 20% of the requested CPU, but it will never scale down to less than 1 or scale up to more than 6 replicas.
+This creates an autoscaler object and sets the ``nginx`` deployment as the scaling target object. We’re setting the target CPU utilization to *20%* of the requested CPU, i.e. *10m* and specifying the minimum and maximum number of replicas. The autoscaler will constantly adjusting the number of replicas to keep the pod CPU utilization around *10m*, but it will never scale down to less than 1 or scale up to more than 9 replicas.
 
 Create the pods autoscaler 
 
@@ -294,8 +296,8 @@ and check it
 
     kubectl get hpa nginx
 
-    NAME      REFERENCE          TARGETS         MINPODS   MAXPODS   REPLICAS   AGE
-    nginx     Deployment/nginx   <unknown>/20%   1         6         0          3s
+    NAME      REFERENCE          TARGETS    MINPODS   MAXPODS   REPLICAS   AGE
+    nginx     Deployment/nginx   0/20%      1         9         1          3s
 
 Because all three pods are consuming an amount of CPU close to zero, we expect the autoscaler scale them to the minimum number of pods. Is soon scales the deploy to a single replica
 
@@ -307,6 +309,34 @@ Because all three pods are consuming an amount of CPU close to zero, we expect t
 Remember, the autoscaler only adjusts the desired replica count on the deployment. Then the deployment takes care of updating the desired replica count on its replica set, which then causes the replica set to delete the two excess
 pods, leaving only one pod running.
 
+Now, we’ll start sending requests to the remaining pod, thereby increasing its CPU usage, and we should see the autoscaler in action by detecting this and starting up additional pods.
+
+To send requests to the pods, we need to expose them as an internal service so we can send requests in a load balanced mode. Create a service as for the ``nginx-svc.yaml`` manifest file
+
+    kubectl apply -f nginx-svc.yaml
+
+Also we define a simple load generator pod as in the following ``load-generator.yaml`` file
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: load-generator
+  namespace:
+  labels:
+spec:
+  containers:
+  - image: busybox:latest
+    name: busybox
+    command: ["/bin/sh", "-c", "while true; do wget -O - -q http://nginx; done"]
+  terminationGracePeriodSeconds: 10
+```
+
+Create the load generator
+
+    kubectl apply -f load-generator.yaml
+
+As we start to sending requests to the pod, we'll se the metric jumping to *70m* that is more than the target value of 20% of the requested CPU. By simple math 20% of 50m is 10m.
 
 ### Autoscaling based on memory usage
 

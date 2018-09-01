@@ -50,7 +50,7 @@ Checking the resource usage
         1     0 root     R     1236  0.0   1 50.0 dd if /dev/zero of /dev/null
         5     0 root     R     1244  0.0   1  0.0 top
 
-we see the pod taking up to 50% of total of the node CPU. On a 2 core CPU node, this corresponds to a single CPU and it's as espected because the ``dd`` command is single-thread and cannot take more than one CPU by design.
+we see the pod taking up to 50% of total of the node CPU. On a 2 core CPU node, this corresponds to 1 CPU and it's as espected because the ``dd`` command is single-thread and cannot take more than 1 CPU by design.
 
 Please, note that we're not specifying the maximum amount of resources the pod can consume. If we want to limit the usage of resources, we have to limit the pod as in the following ``limited-pod.yaml`` descriptor file
 
@@ -205,25 +205,18 @@ The autoscaler controller doesn’t perform the collection of the pod metrics it
 
 Once the autoscaler gathered all the metrics for the pods, it can use those metrics to return the number of replicas to bring the metrics close to the target.
 
-When the autoscaler is configured to consider only a single metric, calculating the required replica count is simple: sum the metrics values of all the pods, divide that by the target value and then round it up to the next integer. For example, if we set the target value to be *50%* of requested CPU and we have 3 pods consuming, respectively, *60%*, *90%*, and *50%* of CPU, then the resulting number is *(60+90+50)/50=4* replicas.
+When the autoscaler is configured to consider only a single metric, calculating the required replica count is simple: sum the metrics values of all the pods, divide that by the target value and then round it up to the next integer. For example, if we set the target value to be *50%* of requested CPU and we have 3 pods consuming, respectively, *60%*, *90%*, and *50%* of requested CPU, then the resulting number is *(60+90+50)/50=4* replicas.
 
 The final step of the autoscaler is updating the desired replica count field on the resource object, e.g. the Deploy, and then letting it take care of spinning up additional pods or deleting excess ones.
 
-Please, note that pods autoscaling does not apply to objects that can’t be scaled, for example, Daemon Sets.
+The period of the autoscaler is controlled by the ``--horizontal-pod-autoscaler-sync-period`` flag of controller manager. The default value is 30 seconds. The delay between two scale up operations is controlled by using the flag  ``--horizontal-pod-autoscaler-upscale-delay``. The default value is 3 minutes. Similarly, the delay between two scale down operations is adjustible with flag  ``--horizontal-pod-autoscaler-downscale-delay``. The default value is 5 minutes. 
 
 ### Autoscaling based on CPU usage
-In general, speaking about *"CPU usage"* we can refer to any of the following:
-
- * Amount of the consumed node's CPU from the single pod.
- * Amount of the consumed node's CPU from all the pods.
- * Amount of the requested CPU, as specified by the pod descriptor.
- * Amount of the limited CPU, as specified by the pod descriptor.
-
 The most common used metric for pods autoscaling is the node's CPU consumed by all the pods controlled by the autoscaler. Those values are collected from the Metric Server and evaluated as an average.
 
 The target parameter used by the autoscaler to determine the number of replicas is the requested CPU specified by the pod descriptor.
 
-In this section, we're going to configure the pods autoscaler for a set on nginx pods.
+In this section, we're going to configure the pods autoscaler for a set of nginx pods.
 
 Define a deploy as in the following ``nginx-deploy.yaml`` descriptor file
 
@@ -239,11 +232,6 @@ spec:
   selector:
     matchLabels:
       run: nginx
-  strategy:
-    rollingUpdate:
-      maxSurge: 1
-      maxUnavailable: 1
-    type: RollingUpdate
   template:
     metadata:
       labels:
@@ -328,5 +316,3 @@ But one metric does not fit all use cases and for different kind of applications
 So far we have only considered the scale-up part, but when the workload usage drops, there should be a way to scale down gracefully and without causing interruption to existing requests being processed.
 
 
-### Configuring the autoscaler
-The period of the autoscaler is controlled by the ``--horizontal-pod-autoscaler-sync-period`` flag of controller manager. The default value is 30 seconds. The delay between two scale up operations is controlled by using the flag  ``--horizontal-pod-autoscaler-upscale-delay``. The default value is 3 minutes. Similarly, the delay between two scale down operations is adjustible with flag  ``--horizontal-pod-autoscaler-downscale-delay``. The default value is 5 minutes. 

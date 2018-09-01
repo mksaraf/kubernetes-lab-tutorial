@@ -39,8 +39,6 @@ Create the pod above
 
     kubectl apply -f requests-pod.yaml
 
-We're not specifying the maximum amount of resources the pod can consume.
-
 Checking the resource usage
 
     kubectl exec requests-pod top
@@ -54,7 +52,7 @@ Checking the resource usage
 
 we see the pod taking up to 50% of total of the node CPU. On a 2 core CPU node, this corresponds to a single CPU and it's as espected because the ``dd`` command is single-thread and cannot take more than one CPU by design.
 
-If we want to limit the usage of resources, we have to limit the pod as in the following ``limited-pod.yaml`` descriptor file
+Please, note that we're not specifying the maximum amount of resources the pod can consume. If we want to limit the usage of resources, we have to limit the pod as in the following ``limited-pod.yaml`` descriptor file
 
 ```yaml
 apiVersion: v1
@@ -116,7 +114,7 @@ We can check the usage of the resources at node level by describing the node
 
 
 ## cAdvisor
-The resource usage is provided by the **cAdvisor** agent running into kubelet binary and exposed externally to the port 4194 on the worker node. This is an unsecure port and can be closed. If not closed, we can start a simple UI on the cAdvisor agent. The cAdvisor auto-discovers all containers running on the node and collects CPU, memory, filesystem, and network usage statistics; it cAdvisor also provides the overall machine usage by analyzing the root container. Gathering those statistics centrally for the whole cluster requires to run an additional component.
+The resource usage is provided by the **cAdvisor** agent running into kubelet binary and exposed externally to the port 4194 on the worker node. This is an unsecure port and can be closed. If not closed, we can start a simple web UI of the cAdvisor agent by using a web browser. The cAdvisor auto-discovers all containers running on the node and collects CPU, memory, filesystem, and network usage statistics. It also provides the overall machine usage by analyzing the root container.
 
 ## Metric Server
 The **Metric Server** is an additional component running as pod in the cluster, making centrally accessible all the metrics collected by all the cAdvisor agents running on each worker nodes. Once installed, the metric server makes it possible to obtain resource usages for nodes and individual pods through the ``kubectl top`` command.
@@ -148,12 +146,12 @@ To see resource usages across individual containers instead of pods, use the ``-
     POD           NAME      CPU(cores)   MEMORY(bytes)   
     limited-pod   busybox   200m         0Mi             
 
-Metrics are also exposed as API by the kubernetes API server at ``http://cluseter.local/apis/metrics.k8s.io/v1beta1/`` address.
+Metrics are also exposed as API by the kubernetes API server at ``http://cluseter.local/apis/metrics.k8s.io/v1beta1`` address.
 
 ### Setup the Metric Server
 The purpose of the Metric Server is to provide a stable, versioned API that other kubernetes components can rely on. Metric Server is part of the so-called *core metrics pipeline*.
 
-In order to get a resource metrics server up and running we first need to configure the *aggregation layer* on the cluster. The aggregation layer allows generic custom API servers to register themselves with *kube-aggregator*. The aggregator is a proxy that will forward relevant requests from clients to the these custom API servers.
+In order to get a resource metrics server up and running, we first need to configure the *aggregation layer* on the cluster. The aggregation layer is a general feature of the API server, allowing other custom API servers to register themselves to the main API server. This is accomplished by configuring the *kube-aggregator* on the main API server. The aggregator is basically a proxy that forwards requests coming from clients to the custom API servers.
 
 
 Configuring the aggregation layer involves setting a number of flags on the API Server
@@ -167,11 +165,9 @@ Configuring the aggregation layer involves setting a number of flags on the API 
      --requestheader-username-headers=X-Remote-User
      --enable-aggregator-routing=true
 
-using some additional certificates. See [here](https://github.com/kubernetes-incubator/apiserver-builder/blob/master/docs/concepts/auth.md).
+using some additional certificates. See [here](https://github.com/kubernetes-incubator/apiserver-builder/blob/master/docs/concepts/auth.md) for details.
 
-Configure the API server to enable the aggregator and restart the service.
-
-Then deploy the Metric Server in the ``kube-system`` namespace from its manifest files
+The Metric Server is one of the custom API server that can be configured with the aggregator. To install it, configure the API server to enable the aggregator and then deploy it in the ``kube-system`` namespace from the manifest files:
 
      kubectl apply -f auth-delegator.yaml
      kubectl apply -f auth-reader.yaml
@@ -193,8 +189,10 @@ The metric server will be deployed as pod and exposed as an internal service.
     NAME             TYPE        CLUSTER-IP    EXTERNAL-IP   PORT(S)         AGE
     metrics-server   ClusterIP   10.32.0.19    <none>        443/TCP         2h
 
+The Metric Server can be used to enable the pods autoscaling feature.
+
 ## Autoscaling
-Applications running in pods can be scaled out manually by increasing the replicas field of the Replica Set, Deploy,  or Stateful Set. However, kubernetes can monitor the pods and scale them up automatically as soon as it detects an increase in the CPU usage or some other metric. To achieve this, we need the Metric Server running on our cluster.
+Applications running in pods can be scaled out manually by increasing the replicas field of the Replica Set, Deploy, or Stateful Set. However, kubernetes can monitor the pods and scale them up automatically as soon as it detects an increase in the CPU usage or some other metric. To achieve this, we need the Metric Server running on our cluster.
 
 The pods autoscaling process can be split into three steps:
 
@@ -202,11 +200,10 @@ The pods autoscaling process can be split into three steps:
  2. Calculate the number of pods required to bring the metrics close to a target value.
  3. Update the replicas field of the scaled resource.
 
-The autoscaling process doesn’t perform the gathering of the pod metrics itself. It gets the metrics from the Metric Server
+The autoscaling process doesn’t perform the collection of the pod metrics itself. It gets the metrics from the Metric Server
 through REST calls.
 
-Once the autoscaler has all the metrics for all the pods belonging to the target resource, it can use those metrics to return the required number of replicas that will bring the average value of the metric as close to the configured target value as possible. When the autoscaler is configured to consider only a single metric, calculating the
-required replica count is simple: sum the metrics values of all the pods, divide that by the target value and then rounding it up to the next integer.
+Once the autoscaler has all the metrics for all the pods of the target resource, it can use those metrics to return the number of replicas to bring the metrics close to the target. When the autoscaler is configured to consider only a single metric, calculating the required replica count is simple: sum the metrics values of all the pods, divide that by the target value and then round it up to the next integer.
 
 For example, if we set the target value to be *50%* of CPU and we have 3 pods running with *60%*, *90%*, and *50%* of CPU, then the resulting number is *(60+90+50)/50=4* replicas.
 
@@ -221,7 +218,7 @@ Speaking about *"Consumed CPU"* we can refer to all of the following:
  * the amount of pod’s requested CPU
  * the amount of pod's hard limit CPU
 
-For what concerns, the autoscaling, the considered amount CPU is the requested CPU specified in the pod. This means that we need to set resource requests into pod to get the autoscaling working.
+For the autoscaler, the considered CPU is the requested CPU specified in the pod. This means that we need to set resource requests into pod to get the autoscaler working.
 
 
 

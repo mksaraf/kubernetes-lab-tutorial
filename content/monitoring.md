@@ -268,23 +268,29 @@ Please, note that it takes a while for cAdvisor to get the CPU metrics and for M
 Now we define an autoscaler as in the following ``nginx-hpa.yaml`` descriptor file
 
 ```yaml
-apiVersion: autoscaling/v1
+apiVersion: autoscaling/v2beta1
 kind: HorizontalPodAutoscaler
 metadata:
   name: nginx
   namespace:
   labels:
 spec:
-  maxReplicas: 9
-  minReplicas: 1
   scaleTargetRef:
     apiVersion: extensions/v1beta1
     kind: Deployment
     name: nginx
-  targetCPUUtilizationPercentage: 20
+  minReplicas: 1
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      targetAverageUtilization: 20
 ```
 
-This creates an autoscaler object and sets the ``nginx`` deployment as the scaling target object. We’re setting the target CPU utilization to ``20%`` of the requested CPU, i.e. ``10m`` for each pod and specifying the minimum and maximum number of replicas. The autoscaler will constantly adjusting the number of replicas to keep the single pod CPU utilization around ``10m``, but it will never scale down to less than 1 or scale up to more than 9 replicas.
+This creates an autoscaler object and sets the ``nginx`` deployment as the scaling target object. We’re setting the target CPU utilization to ``20%`` of the requested CPU, i.e. ``10m`` for each pod. We're also specifying the minimum and maximum number of replicas. The autoscaler will constantly adjusting the number of replicas to keep the single pod CPU utilization around ``10m``, but it will never scale down to less than 1 or scale up to more than 9 replicas.
+
+We can also spcify the metrics in terms of direct values, istead of percentage of the requested value. To achieve this, simply use the ``targetAverageValue: 10m`` instead of the ``targetAverageUtilization: 20``.
 
 Create the pods autoscaler 
 
@@ -434,14 +440,12 @@ After the down scale delay timeout (default 300 seconds), the autoscaler will sc
 Please, note the autoscaler does't work with target resources that do not support scaling operations, e.g. the daemon sets.
 
 ### Autoscaling based on memory usage
-Memory based autoscaling is much more problematic than CPU based autoscaling. The main reason is because after scaling up, the old pods would somehow need to be forced to release memory. This needs to be done by the app itself because it can’t be done automatically by the system.
-
-All the system could do is to kill and restart the application, hoping it would use less memory than before. But if the application will use the same amount as before, the autoscaler would scale it up again until it reaches the maximum number of pods configured on the autoscaler object.
+Using the memory based autoscaling is less simple than CPU based autoscaling. The main reason is because the memory management depends much more by the application itself (think Java based applications) than by the system. For example, after scaling up, the previous set of pods need to release memory to make the autoscaler working properly. Unfortunately, this is much related to the application memory management and we cannot be sure the memory is released, so the autoscaler would scale it up again until it reaches the maximum number of pods configured on the autoscaler object. 
 
 ### Autoscaling based on custom metrics
-But one metric does not fit all use cases and for different kind of applications, the metric might vary. For example, for a message queue, the number of messages in waiting state might be the appropriate metric. For memory intensive applications, memory consumption might be that metric. If you have a business application which handles about 1000 transactions per second for a given capacity pod, then you might want to use that metric and scale out when the TPS in pod reach above 850.
+Often one metric does not fit all use cases and for different kind of applications. For example, for a message queue application, the number of messages in waiting state might be a more appropriate metric than the CPU or memory usage. As another example, a business application which handles thousands of transactions per second, the QPS (Query Per Second) might be the right metric to use.
 
-So far we have only considered the scale-up part, but when the workload usage drops, there should be a way to scale down gracefully and without causing interruption to existing requests being processed.
+So the requirement here is to have custom metrics to be considered by the autoscaler.
 
 
 ## Nodes Autoscaling

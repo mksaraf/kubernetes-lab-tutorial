@@ -29,7 +29,6 @@ spec:
     resources:
       requests:
         cpu: 200m
-  restartPolicy: Never
 ```
 
 By specifying resource requests, we specify the minimum amount of resources the pod needs. However the pod above can take more than the requested CPU and memory we requested, according to the capacity and the actual load of the working node. Each node has a certain amount of CPU and memory it can allocate to pods. When scheduling a pod, the scheduler will only consider nodes with enough unallocated resources to meet the pod requirements. If the amount of unallocated CPU or memory is less than what the pod requests, the scheduler will not consider the node, because the node can’t provide the minimum amount
@@ -71,8 +70,6 @@ spec:
         cpu: 200m
       limits:
         cpu: 200m
-  restartPolicy: Never
-  terminationGracePeriodSeconds: 10
 ```
 
 Create the pod

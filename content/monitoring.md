@@ -3,10 +3,11 @@ Kubernetes provides detailed information about applications and cluster resource
 
 In Kubernetes, application monitoring does not depend on a single monitoring solution. In this section, we're going to explore some of the monitoring tools currently available.
 
-  * [Resources usage]()
-  * [cAdvisor]()
-  * [Metric Server]()
-  * [Pods Autoscaling]()
+  * [Resources usage](#resources-usage)
+  * [cAdvisor](#cadvisor)
+  * [Metric Server](#metric-server)
+  * [Pods Autoscaling](#pods-autoscaling)
+  * [Nodes Autoscaling](#nodes-autoscaling)
  
 ## Resources usage
 When creating a pod, we can specify the amount of CPU and memory that a container requests and a limit on what it may consume. 
@@ -191,7 +192,7 @@ The metric server will be deployed as pod and exposed as an internal service.
 
 The Metric Server is the foundation for the pods autoscaling feature.
 
-## Autoscaling
+## Pods Autoscaling
 Applications running in pods can be scaled out manually by increasing the replicas field of the Replica Set, Deploy, or Stateful Set. However, kubernetes can monitor the pods and scale them up automatically as soon as it detects an increase in the CPU usage or some other metric. To achieve this, we need to configure an autoscaler object. We can have multiple autoscalers, each one controlling a separated set of pods.
 
 The pods autoscaling process is implemented as a control loop that can be split into three steps:
@@ -345,3 +346,4 @@ But one metric does not fit all use cases and for different kind of applications
 So far we have only considered the scale-up part, but when the workload usage drops, there should be a way to scale down gracefully and without causing interruption to existing requests being processed.
 
 
+## Nodes Autoscaling

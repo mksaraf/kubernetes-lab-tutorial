@@ -6,8 +6,7 @@ In Kubernetes, application monitoring does not depend on a single monitoring sol
   * [Resources usage]()
   * [cAdvisor]()
   * [Metric Server]()
-  * [Autoscaling]()
-  * [Prometheus]()
+  * [Pods Autoscaling]()
  
 ## Resources usage
 When creating a pod, we can specify the amount of CPU and memory that a container requests and a limit on what it may consume. 
@@ -117,7 +116,7 @@ We can check the usage of the resources at node level by describing the node
 The resource usage is provided by the **cAdvisor** agent running into kubelet binary and exposed externally to the port 4194 on the worker node. This is an unsecure port and can be closed. If not closed, we can start a simple web UI of the cAdvisor agent by using a web browser. The cAdvisor auto-discovers all containers running on the node and collects CPU, memory, filesystem, and network usage statistics. It also provides the overall machine usage by analyzing the root container.
 
 ## Metric Server
-The **Metric Server** is an additional component running as pod in the cluster, making centrally accessible all the metrics collected by all the cAdvisor agents running on each worker nodes. Once installed, the metric server makes it possible to obtain resource usages for nodes and individual pods through the ``kubectl top`` command.
+The **Metric Server** is a kubernetes add-on running as pod in the cluster. It makes centrally accessible all the metrics collected by all the cAdvisor agents running on the worker nodes. Once installed, the metric server makes it possible to obtain resource usages for nodes and individual pods through the ``kubectl top`` command.
 
 To see how much CPU and memory is being used on the worker nodes, run the command: 
 
@@ -148,10 +147,10 @@ To see resource usages across individual containers instead of pods, use the ``-
 
 Metrics are also exposed as API by the kubernetes API server at ``http://cluseter.local/apis/metrics.k8s.io/v1beta1`` address.
 
-### Setup the Metric Server
-The purpose of the Metric Server is to provide a stable, versioned API that other kubernetes components can rely on. Metric Server is part of the so-called *core metrics pipeline*.
+### Installing the Metric Server
+The purpose of the Metric Server is to provide a stable, versioned API that other kubernetes components can rely on. Metric Server is part of the so-called *core metrics pipeline* and it is installed as kubernetes add-on.
 
-In order to get a resource metrics server up and running, we first need to configure the *aggregation layer* on the cluster. The aggregation layer is a general feature of the API server, allowing other custom API servers to register themselves to the main API server. This is accomplished by configuring the *kube-aggregator* on the main API server. The aggregator is basically a proxy that forwards requests coming from clients to the custom API servers.
+In order to setup the Metrics Server, we first need to configure the *aggregation layer* on the cluster. The aggregation layer is a feature of the API server, allowing other custom API servers to register themselves to the main kubernetes API server. This is accomplished by configuring the *kube-aggregator* on the main kubernetes API server. The aggregator is basically a proxy (embedded into the main API server) that forwards requests coming from clients to all the API servers, including the main one.
 
 ![](../img/aggregator.png?raw=true)
 

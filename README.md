@@ -87,7 +87,7 @@
    * [Custom Resources](./content/apiserver.md#custom-resources)
    * [Custom Controllers](./content/apiserver.md#custom-controllers)
 
-10. [Custer Monitoring](./content/monitoring.md) 
+10. [Custer Monitoring](./content/monitoring.md)
    * [Resources usage](./content/monitoring.md#resources-usage)
    * [cAdvisor](./content/monitoring.md#cadvisor)
    * [Metric Server](./content/monitoring.md#metric-server)

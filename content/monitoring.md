@@ -1,7 +1,7 @@
 # Cluster Monitoring
 Kubernetes provides detailed information about applications and cluster resources usage. This information allows to evaluate the application’s performance and where bottlenecks can be removed to improve overall performance of the cluster.
 
-In Kubernetes, application monitoring does not depend on a single monitoring solution. In this section, we're going to explore some of the monitoring tools currently available.
+In Kubernetes, applications monitoring does not depend on a single monitoring solution. In this section, we're going to explore some of the monitoring tools currently available.
 
   * [Resources usage](#resources-usage)
   * [cAdvisor](#cadvisor)
@@ -166,9 +166,9 @@ Configuring the aggregation layer involves setting a number of flags on the API 
      --requestheader-username-headers=X-Remote-User
      --enable-aggregator-routing=true
 
-using some additional certificates. See [here](https://github.com/kubernetes-incubator/apiserver-builder/blob/master/docs/concepts/auth.md) for details.
+See [here](https://github.com/kubernetes-incubator/apiserver-builder/blob/master/docs/concepts/auth.md) for details.
 
-The Metric Server is one of the custom API server that can be configured with the aggregator. To install it, configure the API server to enable the aggregator and then deploy it in the ``kube-system`` namespace from the manifest files:
+The Metric Server is only one of the custom API server that can be used by means of the aggregator. To install the Metric Server, configure the API server to enable the aggregator and then deploy it in the ``kube-system`` namespace from the manifest files:
 
      kubectl apply -f auth-delegator.yaml
      kubectl apply -f auth-reader.yaml
@@ -190,7 +190,7 @@ The metric server will be deployed as pod and exposed as an internal service.
     NAME             TYPE        CLUSTER-IP    EXTERNAL-IP   PORT(S)         AGE
     metrics-server   ClusterIP   10.32.0.19    <none>        443/TCP         2h
 
-The Metric Server is the foundation for the pods autoscaling feature.
+The Metric Server is the foundation for the autoscaling feature.
 
 ## Pods Autoscaling
 Applications running in pods can be scaled out manually by increasing the replicas field of the Replica Set, Deploy, or Stateful Set. However, kubernetes can monitor the pods and scale them up automatically as soon as it detects an increase in the CPU usage or some other metric. To achieve this, we need to configure an autoscaler object. We can have multiple autoscalers, each one controlling a separated set of pods.
@@ -203,13 +203,11 @@ The pods autoscaling process is implemented as a control loop that can be split 
 
 The autoscaler controller doesn’t perform the collection of the pod metrics itself. Instead, it gets the metrics from the Metric Server through REST calls.
 
-Once the autoscaler gathered all the metrics for the pods, it can use those metrics to return the number of replicas to bring the metrics close to the target.
+Once the autoscaler gathered all the metrics for the pods, it can use those metrics to return the number of replicas to bring the metrics close to the target. When the autoscaler is configured to consider only a single metric, calculating the required replica count is simple: sum the metrics values of all the pods, divide that by the target value and then round it up to the next integer. If multiple metrics are used, then the calculation takes place independently for each metric and then the maximum integer is considered.
 
-When the autoscaler is configured to consider only a single metric, calculating the required replica count is simple: sum the metrics values of all the pods, divide that by the target value and then round it up to the next integer. For example, if we set the target value to be *50%* of requested CPU and we have 3 pods consuming, respectively, *60%*, *90%*, and *50%*, then the resulting number is ``ceil((60+90+50)/50) = 4`` replicas.
+The final step of the autoscaler is update the desired replica count field on the resource object, e.g. the deploy, and then letting it take care of spinning up additional pods or deleting excess ones. However, to deal with spike in the metrics, the scale operation is smoothed: if only one replica exists, it will scale up to a maximum of four replicas in a single step; if two or more replicas exist, it will double the number of replicas in a single step.
 
-The final step of the autoscaler is updating the desired replica count field on the resource object, e.g. the Deploy, and then letting it take care of spinning up additional pods or deleting excess ones.
-
-The period of the autoscaler is controlled by the ``--horizontal-pod-autoscaler-sync-period`` flag of controller manager. The default value is 30 seconds. The delay between two scale up operations is controlled by using the flag  ``--horizontal-pod-autoscaler-upscale-delay``. The default value is 3 minutes. Similarly, the delay between two scale down operations is adjustible with flag  ``--horizontal-pod-autoscaler-downscale-delay``. The default value is 5 minutes. 
+The period of the autoscaler is controlled by the ``--horizontal-pod-autoscaler-sync-period`` flag of controller manager (default 30 seconds). The delay between two scale up operations is controlled by using the ``--horizontal-pod-autoscaler-upscale-delay`` flag (default 180 seconds). Similarly, the delay between two scale down operations is adjustible with the  ``--horizontal-pod-autoscaler-downscale-delay`` flag (default 300 seconds). 
 
 ### Autoscaling based on CPU usage
 The most common used metric for pods autoscaling is the node's CPU consumed by all the pods controlled by the autoscaler. Those values are collected from the Metric Server and evaluated as an average.
@@ -250,7 +248,7 @@ spec:
             cpu: 100m
 ```
 
-We set the requests for *50m* CPU. This means that, considering a standard 2 CPUs node, each pod needs for the *2.5%* of node's CPU to be scheduled. Also we set *100m* CPU as hard limit for each pod. This means that each pod cannot eat more than *5%* of the node's CPU.
+We set the requests for ``50m`` CPU. This means that, considering a standard two CPUs node, each pod needs for the ``2.5%`` of node's CPU to be scheduled. Also we set ``100m`` CPU as hard limit for each pod. This means that each pod cannot eat more than ``5%`` of the node's CPU.
 
 Create the deploy
 
@@ -286,7 +284,7 @@ spec:
   targetCPUUtilizationPercentage: 20
 ```
 
-This creates an autoscaler object and sets the ``nginx`` deployment as the scaling target object. We’re setting the target CPU utilization to *20%* of the requested CPU, i.e. *10m* and specifying the minimum and maximum number of replicas. The autoscaler will constantly adjusting the number of replicas to keep the pod CPU utilization around *10m*, but it will never scale down to less than 1 or scale up to more than 9 replicas.
+This creates an autoscaler object and sets the ``nginx`` deployment as the scaling target object. We’re setting the target CPU utilization to ``20%`` of the requested CPU, i.e. ``10m`` for each pod and specifying the minimum and maximum number of replicas. The autoscaler will constantly adjusting the number of replicas to keep the single pod CPU utilization around ``10m``, but it will never scale down to less than 1 or scale up to more than 9 replicas.
 
 Create the pods autoscaler 
 
@@ -329,90 +327,116 @@ spec:
   - image: busybox:latest
     name: busybox
     command: ["/bin/sh", "-c", "while true; do wget -O - -q http://nginx; done"]
-  terminationGracePeriodSeconds: 10
 ```
 
 Create the load generator
 
     kubectl apply -f load-generator.yaml
 
-As we start to sending requests to the pod, we'll se the metric jumping around *70m*, more than the target value of *10m*.
+As we start to sending requests to the pod, we'll see the metric jumping to ``72m``, that is more than the target value of ``10m``.
 
     kubectl top pod 
 
     NAME                     CPU(cores)   MEMORY(bytes)
     nginx-55cbff4979-spg9p   72m          1Mi
 
-This conrespond around *144%* of the target value
+This corresponds to ``140%`` of the requested CPU
 
     kubectl get hpa -o wide
 
     NAME        REFERENCE          TARGETS    MINPODS   MAXPODS   REPLICAS   AGE
     hpa/nginx   Deployment/nginx   144%/20%   1         10        1          2m
 
-Now the autoscaler calculates the required replicas based on the measured CPU utilization: ceil(72/20=3.6) = 4 
+and that's very far from the target of ``20%``.
+
+Now the autoscaler calculates the required replicas based on the measured CPU utilization: ``ceil(144/20) = 8`` replicas. However, since only one replica exists, the autoscaler will scale up to a maximum of four replicas in a single step: 
+
+    kubectl get deploy nginx
+
+    NAME      DESIRED   CURRENT   UP-TO-DATE   AVAILABLE   AGE
+    nginx     4         4         4            4           15m
+
+Checking the pod's consumed CPU
+
+    kubectl top pod
+
+    NAME                     CPU(cores)   MEMORY(bytes)
+    nginx-55cbff4979-6c6zd   20m          1Mi
+    nginx-55cbff4979-lxmkd   20m          1Mi
+    nginx-55cbff4979-spg9p   20m          1Mi
+    nginx-55cbff4979-xnx7t   20m          1Mi
+
+we see each pod consuming ``20m``, that is more than the target value of ``10m``.
+
+This corresponds to ``40%`` of the requested CPU
+
+    kubectl get hpa -o wide
+
+    NAME        REFERENCE          TARGETS    MINPODS   MAXPODS   REPLICAS   AGE
+    hpa/nginx   Deployment/nginx   40%/20%    1         10        4          16m
+
+and that's still far from the target value of ``20%``.
+
+After the upscale delay timeout (default 180 seconds), the autoscaler starts calculating again the number of replicas: ``ceil((40+40+40+40)/20) = 8`` replicas. Since four replicas exist, the autoscaler scales up the deploy to have 8 replicas 
+
+    kubectl get deploy nginx
+
+    NAME      DESIRED   CURRENT   UP-TO-DATE   AVAILABLE   AGE
+    nginx     8         8         8            8           20m
 
 
-Every 2.0s: kubectl top pod                                                                             Sun Sep  2 14:03:21 2018
+Checking the pod's consumed CPU
 
-NAME                     CPU(cores)   MEMORY(bytes)
-load-generator           390m         0Mi
-nginx-55cbff4979-6c6zd   19m          1Mi
-nginx-55cbff4979-lxmkd   20m          1Mi
-nginx-55cbff4979-spg9p   19m          1Mi
-nginx-55cbff4979-xnx7t   19m          1Mi
+    kubectl top pod
 
-Every 2.0s: kubectl get hpa,deploy,pods -o wide                                                                                    Sun Sep  2 14:03:35 2018
+    NAME                     CPU(cores)   MEMORY(bytes)
+    nginx-55cbff4979-6c6zd   10m          1Mi
+    nginx-55cbff4979-fwgd8   10m          1Mi
+    nginx-55cbff4979-hlrcv   10m          1Mi
+    nginx-55cbff4979-lmgzm   10m          1Mi
+    nginx-55cbff4979-lxmkd   10m          1Mi
+    nginx-55cbff4979-nckqh   10m          1Mi
+    nginx-55cbff4979-spg9p   10m          1Mi
+    nginx-55cbff4979-xnx7t   10m          1Mi
 
-NAME                                        REFERENCE          TARGETS   MINPODS   MAXPODS   REPLICAS   AGE
-horizontalpodautoscaler.autoscaling/nginx   Deployment/nginx   38%/20%   1         10        4          21h
+we see each pod consuming ``10m``, that is the target value.
 
-Every 2.0s: kubectl top pod                                                                             Sun Sep  2 14:07:20 2018
+    kubectl get hpa -o wide
 
-NAME                     CPU(cores)   MEMORY(bytes)
-load-generator           380m         0Mi
-nginx-55cbff4979-6c6zd   9m           1Mi
-nginx-55cbff4979-fwgd8   10m          1Mi
-nginx-55cbff4979-hlrcv   10m          1Mi
-nginx-55cbff4979-lmgzm   10m          1Mi
-nginx-55cbff4979-lxmkd   10m          1Mi
-nginx-55cbff4979-nckqh   10m          1Mi
-nginx-55cbff4979-spg9p   10m          1Mi
-nginx-55cbff4979-xnx7t   10m          1Mi
+    NAME        REFERENCE          TARGETS    MINPODS   MAXPODS   REPLICAS   AGE
+    hpa/nginx   Deployment/nginx   20%/20%    1         10        8          20m
 
+Stopping the load generator
 
+    kubectl delete -f load-generator.yaml
 
-Every 2.0s: kubectl get hpa,deploy,pods -o wide                                                                                    Sun Sep  2 14:07:31 2018
+we can see the pod's consumed CPU reaching zero
 
-NAME                                        REFERENCE          TARGETS   MINPODS   MAXPODS   REPLICAS   AGE
-horizontalpodautoscaler.autoscaling/nginx   Deployment/nginx   19%/20%   1         10        8          21h
+    kubectl top pod
 
+    NAME                     CPU(cores)  MEMORY(bytes)
+    nginx-55cbff4979-6c6zd   0m          1Mi
+    nginx-55cbff4979-fwgd8   0m          1Mi
+    nginx-55cbff4979-hlrcv   0m          1Mi
+    nginx-55cbff4979-lmgzm   0m          1Mi
+    nginx-55cbff4979-lxmkd   0m          1Mi
+    nginx-55cbff4979-nckqh   0m          1Mi
+    nginx-55cbff4979-spg9p   0m          1Mi
+    nginx-55cbff4979-xnx7t   0m          1Mi
 
-Every 2.0s: kubectl top pod                                                                             Sun Sep  2 14:09:35 2018
+After the down scale delay timeout (default 300 seconds), the autoscaler will scale down the deploy to a single replica only
 
-NAME                     CPU(cores)   MEMORY(bytes)
-nginx-55cbff4979-6c6zd   0m           1Mi
-nginx-55cbff4979-fwgd8   0m           1Mi
-nginx-55cbff4979-hlrcv   0m           1Mi
-nginx-55cbff4979-lmgzm   0m           1Mi
-nginx-55cbff4979-lxmkd   0m           1Mi
-nginx-55cbff4979-nckqh   0m           1Mi
-nginx-55cbff4979-spg9p   0m           1Mi
-nginx-55cbff4979-xnx7t   0m           1Mi
+    kubectl get deploy nginx
 
-NAME                                        REFERENCE          TARGETS   MINPODS   MAXPODS   REPLICAS   AGE
-horizontalpodautoscaler.autoscaling/nginx   Deployment/nginx   0%/20%    1         10        8          21h
+    NAME      DESIRED   CURRENT   UP-TO-DATE   AVAILABLE   AGE
+    nginx     1         1         1            1           30m
 
-NAME                          DESIRED   CURRENT   UP-TO-DATE   AVAILABLE   AGE       CONTAINERS   IMAGES       SELECTOR
-deployment.extensions/nginx   8         8         8            8           21h       nginx        nginx:1.12   run=nginx
-
-
-
-
-
-
+Please, note the autoscaler does't work with target resources that do not support scaling operations, e.g. the daemon sets.
 
 ### Autoscaling based on memory usage
+Memory based autoscaling is much more problematic than CPU based autoscaling. The main reason is because after scaling up, the old pods would somehow need to be forced to release memory. This needs to be done by the app itself because it can’t be done automatically by the system.
+
+All the system could do is to kill and restart the application, hoping it would use less memory than before. But if the application will use the same amount as before, the autoscaler would scale it up again until it reaches the maximum number of pods configured on the autoscaler object.
 
 ### Autoscaling based on custom metrics
 But one metric does not fit all use cases and for different kind of applications, the metric might vary. For example, for a message queue, the number of messages in waiting state might be the appropriate metric. For memory intensive applications, memory consumption might be that metric. If you have a business application which handles about 1000 transactions per second for a given capacity pod, then you might want to use that metric and scale out when the TPS in pod reach above 850.

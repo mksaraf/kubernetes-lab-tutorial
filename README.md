@@ -80,3 +80,9 @@
    * [Admission Control](./content/secure.md#admission-control)
    * [Pod Security Context](./content/secure.md#pods-security-context) 
 
+9. [The APIs Server](./apiserver.md) 
+   * [Accessing the APIs Server](./apiserver.md#accessing-the-apis-server)
+   * [Exploring the APIs Server](./apiserver.md#exploring-the-apis-server)
+   * [APIs Aggregation](./apiserver.md#apis-aggregation)
+   * [Custom Resources](./apiserver.md#custom-resources)
+   * [Custom Controllers](./apiserver.md#custom-controllers)

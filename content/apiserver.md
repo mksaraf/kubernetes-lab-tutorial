@@ -1,6 +1,12 @@
 # The APIs Server
 The API Server is the central touch point for a Kubernetes cluster that is accessed by all users. The API server implements a RESTful API over HTTP(S), it performs all API operations and is responsible for storing API objects into a persistent storage backend, i.e. the etcd kay-value distributed database.
 
+ * [Accessing the APIs Server](#accessing-the-apis-server)
+ * [Exploring the APIs Server](#exploring-the-apis-server)
+ * [APIs Aggregation](#apis-aggregation)
+ * [Custom Resources](#custom-resources)
+ * [Custom Controllers](#custom-controllers)
+
 ## Accessing the APIs Server
 There are many ways to access the API server through its RESTful interface. In this section, we'll see few.
 
@@ -187,7 +193,7 @@ For example, to watch notifications from pods we can add the query parameter ``?
 
 The API server switches into watch mode, and it leaves the connection between client and server open. The data returned by the API server is no longer just the API object, it is a different object which contains both the type of the change, e.g. created, modified, deleted, as well as the API object itself. In this way a client can watch and observe all changes to that object, or set of objects instead of polling at some interval for possible updates, which introduces load and latency.
 
-## API Aggregation
+## APIs Aggregation
 The aggregation layer allows Kubernetes to be extended with additional APIs, beyond what is offered by default. It enables installing additional Kubernetes-style APIs in the cluster. These can either be pre-built, existing 3rd party solutions, such as a service-catalog, or user-created APIs servers. They can either run as pods in the same kubernetes cluster or run as standalone services.
 
 For example, the metric-server is deployed as stand-alone APIs service running as pod in kube-system namespace

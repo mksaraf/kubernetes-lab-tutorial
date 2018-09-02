@@ -1,4 +1,4 @@
-# Setup a Kubernetes Cluster
+# Securing the Cluster
 This tutorial refers to a cluster of nodes (virtual, physical or a mix of both) running CentOS 7 Operating System. We'll set Kubernetes components as system processes managed by systemd.
 
    * [Requirements](#requirements)

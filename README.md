@@ -86,3 +86,10 @@
    * [APIs Aggregation](./content/apiserver.md#apis-aggregation)
    * [Custom Resources](./content/apiserver.md#custom-resources)
    * [Custom Controllers](./content/apiserver.md#custom-controllers)
+
+10. [Custer Monitoring](./content/monitoring.md) 
+   * [./content/monitoring.mdResources usage](#resources-usage)
+   * [./content/monitoring.mdcAdvisor](#cadvisor)
+   * [./content/monitoring.mdMetric Server](#metric-server)
+   * [./content/monitoring.mdPods Autoscaling](#pods-autoscaling)
+   * [./content/monitoring.mdNodes Autoscaling](#nodes-autoscaling)

@@ -288,7 +288,7 @@ spec:
       targetAverageUtilization: 20
 ```
 
-This creates an autoscaler object and sets the ``nginx`` deployment as the scaling target object. We’re setting the target CPU utilization to ``20%`` of the requested CPU, i.e. ``10m`` for each pod. We're also specifying the minimum and maximum number of replicas. The autoscaler will constantly adjusting the number of replicas to keep the single pod CPU utilization around ``10m``, but it will never scale down to less than 1 or scale up to more than 9 replicas.
+This creates an autoscaler object and sets the ``nginx`` deployment as the scaling target object. We’re setting the target CPU utilization to ``20%`` of the requested CPU, i.e. ``10m`` for each pod. We're also specifying the minimum and maximum number of replicas. The autoscaler will constantly adjusting the number of replicas to keep the single pod CPU utilization around ``10m``, but it will never scale down to less than one or scale up to more than ten replicas.
 
 We can also spcify the metrics in terms of direct values, istead of percentage of the requested value. To achieve this, simply use the ``targetAverageValue: 10m`` instead of the ``targetAverageUtilization: 20``.
 

@@ -88,8 +88,8 @@
    * [Custom Controllers](./content/apiserver.md#custom-controllers)
 
 10. [Custer Monitoring](./content/monitoring.md) 
-   * [./content/monitoring.mdResources usage](#resources-usage)
-   * [./content/monitoring.mdcAdvisor](#cadvisor)
-   * [./content/monitoring.mdMetric Server](#metric-server)
-   * [./content/monitoring.mdPods Autoscaling](#pods-autoscaling)
-   * [./content/monitoring.mdNodes Autoscaling](#nodes-autoscaling)
+   * [Resources usage](./content/monitoring.md#resources-usage)
+   * [cAdvisor](./content/monitoring.md#cadvisor)
+   * [Metric Server](./content/monitoring.md#metric-server)
+   * [Pods Autoscaling](./content/monitoring.md#pods-autoscaling)
+   * [Nodes Autoscaling](./content/monitoring.md#nodes-autoscaling)

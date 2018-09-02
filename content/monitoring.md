@@ -205,7 +205,7 @@ The autoscaler controller doesn’t perform the collection of the pod metrics it
 
 Once the autoscaler gathered all the metrics for the pods, it can use those metrics to return the number of replicas to bring the metrics close to the target.
 
-When the autoscaler is configured to consider only a single metric, calculating the required replica count is simple: sum the metrics values of all the pods, divide that by the target value and then round it up to the next integer. For example, if we set the target value to be *50%* of requested CPU and we have 3 pods consuming, respectively, *60%*, *90%*, and *50%*, then the resulting number is *(60+90+50)/50=4* replicas.
+When the autoscaler is configured to consider only a single metric, calculating the required replica count is simple: sum the metrics values of all the pods, divide that by the target value and then round it up to the next integer. For example, if we set the target value to be *50%* of requested CPU and we have 3 pods consuming, respectively, *60%*, *90%*, and *50%*, then the resulting number is ``ceil((60+90+50)/50) = 4`` replicas.
 
 The final step of the autoscaler is updating the desired replica count field on the resource object, e.g. the Deploy, and then letting it take care of spinning up additional pods or deleting excess ones.
 
@@ -250,7 +250,7 @@ spec:
             cpu: 100m
 ```
 
-We set the requests for *50m* CPU. This means that, considering a standard 2 CPUs node, each pod needs for the *2.5%* of node's CPU to be scheduled. Having set the desired state as for 3 replicas, make sure, overall, there is *7.5%* of node's CPU. Also we set *100m* CPU as hard limit for each pod. This means that the all 3 pods cannot eat more than *15%* of the node's CPU.
+We set the requests for *50m* CPU. This means that, considering a standard 2 CPUs node, each pod needs for the *2.5%* of node's CPU to be scheduled. Also we set *100m* CPU as hard limit for each pod. This means that each pod cannot eat more than *5%* of the node's CPU.
 
 Create the deploy
 
@@ -311,7 +311,7 @@ pods, leaving only one pod running.
 
 Now, we’ll start sending requests to the remaining pod, thereby increasing its CPU usage, and we should see the autoscaler in action by detecting this and starting up additional pods.
 
-To send requests to the pods, we need to expose them as an internal service so we can send requests in a load balanced mode. Create a service as for the ``nginx-svc.yaml`` manifest file
+To send requests to the pods, we need to expose them as an internal service, so we can send requests in a load balanced mode. Create a service as for the ``nginx-svc.yaml`` manifest file
 
     kubectl apply -f nginx-svc.yaml
 
@@ -336,7 +336,81 @@ Create the load generator
 
     kubectl apply -f load-generator.yaml
 
-As we start to sending requests to the pod, we'll se the metric jumping to *70m* that is more than the target value of 20% of the requested CPU. By simple math 20% of 50m is 10m.
+As we start to sending requests to the pod, we'll se the metric jumping around *70m*, more than the target value of *10m*.
+
+    kubectl top pod 
+
+    NAME                     CPU(cores)   MEMORY(bytes)
+    nginx-55cbff4979-spg9p   72m          1Mi
+
+This conrespond around *144%* of the target value
+
+    kubectl get hpa -o wide
+
+    NAME        REFERENCE          TARGETS    MINPODS   MAXPODS   REPLICAS   AGE
+    hpa/nginx   Deployment/nginx   144%/20%   1         10        1          2m
+
+Now the autoscaler calculates the required replicas based on the measured CPU utilization: ceil(72/20=3.6) = 4 
+
+
+Every 2.0s: kubectl top pod                                                                             Sun Sep  2 14:03:21 2018
+
+NAME                     CPU(cores)   MEMORY(bytes)
+load-generator           390m         0Mi
+nginx-55cbff4979-6c6zd   19m          1Mi
+nginx-55cbff4979-lxmkd   20m          1Mi
+nginx-55cbff4979-spg9p   19m          1Mi
+nginx-55cbff4979-xnx7t   19m          1Mi
+
+Every 2.0s: kubectl get hpa,deploy,pods -o wide                                                                                    Sun Sep  2 14:03:35 2018
+
+NAME                                        REFERENCE          TARGETS   MINPODS   MAXPODS   REPLICAS   AGE
+horizontalpodautoscaler.autoscaling/nginx   Deployment/nginx   38%/20%   1         10        4          21h
+
+Every 2.0s: kubectl top pod                                                                             Sun Sep  2 14:07:20 2018
+
+NAME                     CPU(cores)   MEMORY(bytes)
+load-generator           380m         0Mi
+nginx-55cbff4979-6c6zd   9m           1Mi
+nginx-55cbff4979-fwgd8   10m          1Mi
+nginx-55cbff4979-hlrcv   10m          1Mi
+nginx-55cbff4979-lmgzm   10m          1Mi
+nginx-55cbff4979-lxmkd   10m          1Mi
+nginx-55cbff4979-nckqh   10m          1Mi
+nginx-55cbff4979-spg9p   10m          1Mi
+nginx-55cbff4979-xnx7t   10m          1Mi
+
+
+
+Every 2.0s: kubectl get hpa,deploy,pods -o wide                                                                                    Sun Sep  2 14:07:31 2018
+
+NAME                                        REFERENCE          TARGETS   MINPODS   MAXPODS   REPLICAS   AGE
+horizontalpodautoscaler.autoscaling/nginx   Deployment/nginx   19%/20%   1         10        8          21h
+
+
+Every 2.0s: kubectl top pod                                                                             Sun Sep  2 14:09:35 2018
+
+NAME                     CPU(cores)   MEMORY(bytes)
+nginx-55cbff4979-6c6zd   0m           1Mi
+nginx-55cbff4979-fwgd8   0m           1Mi
+nginx-55cbff4979-hlrcv   0m           1Mi
+nginx-55cbff4979-lmgzm   0m           1Mi
+nginx-55cbff4979-lxmkd   0m           1Mi
+nginx-55cbff4979-nckqh   0m           1Mi
+nginx-55cbff4979-spg9p   0m           1Mi
+nginx-55cbff4979-xnx7t   0m           1Mi
+
+NAME                                        REFERENCE          TARGETS   MINPODS   MAXPODS   REPLICAS   AGE
+horizontalpodautoscaler.autoscaling/nginx   Deployment/nginx   0%/20%    1         10        8          21h
+
+NAME                          DESIRED   CURRENT   UP-TO-DATE   AVAILABLE   AGE       CONTAINERS   IMAGES       SELECTOR
+deployment.extensions/nginx   8         8         8            8           21h       nginx        nginx:1.12   run=nginx
+
+
+
+
+
+
 
 ### Autoscaling based on memory usage
 

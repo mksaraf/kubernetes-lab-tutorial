@@ -444,7 +444,12 @@ Often one metric does not fit all use cases. For example, for a message queue ap
 
 Kubernetes supports the usage of custom metrics for the pods autoscaler. Custom metrics rely on custom adapters that serves the custom metrics API. These adapters need to be registered at ``/apis/custom.metrics.k8s.io`` of the main kubernetes API server to tell the aggregation layer where to forward requests for custom metrics.
 
-Currently, the most common solution for custom metrics is the [Prometheus](https://github.com/prometheus/prometheus) project.
+The most common solution for custom metrics in kubernetes is based on the [Prometheus](https://github.com/prometheus/prometheus) project.
 
 
 ## Nodes Autoscaling
+The pods autoscaler creates additional pod instances when the need for them arises. However, it may encounter the problem where none of the nodes can accept the more pods, because the node’s resources aren't enough to run all required pods. In that case, the only option is to add new nodes to the cluster. This could be a manual process involving the cluster infrastructure or it can be automated by means of the nodes autoscaler.
+
+Unlike the pods autoscaler, the nodes autoscaler (a.k.a cluster autoscaler) relies on the cluster infrastructure to work. For example, if the cluster is hosted on a cloud infrastructure, the autoscaler needs to use the APIs provided by the cloud provider to provision new node instances.
+
+The cluster autoscaler takes care of automatically provisioning (scale up) additional nodes when there are unschedulable pods because of a lack of resources on the current set of nodes. It also deprovisions (scale down) nodes when they are underutilized for a given period of time.

@@ -111,7 +111,7 @@ We can check the usage of the resources at node level by describing the node
 
 
 ## cAdvisor
-The resource usage is provided by the **cAdvisor** agent running into kubelet binary and exposed externally to the port 4194 on the worker node. This is an unsecure port and can be closed. If not closed, we can start a simple web UI of the cAdvisor agent by using a web browser. The cAdvisor auto-discovers all containers running on the node and collects CPU, memory, filesystem, and network usage statistics. It also provides the overall machine usage by analyzing the root container.
+The resource usage is provided by the **cAdvisor** agent running into kubelet binary and exposed externally to the port 4194 on the worker node. This is an unsecure port and it might be closed on some setups. To open this port, pass the ``--cadvisor-port`` flag to the kubelet configuration. We can start a simple web UI of the cAdvisor agent by using a web browser. The cAdvisor auto-discovers all containers running on the node and collects CPU, memory, filesystem, and network usage statistics. It also provides the overall machine usage and metrics.
 
 ## Metric Server
 The **Metric Server** is a kubernetes add-on running as pod in the cluster. It makes centrally accessible all the metrics collected by all the cAdvisor agents running on the worker nodes. Once installed, the metric server makes it possible to obtain resource usages for nodes and individual pods through the ``kubectl top`` command.
@@ -437,12 +437,14 @@ After the down scale delay timeout (default 300 seconds), the autoscaler will sc
 Please, note the autoscaler does't work with target resources that do not support scaling operations, e.g. the daemon sets.
 
 ### Autoscaling based on memory usage
-Using the memory based autoscaling is less simple than CPU based autoscaling. The main reason is because the memory management depends much more by the application itself (think Java based applications) than by the system. For example, after scaling up, the previous set of pods need to release memory to make the autoscaler working properly. Unfortunately, this is much related to the application memory management and we cannot be sure the memory is released, so the autoscaler would scale it up again until it reaches the maximum number of pods configured on the autoscaler object. 
+Configure the memory based autoscaling is less easy than CPU based autoscaling. The main reason is because the memory management depends much more on the application itself than on the operating system. For example, after scaling up, the previous set of pods need to release memory to make the autoscaler working properly. Unfortunately, this is much related to the application memory management (think Java based applications) and we cannot be sure the memory is released by the application, so in that case, the autoscaler would scale it up again until it reaches the maximum number of pods configured on the autoscaler object. 
 
 ### Autoscaling based on custom metrics
-Often one metric does not fit all use cases and for different kind of applications. For example, for a message queue application, the number of messages in waiting state might be a more appropriate metric than the CPU or memory usage. As another example, a business application which handles thousands of transactions per second, the QPS (Query Per Second) might be the right metric to use.
+Often one metric does not fit all use cases. For example, for a message queue application, the number of messages in waiting state might be a more appropriate metric than the CPU or memory usage. As another example, for a business application which handles thousands of transactions per second, the QPS (Query Per Second) might be the right metric to use.
 
-So the requirement here is to have custom metrics to be considered by the autoscaler.
+Kubernetes supports the usage of custom metrics for the pods autoscaler. Custom metrics rely on custom adapters that serves the custom metrics API. These adapters need to be registered at ``/apis/custom.metrics.k8s.io`` of the main kubernetes API server to tell the aggregation layer where to forward requests for custom metrics.
+
+Currently, the most common solution for custom metrics is the [Prometheus](https://github.com/prometheus/prometheus) project.
 
 
 ## Nodes Autoscaling

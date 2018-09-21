@@ -5,11 +5,36 @@ In this section, we're going to analyze these new principles with the aim to giv
 
 Design patterns are grouped into several categories:
 
-  * **Foundational Patterns:** underlying principles and practices for building cloud native applications in Kuberentes.
-  * **Behavorial Patterns:** concepts for managing various types of containers and their interactions in Kuberentes.
-  * **Structural Patterns:** how to organize containers in Kubernetes.
-  * **Configuration Patterns:** how application configurations can be handled in Kubernetes.
+  * **Foundational Patterns:** basic principles and practices for building cloud native applications.
+  * **Behavorial Patterns:** concepts for managing various types of containers and their interactions.
+  * **Structural Patterns:** how to organize containers.
+  * **Configuration Patterns:** how application configurations can be handled.
 
 However, the same pattern may have multiple implications and fall into multiple categories. Also patterns are often interconnected, as we will see in the following sections.
 
 ## Foundational Patterns
+• Distributed Primitives
+• Predictable Demands
+• Dynamic Placement
+• Declarative Deployment
+• Observable Interior
+• Life Cycle Conformance
+
+## Behavorial Patterns
+• Batch Jobs
+• Scheduled Jobs
+• Daemon Services
+• Singleton Services
+• Self Awareness
+
+## Structural Patterns
+• Sidecar
+• Initialiser
+• Ambassador
+• Adapter
+
+## Configuration Patterns
+• Environment Variables
+• Configuration Resources
+• Configuration Templates
+• Immutable Configuration

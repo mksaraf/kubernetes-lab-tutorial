@@ -23,7 +23,7 @@ spec:
     args:
       - while true; do
           date >> /mnt/index.html;
-          sleep 1;
+          sleep 10;
         done
   volumes:
   - name: html

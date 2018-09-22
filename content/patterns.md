@@ -23,8 +23,7 @@ Foundational patterns refer to the basic principles for building cloud native ap
 * [Life Cycle Conformance](#life-cycle-conformance)
 
 ### Distributed Primitives
-Kubernetes adds a new mindset to the software application design by offering a new set of distributed primitives and runtime
-for creating distributed systems spreading across multiple nodes of a cluster. Having these new primitives, we have an additional set of tools to implements software applications, in addition to the already well known primitives offered by programming languages and runtimes.
+Kubernetes adds a new mindset to the software application design by offering a new set of primitives for creating distributed systems spreading across multiple nodes. Having these new primitives, we add a new set of tools to implements software applications, in addition to the already well known tools offered by programming languages and runtimes.
 
 #### Containers
 Containers are building blocks for applications running in Kubernetes. From the technical point of view, a container provides
@@ -46,7 +45,7 @@ Having small and modular reusable containers leads us to create a set of standar
 Containers are designed to run only a single process per container, unless the process itself spawns child processes. Running multiple unrelated processes in a single container, leads to keep all those processes up and running, manage their logs, their interactions, and their healtiness. For example, we have to include a mechanism for automatically restarting individual processes if they crash. Also, all those processes would log to the same standard output, so we'll have hard time figuring out which process logged what.
 
 #### Pods
-In Kubernetes, a group of one or more containers is called a pod. Containers in a pod are deployed together, and are started, stopped, and replicated as a group. When a pod does contain multiple containers, all of them are always run on a single node, it never spans multiple nodes.
+In Kubernetes, a group of one or more containers is called pod. Containers in a pod are deployed together, and are started, stopped, and replicated as a group. When a pod contains multiple containers, all of them are always run on a single node, it never spans multiple nodes.
 
 The simplest pod definition describes the deployment of a single container as in the following configuration file  
 
@@ -66,9 +65,9 @@ spec:
     - containerPort: 80
 ```
 
-We can have more containers in the same pod. All containers inside the same pod share the same resources, e.g. network and process namespaces. This allows the containers in a pod to interact each other through networking via localhost, or inter-process communication mechanisms, if desired. Kubernetes achieves this by configuring all containers in the same pod to use the same set of Linux namespaces, instead of each container having its own set. They can also share the same PID namespace, but that isn’t enabled by default.
+All containers inside the same pod can share the same set of resources, e.g. network and process namespaces. This allows the containers in a pod to interact each other through networking via localhost, or inter-process communication mechanisms, if desired. Kubernetes achieves this by configuring all containers in the same pod to use the same set of Linux namespaces, instead of each container having its own set. They can also share the same PID namespace, but that isn’t enabled by default.
 
-Multiple containers in the same pod cannot share their file system becuse the container’s filesystem comes from the container image, and, by default, it is fully isolated from other containers. However, containers in the same pod can share some host file folders called volumes.
+On the other side, multiple containers in the same pod cannot share the file system because the container’s filesystem comes from the container image, and by default, it is fully isolated from other containers. However, multiple containers in the same pod can share some host file folders called volumes.
 
 For example, the following file describes a pod with two containers using a shared volume to comminicate each other
 
@@ -105,8 +104,55 @@ spec:
     emptyDir: {}
 ```
 
-The first container called ``main`` is serving a static webpage created dynamically by a second container called ``supporting``. The two containers share a common host volume ``html`` to pass data.
+The first container running a ``nginx`` server, is called ``main`` and it is serving a static webpage created dynamically by a second container called ``supporting``. The main container has a shared volume called ``html`` mounted to the directory ``/usr/share/nginx/html``. The supporting container has the shared volume mounted to the directory ``/mnt``. Every ten seconds, the supporting container adds the current date and time into the ``index.html`` file, which is located in the shared volume. When the user makes an HTTP request to the pod, the nginx server reads this file and transfers it back to the user in response to the request.
 
+All containers in a pod are being started in parallel and there is no way to define that one container must be started after other container. To deal with dependencies and startup order, Kubernetes introduces the Init Containers, which start first and sequentially, before the main and the other supporting containers in the same pod.
+
+For example, the following file describe a pod with one main container and an init container using a shared volume to comminicate each other
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx
+  namespace:
+  labels:
+spec:
+  initContainers:
+  - name: prepare-html
+    image: busybox:latest
+    command: ["/bin/sh", "-c", "echo '<html><body><h1>Hello World from '$POD_IP'!<h1></body><html>' > /tmp/index.html"]  
+    env:
+    - name: POD_IP
+      valueFrom:
+        fieldRef:
+          fieldPath: status.podIP
+    volumeMounts:
+    - name: content-data
+      mountPath: /tmp
+  containers:
+  - name: nginx
+    image: nginx:latest
+    ports:
+    - containerPort: 80
+    volumeMounts:
+    - name: content-data
+      mountPath: /usr/share/nginx/html
+  volumes:
+  - name: content-data
+    emptyDir: {}
+```
+
+The main requirement of the pod above is to reply to user requests with a greeting message containing the IP address of the pod. Because the IP address of a pod is only known after the pod started, we need to get the IP before the main container. This is the sequence of events happening here:
+
+1. The pod is created and it is scheduled on a given node.
+2. The IP address of the pod is assigned.
+3. The init container starts and gets the IP address from the APIs server.
+4. The init container creates a simple html file containing the pod's IP and places it into the shared volume.
+5. The init container exits
+6. The main container starts, reads this file and transfers it back to the user in response to requests.
+
+A pod may have any number of init containers. They are executed sequentially and only after the last one completes with success, then the main container and all supporting containers are started in parallel.
 
 ### Predictable Demands
 ### Dynamic Placement

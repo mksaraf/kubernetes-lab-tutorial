@@ -258,7 +258,113 @@ spec:
           protocol: TCP
 ```
 
+#### Namespaces
+Kubernetes supports multiple virtual clusters backed by the same physical cluster. These virtual clusters are called namespaces. Within the same namespace, kubernetes objects name should be unique. Different objects in different namespaces may have the same name.
+
+Kubernetes comes with two initial namespaces
+
+  * default: the default namespace for objects with no other namespace
+  * kube-system: the namespace for objects created by the kubernetes system
+
+The cluster admin can create additional namespaces, for example, a namespace for each group of users. Another option is to create a namespace for each deployment environment, for example: development, staging, and production.
+
 ### Predictable Demands
+A predictable resource requirements for container based applications is important to make intelligent decisions for placing containers on the cluster for most efficient utilization. In an environment with shared resources among large number of processes with different priorities, the only way for a successful placement is by knowing the demands of every process in advance.
+
+#### Resources consumption
+When creating a pod, we can specify the amount of CPU and memory that a container requests and a limit on what it may consume. 
+
+For example, the following pod manifest specifies the CPU and memory requests for its single container.
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: request-pod
+  namespace:
+  labels:
+spec:
+  containers:
+  - image: busybox:latest
+    command: ["dd", "if=/dev/zero", "of=/dev/null"]
+    name: busybox
+    resources:
+      requests:
+        cpu: 200m
+```
+
+By specifying resource requests, we specify the minimum amount of resources the pod needs. However the pod above can take more than the requested CPU and memory we requested, according to the capacity and the actual load of the working node.
+
+Each node has a certain amount of CPU and memory it can allocate to pods. When scheduling a pod, the scheduler will only consider nodes with enough unallocated resources to meet the pod requirements. If the amount of unallocated CPU or memory is less than what the pod requests, the scheduler will not consider the node, because the node can’t provide the minimum amount
+required by the pod.
+
+Please, note that we're not specifying the maximum amount of resources the pod can consume. If we want to limit the usage of resources, we have to limit the pod as in the following descriptor file
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: limited-pod
+  namespace:
+  labels:
+spec:
+  containers:
+  - image: busybox:latest
+    command: ["dd", "if=/dev/zero", "of=/dev/null"]
+    name: busybox
+    resources:
+      requests:
+        cpu: 200m
+      limits:
+        cpu: 200m
+```
+
+Both resource requests and limits are specified for each container individually, not for the entire pod. The pod resource requests and limits are the sum of the requests and limits of all the containers contained into the pod. 
+
+#### Quotas
+By working in a shared multi tenant platform, the cluster admin can also configure boundaries and control units to prevent users consuming all the resources of the platform. A resource quota provides constraints that limit aggregate resource consumption per namespace.
+
+For example, use the configuration file to assign constraints to current namespace
+```yaml
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: project-quota
+spec:
+  hard:
+    limits.memory: 4Gi
+    limits.cpu: 1
+```
+
+Users create pods in the namespace, and the quota system tracks usage to ensure it does not exceed the hard resource limit defined in the quota. If creating or updating a pod violates the assigned quota, then the request will fail.
+
+Please, note that when quota is enabled in a namespace for compute resources like cpu and memory, users must specify resources consumption, otherwise the quota system rejects pod creation. The reason is that, by default, a pod try to allocate all the CPU and memory available in the system. Since we have limited cpu and memory consumption, the quota system cannot honorate a request for pod creation crossing these limits and request will fail.
+
+#### Limits
+A single namespace may be used by more pods at same time. To avoid a single pod consumes all resource of a given namespace, Kubernetes introduces the limit range concept. The limit range limits the resources that a pod can consume by specifying the minimum, maximum and default resource consumption.
+
+The following file defines limits for all containers running in the current namespace
+```yaml
+kind: LimitRange
+apiVersion: v1
+metadata:
+  name: container-limit-ranges
+spec:
+  limits:
+  - type: Container
+    max:
+      cpu: 200m
+      memory: 512Mi
+    min:
+      cpu:
+      memory:
+    default:
+      cpu: 100m
+      memory: 256Mi
+```
+
+When the current namespace defines limits and a user tryes to create a pod with a resource consumption more than that limits, the scheduler will deny the request to create the pod.
+
 ### Dynamic Placement
 ### Declarative Deployment
 ### Observable Interior

@@ -152,7 +152,111 @@ The main requirement of the pod above is to reply to user requests with a greeti
 5. The init container exits
 6. The main container starts, reads this file and transfers it back to the user in response to requests.
 
-A pod may have any number of init containers. They are executed sequentially and only after the last one completes with success, then the main container and all supporting containers are started in parallel.
+A pod may have any number of init containers. They are executed sequentially and only after the last one completes with success, then the main container and all the other supporting containers are started in parallel.
+
+#### Services
+In Kuberentes, pods are ephemeral, meaning they can die at any time for all sort of reasons suchs as scaling up and down, failing container health checks and node failures. A pod IP is known only after it is scheduled and started on a node. A pod can be rescheduled to a different node if the current node fails. All that means the pod IP may change over the life of an application and there is no way to control the assignment. Also horizontal scaling means multiple pods providing the same service with different IP addresses, having each of them its own.
+
+For these reasons, there is a need for another primitive which defines a logical set of pods and how to access them 
+through a single IP address and port. The service is another simple but powerful abstraction that binds the service name to an IP address and port number in a permanent way. A service represents a named entry point for a piece of functionality provided by the set of pods it is bound to.
+
+The set of pods targeted by a Service is usually determined by a label selector. For example, the following file describes a service for a set of pods running nginx web servers
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx
+  namespace:
+  labels:
+spec:
+  selector:
+    run: nginx
+  ports:
+  - protocol: TCP
+    port: 8000
+    targetPort: 80
+  type: ClusterIP
+```
+
+Once the service is created, all pods matching the label selector ``run=nginx`` will be bound to this service. By inspecting the service
+
+    kubectl describe service nginx
+
+    Name:                   nginx
+    Namespace:              default
+    Labels:                 None
+    Selector:               run=nginx
+    Type:                   ClusterIP
+    IP:                     10.32.0.24
+    Port:                   <unset> 8000/TCP
+    Endpoints:              10.38.0.34:80,10.38.0.35:80,10.38.0.36:80
+    Session Affinity:       None
+
+we can see the service IP and port. These will be our static entrypoint for the ``nginx`` service provided by a set of pods running the nginx server.
+
+The service endpoints are a set of ``<IP:PORT>`` pairs where the incoming requests to the service are redirected. We can see that the endpoints are the sockets provided by the pods bound to the service. The endpoints are dynamically updated whenever the set of pods in a service changes.
+
+#### Labels
+Labels are a system to organize objects into groups. Labels are key-value pairs that are attached to each object.
+To add a label to a pod, add a labels section under metadata in the pod definition:
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    run: nginx
+...
+```
+
+Labels are also used as selector for services and controllers.
+
+#### Controllers
+Controllers ensure that a specified number of pod replicas are running at any one time. In other words, a controller makes sure that a homogeneous set of pods are always up and running. If there are too many pods, it will kill some. If there are too few, it will start more. Unlike manually created pods, the pods maintained by a controller are automatically replaced if they fail, get deleted, or terminated.
+
+There are different types of controllers:
+
+  * **Replica Set**
+  * **Daemon Set**
+  * **Stateful Set**
+
+and other might be defined in the future.
+
+A Replica Set controller consists of:
+
+ * The number of replicas desired
+ * The pod definition
+ * The selector to bind the managed pod
+
+A selector is a label assigned to the pods that are managed by the replica set. Labels are included in the pod definition that the replica set instantiates. The replica set uses the selector to determine how many instances of the pod are already running in order to adjust as needed.
+
+For example, the followin file defines a replica set with three replicas
+
+```yaml
+apiVersion: extensions/v1beta1
+kind: ReplicaSet
+metadata:
+  labels:
+  namespace:
+  name: nginx
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      run: nginx
+  template:
+    metadata:
+      labels:
+        run: nginx
+    spec:
+      containers:
+      - image: nginx:1.12
+        name: nginx
+        ports:
+        - containerPort: 80
+          protocol: TCP
+```
 
 ### Predictable Demands
 ### Dynamic Placement

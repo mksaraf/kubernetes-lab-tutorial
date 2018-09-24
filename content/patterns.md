@@ -224,7 +224,7 @@ kind: Pod
 metadata:
   name: nginx
   annotations:
-    readme: "Note: before to run this pod, make sure you have a service account defined and permissions set."
+    readme: "before to run this pod, make sure you have a service account defined."
   namespace:
   labels:
     run: nginx
@@ -545,7 +545,7 @@ It will create a wordpress pod having a hard requirement to be deployed on the s
 ### Colocation
 Another option provided by the affinity function is to force some pods to run close to the other pods in the same rack, zone, or region. Kubernetes nodes can be grouped into racks, zones and regions, then using proper labels and label selectors, it is possible to specify where pods will be placed.
 
-For example, the following descriptor defines pods with hard requirement to be deployed in a given availability zone
+For example, the following descriptor defines pods with hard requirement to be deployed in the same availability zone
 
 ```yaml
 apiVersion: apps/v1
@@ -566,20 +566,25 @@ spec:
     spec:
       affinity:
         podAffinity:
-          preferredDuringSchedulingIgnoredDuringExecution:
-            - weight: 1
-                podAffinityTerm:
-                  topologyKey:
-                    failure-domain.beta.kubernetes.io/zone: eu-west-1
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: run
+                operator: In
+                values:
+                  - nginx
+            topologyKey:
+              failure-domain.beta.kubernetes.io/zone
       containers:
-      - image: nginx:1.12
-        imagePullPolicy: Always
+      - image: nginx:latest
         name: nginx
         ports:
         - containerPort: 80
           protocol: TCP
       restartPolicy: Always
 ```
+
+The pod affinity rule says that the pods can be schedule onto a node only if that node is in the same zone as at least one already running pod with the same label ``run=nginx``. Also pods are eligible to run on a given set of nodes, if the nodes have are labeled with the same value of ``failure-domain.beta.kubernetes.io/zone``. 
 
 #### Failure domains
 

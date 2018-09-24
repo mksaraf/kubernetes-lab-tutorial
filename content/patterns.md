@@ -121,7 +121,7 @@ spec:
   initContainers:
   - name: prepare-html
     image: busybox:latest
-    command: ["/bin/sh", "-c", "echo '<html><body><h1>Hello World from '$POD_IP'!<h1></body><html>' > /tmp/index.html"]  
+    command: ["/bin/sh", "-c", "echo 'Hello World from '$POD_IP'!' > /tmp/index.html"]  
     env:
     - name: POD_IP
       valueFrom:

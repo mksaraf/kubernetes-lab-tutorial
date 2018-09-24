@@ -212,6 +212,30 @@ metadata:
 
 Labels are also used as selector for services and controllers.
 
+#### Annotations
+In addition to labels, pods and other objects can also contain annotations. Annotations are also key-value pairs, so they are similar to labels, but they can’t be used to group objects the way labels can. While objects can be selected through label selectors, it is not possible to do the same with an annotation selector.
+
+On the other hand, annotations can hold much larger pieces of information than labels. Certain annotations are automatically added to objects by Kubernetes, but others can be added by users.
+
+Here an example of pod with annotation
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx
+  annotations:
+    readme: "Note: before to run this pod, make sure you have a service account defined and permissions set."
+  namespace:
+  labels:
+    run: nginx
+spec:
+  containers:
+  - name: nginx
+    image: nginx:latest
+    ports:
+    - containerPort: 80
+```
+
 #### Controllers
 Controllers ensure that a specified number of pod replicas are running at any one time. In other words, a controller makes sure that a homogeneous set of pods are always up and running. If there are too many pods, it will kill some. If there are too few, it will start more. Unlike manually created pods, the pods maintained by a controller are automatically replaced if they fail, get deleted, or terminated.
 
@@ -265,6 +289,15 @@ Kubernetes comes with two initial namespaces
 
   * default: the default namespace for objects with no other namespace
   * kube-system: the namespace for objects created by the kubernetes system
+
+Here an example of namespace
+
+```yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: myproject
+```
 
 The cluster admin can create additional namespaces, for example, a namespace for each group of users. Another option is to create a namespace for each deployment environment, for example: development, staging, and production.
 
@@ -366,6 +399,194 @@ spec:
 When the current namespace defines limits and a user tryes to create a pod with a resource consumption more than that limits, the scheduler will deny the request to create the pod.
 
 ### Dynamic Placement
+A reasonably sized microservices based application will consist of multiple containers. Containers, often, have dependencies among themselves, dependencies to the host, and resource requirements. The resources available on a cluster also can vary
+over time. The way we place containers also impacts the availability, the performances, and the capacity of the distributed systems.
+
+In Kubernetes, assigning pods to nodes is done by the scheduler. Generally, the users leave the scheduler to do its job without constraints. However, it might be required introduce a sort of forcing to the scheduler in order to achieve a better resource usage or meet some application's requirements.
+
+#### Node Selectors
+Node selector is the first ans simplest form of scheduler forcing. For example, having a pod that needs for **GPU** (Graphical Processor Unit) to perform its work, we can force the scheduler to use only GPU-equipped nodes to run this kind of pod. This is achieved by labeling all the node GPU-equipped with a proper label, e.g ``gpu=true``, and use this label as node selector in the pod definition
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: gpu
+  namespace:
+  labels:
+    run: nginx
+spec:
+  nodeSelector:
+    gpu: true
+  containers:
+  - name: nginx
+    image: nginx:latest
+    ports:
+    - containerPort: 80
+```
+
+#### Node Affinity
+The node affinity is a generalization of the node selector approach with a more expressive and flexible semantics than the node selector technique. Node affinity allows us to specify rules as either required or preferred: required rules must be met for a pod to be scheduled to a node, whereas preferred rules only imply preference for the matching the node.
+
+For example, the following pod descriptor defines a node affinity with a required rule
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx-node-affinity
+  namespace:
+  labels:
+    app: nginx
+spec:
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: datacenter
+            operator: In
+            values:
+            - milano-dc-1
+  containers:
+  - name: nginx
+    image: nginx:latest
+    ports:
+    - containerPort: 80
+```
+
+The rule above force the scheduler to place the pod only on nodes having a label set to ``datacenter=milano-dc-1``. However the rule does only affects pod scheduling and never causes a pod to be evicted from a node if such label is removed from the node. This is because we used the ``requiredDuringSchedulingIgnoredDuringExecution`` instead of the ``requiredDuringSchedulingRequiredDuringExecution``. In the latter case, removing the label from the node, the pod gets evicted from the node.
+
+The following example, is a pod descriptor which defines a node affinity with a preferred set of rules:
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx-node-affinity
+  namespace:
+  labels:
+    app: nginx
+spec:
+  affinity:
+    nodeAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 1
+        preference:
+          matchExpressions:
+          - key: hypervisor
+            operator: In
+            values:
+            - esxi
+      - weight: 2
+        preference:
+          matchExpressions:
+          - key: hypervisor
+            operator: In
+            values:
+            - kvm
+  containers:
+  - name: nginx
+    image: nginx:latest
+    ports:
+    - containerPort: 80
+```
+
+The rule above defines a set of preferred rules based on the value of the ``hypervisor=esxi|kvm`` and setting a preference weight (higest is the preferred one).
+
+#### Pods Affinity
+The node affinity rules are used to force which node a pod is scheduled to. But these rules only affect the affinity between a pod and a node, whereas sometimes we need to specify the affinity between pods themselves. In this case, the pod affinity technique is required. Having a multi services application made of a forntend and a backend service, does make sense to have the frontend pods running close as muche as possible to the backend pods.
+
+For example, the following descriptor defines a required pod affinity rule
+
+```yaml
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: wordpress
+  namespace:
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      run: blog
+  template:
+    metadata:
+      labels:
+        run: blog
+    spec:
+      affinity:
+        podAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                - key: run
+                  operator: In
+                  values:
+                  - "mariadb"
+              topologyKey: kubernetes.io/hostname
+      containers:
+      - image: bitnami/wordpress:latest
+        name: wordpress
+        ports:
+        - containerPort: 80
+          protocol: TCP
+        - containerPort: 443
+          protocol: TCP
+        env:
+        - name: MARIADB_HOST
+          value: mariadb
+        - name: MARIADB_PORT
+          value: '3306'
+```
+
+It will create a wordpress pod having a hard requirement to be deployed on the same node as a pod running the database backend. However, since we are only forcing at scheduling time, we still can get a situation where the two pods are running on two different nodes (for example, by deleting the backend node).
+
+### Colocation
+Another option provided by the affinity function is to force some pods to run close to the other pods in the same rack, zone, or region. Kubernetes nodes can be grouped into racks, zones and regions, then using proper labels and label selectors, it is possible to specify where pods will be placed.
+
+For example, the following descriptor defines pods with hard requirement to be deployed in a given availability zone
+
+```yaml
+apiVersion: apps/v1
+kind: ReplicaSet
+metadata:
+  labels:
+  namespace:
+  name: nginx
+spec:
+  replicas: 9
+  selector:
+    matchLabels:
+      run: nginx
+  template:
+    metadata:
+      labels:
+        run: nginx
+    spec:
+      affinity:
+        podAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 1
+                podAffinityTerm:
+                  topologyKey:
+                    failure-domain.beta.kubernetes.io/zone: eu-west-1
+      containers:
+      - image: nginx:1.12
+        imagePullPolicy: Always
+        name: nginx
+        ports:
+        - containerPort: 80
+          protocol: TCP
+      restartPolicy: Always
+```
+
+#### Failure domains
+
+
+
+
+
 ### Declarative Deployment
 ### Observable Interior
 ### Life Cycle Conformance

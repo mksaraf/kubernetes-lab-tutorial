@@ -34,23 +34,6 @@ spec:
 By specifying resource requests, we specify the minimum amount of resources the pod needs. However the pod above can take more than the requested CPU and memory we requested, according to the capacity and the actual load of the working node. Each node has a certain amount of CPU and memory it can allocate to pods. When scheduling a pod, the scheduler will only consider nodes with enough unallocated resources to meet the pod requirements. If the amount of unallocated CPU or memory is less than what the pod requests, the scheduler will not consider the node, because the node can’t provide the minimum amount
 required by the pod.
 
-Create the pod above
-
-    kubectl apply -f requests-pod.yaml
-
-Checking the resource usage
-
-    kubectl exec requests-pod top
-
-    Mem: 3469164K used, 2398380K free, 310084K shrd, 2072K buff, 2264708K cached
-    CPU: 18.9% usr 36.5% sys  0.1% nic 43.9% idle  0.0% io  0.0% irq  0.3% sirq
-    Load average: 1.57 0.73 0.54 3/642 8
-      PID  PPID USER     STAT   VSZ %VSZ CPU %CPU COMMAND
-        1     0 root     R     1236  0.0   1 50.0 dd if /dev/zero of /dev/null
-        5     0 root     R     1244  0.0   1  0.0 top
-
-we see the pod taking up to 50% of total of the node CPU. On a 2 core CPU node, this corresponds to 1 CPU and it's as espected because the ``dd`` command is single-thread and cannot take more than 1 CPU by design.
-
 Please, note that we're not specifying the maximum amount of resources the pod can consume. If we want to limit the usage of resources, we have to limit the pod as in the following ``limited-pod.yaml`` descriptor file
 
 ```yaml

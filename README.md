@@ -93,3 +93,11 @@
     * [Metric Server](./content/monitoring.md#metric-server)
     * [Pods Autoscaling](./content/monitoring.md#pods-autoscaling)
     * [Nodes Autoscaling](./content/monitoring.md#nodes-autoscaling)
+
+11. [Advanced Scheduling](./content/scheduling.md)
+    * [Node Selectors](./content/scheduling.md#node-selectors)
+    * [Node Affinity](./content/scheduling.md#node-affinity)
+    * [Pods Affinity](./content/scheduling.md#pods-affinity)
+    * [Colocation](./content/scheduling.md#colocation)
+    * [Failure domains](./content/scheduling.md#failure-domains)
+    * [Taints and Tolerations](./content/scheduling.md#taint-and-tolerations)

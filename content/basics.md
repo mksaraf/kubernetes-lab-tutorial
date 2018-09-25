@@ -302,7 +302,7 @@ spec:
   strategy:
     rollingUpdate:
       maxSurge: 1
-      maxUnavailable: 1
+      maxUnavailable: 0
     type: RollingUpdate
   template:
     metadata:
@@ -373,21 +373,6 @@ Resume it to complete
 
     kubectl rollout resume deploy nginx
 
-Check the status of the deploy
-
-    kubectl get all -l run=nginx -o wide
-    NAME           DESIRED   CURRENT   UP-TO-DATE   AVAILABLE   AGE       CONTAINERS   IMAGES       SELECTOR
-    deploy/nginx   3         3         3            3           4m        nginx        nginx:1.13   run=nginx
-
-    NAME                  DESIRED   CURRENT   READY     AGE       CONTAINERS   IMAGES       SELECTOR
-    rs/nginx-698d6b8c9f   0         0         0         4m        nginx        nginx:1.12   run=nginx
-    rs/nginx-76b7c8fff4   3         3         3         2m        nginx        nginx:1.13   run=nginx
-
-    NAME                        READY     STATUS    RESTARTS   AGE       IP            NODE
-    po/nginx-76b7c8fff4-cx9gw   1/1       Running   0          2m        10.38.3.128   kubew03
-    po/nginx-76b7c8fff4-grkj9   1/1       Running   0          2m        10.38.4.203   kubew04
-    po/nginx-76b7c8fff4-pm5rp   1/1       Running   0          2m        10.38.5.140   kubew05
-
 Now there is a new replica set now taking control of the pods. This replica set control new pods having image ``nginx:1.13``. The old replica set is still there and can be used in case of downgrade.
 
 To downgrade, undo the rollout
@@ -396,9 +381,32 @@ To downgrade, undo the rollout
 
 This will report the deploy to the previous state.
 
-When creating new pods, the Rolling strategy waits for pods to become ready. If the new pods never become ready, the deployment will time out and result in a deployment failure. The deployment strategy uses readiness checks to determine if a new pod is ready for use. If a readiness check fails, the deployment is stopped.
+When creating new pods, the Rolling strategy waits for pods to become ready. If the new pods never become ready, the deployment will time out and result in a deployment failure.
 
-When the strategy update is set to ``type: Recreate``, all existing Pods are killed before new ones are created. The Recreate strategy causes all old pods to be deleted first and then the new ones are created. This strategy should be used only when the application does not support running multiple versions in parallel and requires the old version to be stopped completely before the new one is started.
+The deployment strategy uses readiness probe to determine if a new pod is ready for use. If the readiness probe fails, the deployment is stopped. The ``minReadySeconds`` property specifies how long a new created pod should be ready before the pod is treated as available. Until the pod becomes available, the update process will not continue. Once the readiness probe succeeds and the pod becomes available, then the update process can continue. With a properly configured readiness probe and a proper ``minReadySeconds`` setting, kubernetes prevents us from deploying the buggy version of the image.
+
+For example, let's to upgrate the deploy to a buggy image version. This new version of the image is not working properly and hence the update process will fail when the first pod is updated. 
+
+Update the image
+
+    kubectl set image deploy nginx nginx=kalise/nginx:buggy
+
+Check the rollout status
+
+    kubectl rollout status deploy nginx
+    Waiting for rollout to finish: 1 out of 6 new replicas have been updated...
+
+Because of the readiness check the update process is blocked to the first pod running the buggy version. Having the deployment stuck, it prevents us to end up with a completely not working application. By default, after the rollout can’t make any progress in 600 seconds, it’s considered as failed
+
+    kubectl rollout status deploy nginx
+    Waiting for rollout to finish: 1 out of 6 new replicas have been updated...
+    error: deployment "nginx" exceeded its progress deadline
+
+This timer is controlled by the ``progressDeadlineSeconds`` property set into deploy descriptor.
+
+Because the update process will never continue, the only thing to do now is abort the rollout
+
+    kubectl rollout undo deployment nginx
 
 A deployment, can be scaled up and down
 

@@ -495,7 +495,7 @@ spec:
 The rule above defines a set of preferred rules based on the value of the ``hypervisor=esxi|kvm`` and setting a preference weight (higest is the preferred one).
 
 #### Pods Affinity
-The node affinity rules are used to force which node a pod is scheduled to. But these rules only affect the affinity between a pod and a node, whereas sometimes we need to specify the affinity between pods themselves. In this case, the pod affinity technique is required. Having a multi services application made of a forntend and a backend service, does make sense to have the frontend pods running close as muche as possible to the backend pods.
+The node affinity rules are used to force which node a pod is scheduled to. But these rules only affect the affinity between a pod and a node, whereas sometimes we need to specify the affinity between pods themselves. In this case, the pod affinity technique is required. Having a multi services application made of a frontend and a backend service, does make sense to have the frontend pods running on the same worker node where the backend pods are running.
 
 For example, the following descriptor defines a required pod affinity rule
 
@@ -540,10 +540,10 @@ spec:
           value: '3306'
 ```
 
-It will create a wordpress pod having a hard requirement to be deployed on the same node as a pod running the database backend. However, since we are only forcing at scheduling time, we still can get a situation where the two pods are running on two different nodes (for example, by deleting the backend node).
+It will create a wordpress pod having a hard requirement to be deployed on the same node ``kubernetes.io/hostname`` as a pod running the database backend.
 
-### Colocation
-Another option provided by the affinity function is to force some pods to run close to the other pods in the same rack, zone, or region. Kubernetes nodes can be grouped into racks, zones and regions, then using proper labels and label selectors, it is possible to specify where pods will be placed.
+#### Colocation
+Another option provided by the affinity function is to force some pods to run in the same rack, zone, or region instead of the same node. Kubernetes nodes can be grouped into racks, zones and regions, then using proper labels and label selectors, it is possible to require pods running on the same rack, zone, or region.
 
 For example, the following descriptor defines pods with hard requirement to be deployed in the same availability zone
 
@@ -573,8 +573,7 @@ spec:
                 operator: In
                 values:
                   - nginx
-            topologyKey:
-              failure-domain.beta.kubernetes.io/zone
+            topologyKey: failure-domain.beta.kubernetes.io/zone
       containers:
       - image: nginx:latest
         name: nginx
@@ -584,13 +583,94 @@ spec:
       restartPolicy: Always
 ```
 
-The pod affinity rule says that the pods can be schedule onto a node only if that node is in the same zone as at least one already running pod with the same label ``run=nginx``. Also pods are eligible to run on a given set of nodes, if the nodes have are labeled with the same value of ``failure-domain.beta.kubernetes.io/zone``. 
+The pod affinity rule above says pods are scheduled onto nodes in the same availability zone specified by ``failure-domain.beta.kubernetes.io/zone``. Please, note we are not specifying on which zone but we are only requiring pods to be colocated on the same zone.
+
+The pod affinity rules can be combined with node affinity rules to have a more grained control on the pods placement. For example, we can combine the pods affinity above with a node affinity rule to have colocation of pods on a given zone.
 
 #### Failure domains
+We have seen how to tell the scheduler to colocate pods on the same node, rack, zone or regions. In other cases, we want to have some pods running away each other, for example for balancing load on different availability zones, defining the so called *failure domains*. A failure domain is a single node, rack, zone or region that can fail at same time. For example, each availability zone can be defined as a single failure domain because of network issues. In case of network issues, all nodes in the same zone might remain unreachable. For this reason we can require to distribute pod replicas in different failure domains, i.e. zones in our example.
 
+This is achieved with the anti-affinity rules. The following descriptor requires pods replicas to be scheduled on separate availability zones
 
+```yaml
+apiVersion: apps/v1
+kind: ReplicaSet
+metadata:
+  labels:
+  namespace:
+  name: nginx
+spec:
+  replicas: 4
+  selector:
+    matchLabels:
+      run: nginx
+  template:
+    metadata:
+      labels:
+        run: nginx
+    spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 1
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: run
+                  operator: In
+                  values:
+                    - nginx
+              topologyKey: failure-domain.beta.kubernetes.io/zone
+      containers:
+      - image: nginx:latest
+        imagePullPolicy: Always
+        name: nginx
+        ports:
+        - containerPort: 80
+          protocol: TCP
+      restartPolicy: Always
+```
 
+#### Taints and Tolerations
+While affinity and anti-affinity allow pods to choose nodes and or other pods, taints and tolerations allow the nodes to control which pods should or should not be scheduled on them.
 
+A taint is a property of the node that prevents pods to be scheduled on that node unless the pod has a toleration for the taint. For example, we can use taints to prevent production nodes to never run not-production pods:
+
+    kubectl taint node kubew03 node-type=production:NoSchedule
+
+This means that no pods will be able to schedule onto the node unless it has a matching toleration for that taint.
+
+The following descriptor defines a pod with toleration for the taint above
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx
+  namespace:
+  labels:
+spec:
+  tolerations:
+  - key: node-type
+    operator: Equal
+    value: "production"
+    effect: NoSchedule
+  containers:
+  - name: nginx
+    image: nginx:latest
+    ports:
+    - containerPort: 80
+```
+
+To remove taint from the node
+
+    kubectl taint node kubew03 node-type:NoSchedule-
+
+Taints on a node defines three different effects:
+
+  1. **NoSchedule**: pod will not be scheduled on the node unless it tolerates the taint.
+  2. **PreferNoSchedule**: scheduler will try to avoid the pod placed onto the node, but pod will be placed ont the node if not possible to place it somewhere else.
+  3. **NoExecute**: unlike the previous effects that only affect scheduling, this also affects pods already running on the node. Pods that are already running on the node and do not tolerate the taint will be evicted from the node and no other pods will be placed on the node unless they tolerate the taint.
 
 ### Declarative Deployment
 ### Observable Interior

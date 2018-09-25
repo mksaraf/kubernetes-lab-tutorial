@@ -286,23 +286,24 @@ The latter, can be done with two different approach:
 
 To create a deployment for our nginx webserver, edit the ``nginx-deploy.yaml`` file as
 ```yaml
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
-  generation: 1
   labels:
-    run: nginx
   name: nginx
-  namespace: default
+  namespace:
 spec:
-  replicas: 3
+  minReadySeconds: 10
+  progressDeadlineSeconds: 300
+  revisionHistoryLimit: 3
+  replicas: 6
   selector:
     matchLabels:
       run: nginx
   strategy:
     rollingUpdate:
       maxSurge: 1
-      maxUnavailable: 0
+      maxUnavailable: 1
     type: RollingUpdate
   template:
     metadata:
@@ -310,12 +311,21 @@ spec:
         run: nginx
     spec:
       containers:
-      - image: nginx:latest
-        imagePullPolicy: Always
+      - image: nginx:1.12
         name: nginx
         ports:
         - containerPort: 80
           protocol: TCP
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 80
+            scheme: HTTP
+          initialDelaySeconds: 30
+          timeoutSeconds: 10
+          periodSeconds: 5
+          successThreshold: 3
+          failureThreshold: 1
       restartPolicy: Always
 ```
 

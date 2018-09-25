@@ -100,4 +100,4 @@
     * [Pods Affinity](./content/schedule.md#pods-affinity)
     * [Colocation](./content/schedule.md#colocation)
     * [Failure domains](./content/schedule.md#failure-domains)
-    * [Taints and Tolerations](./content/schedule.md#taint-and-tolerations)
+    * [Taints and Tolerations](./content/schedule.md#taints-and-tolerations)

@@ -9,7 +9,7 @@ In Kubernetes, assigning pods to nodes is done by the scheduler. Generally, the 
   * [Pods Affinity](#pods-affinity)
   * [Colocation](#colocation)
   * [Failure domains](#failure-domains)
-  * [Taints and Tolerations](#taint-and-tolerations)
+  * [Taints and Tolerations](#taints-and-tolerations)
   
 
 ## Node Selectors

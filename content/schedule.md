@@ -1,4 +1,4 @@
-# Scheduling
+# Advanced Scheduling
 A reasonably sized microservices based application will consist of multiple containers. Containers, often, have dependencies among themselves, dependencies to the host, and resource requirements. The resources available on a cluster also can vary
 over time. The way we place containers also impacts the availability, the performances, and the capacity of the distributed systems.
 

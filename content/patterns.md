@@ -445,6 +445,69 @@ The Blue/Green is a release strategy used for deploying software applications in
 Canary is a release strategy for softly deploying a new version of an application in production by replacing an only small subset of old instances with the new ones. This reduces the risk of introducing a new version into production by letting only a subset of users to reach the new version. After a given time window of observation about how the new version behaves, we can replace all the old instances with the new version.
 
 ### Observable Interior
+Nowdays, it's an accepted concept that software applications can have failures and the chances for failure increases even more when working with distributed applications. The modern approach shifted from to be obssesed by preventing failures to failure detection and correttive actions. 
+
+To be fully automated, microservices based applications should be highly observable by providing probes to the managing platform to check the application health and if necessary take mitigative or corrective actions. 
+
+To support this pattern, kubernetes provides a set o tools:
+
+  * Container Healt Check
+  * Liveness Probe
+  * Readiness Probe 
+
+#### Container Healt Check
+The container health check is the check that the kubelet agent constantly performs on the containers in the pod. The ``restartPolicy`` property of the pod controls how kubelet behaves when a container exits
+
+  * **Always**: always restart an exited container (default)
+  * **OnFailure**: restart the container only when exited with failure
+  * **Never**: never restart the container
+
+#### Liveness Probe
+When an application runs into some deadlock or out-of-memory conditions, it is still be considered healthy from the container health check, so kubelet is not taking any action. To detect this kind of issues and any other failures more related to the application logic, kubernetes introduces the **Liveness Probe**.
+
+A liveness probe is a regular checks performed by the kubelet on the container to confirm it is still healthy. We can specify
+a liveness probe for each container in the pod’s specification. Kubernetes will periodically execute the probe and restart the container if the probe fails.
+
+Kubernetes probes a container using one of the three ways:
+
+  * **HTTP**: performs an http request on the container’s IP address, a port and a path. If the probe receives a response, and the response is not an http error, the probe is considered successful.
+  * **TCP**: tries to open a tcp socket on the container’s IP address and a port. If the connection is established successfully, then the probe is considered successful.
+  * **EXEC**: execs an arbitrary command against the container and checks the exit status code. If the status code is 0, then the probe is considered successful.
+  
+For example, the following pod descriptor defines a liveness probe for a ``nginx`` container
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx
+  namespace:
+  labels:
+spec:
+  containers:
+  - name: nginx
+    image: nginx:latest
+    ports:
+    - containerPort: 80
+    livenessProbe:
+      httpGet:
+        path: /
+        port: 80
+        scheme: HTTP
+      initialDelaySeconds: 30
+      timeoutSeconds: 10
+      periodSeconds: 5
+      failureThreshold: 1
+```
+
+The pod descriptor above defines an HTTP liveness probe, which tells Kubernetes to periodically perform a http requests on the root path and port 80 to check if the container is still healthy. These requests start after 30 seconds after the container is running. The frequency of the probe is set to 5 seconds and the timout is set to 10 seconds before to declare the probe unsuccessful.
+
+To check how a failing liveness probe behaves, change the check endpoint of the probe in the pod descriptor (for example, from port 80 to port 8080) and see the kubelet restarting continuously the container.  
+
+#### Readiness Probe
+
+
+
 ### Life Cycle Conformance
 
 ## Behavorial Patterns

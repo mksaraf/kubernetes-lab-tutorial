@@ -272,3 +272,32 @@ Taints on a node defines three different effects:
   2. **PreferNoSchedule**: scheduler will try to avoid the pod placed onto the node, but pod will be placed ont the node if not possible to place it somewhere else.
   3. **NoExecute**: unlike the previous effects that only affect scheduling, this also affects pods already running on the node. Pods that are already running on the node and do not tolerate the taint will be evicted from the node and no other pods will be placed on the node unless they tolerate the taint.
   
+A special usage of taint and toleration is the taint based eviction: the node controller automatically taints a node when certain conditions are true:
+
+  * node.kubernetes.io/not-ready: Node is not ready.
+  * node.kubernetes.io/unreachable: Node is unreachable from the node controller.
+  * node.kubernetes.io/out-of-disk: Node becomes out of disk.
+  * node.kubernetes.io/memory-pressure: Node has memory pressure.
+  * node.kubernetes.io/disk-pressure: Node has disk pressure.
+  * node.kubernetes.io/network-unavailable: Node network is unavailable.
+  * node.kubernetes.io/unschedulable: Node is unschedulable.
+  * node.cloudprovider.kubernetes.io/uninitialized: Node is not initialized yet.
+
+The operator can specify the toleration timeout for these taints
+
+```yaml
+...
+spec:
+  tolerations:
+  - effect: NoExecute
+    key: node.kubernetes.io/not-ready
+    operator: Exists
+    tolerationSeconds: 300
+  - effect: NoExecute
+    key: node.kubernetes.io/unreachable
+    operator: Exists
+    tolerationSeconds: 300
+...
+```
+
+When the controller detects that a node is no longer ready or no longer reachable, will wait for 300 seconds before it deletes the pod and reschedules it to another node. The two tolerations above are automatically added to pods that do not define them.

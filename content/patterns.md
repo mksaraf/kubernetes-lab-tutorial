@@ -548,8 +548,25 @@ spec:
 
 The pod descriptor above defines an exec readiness probe, which tells Kubernetes to periodically perform a sql query against the mysql server to check if the container is ready to serve sql requests. These requests start after 30 seconds after the container is running. The frequency of the probe is set to 5 seconds and the timout is set to 10 seconds before to declare the probe unsuccessful.
 
-To check how a readiness probe affects a service, create a service as in the following descriptor 
+To check how a readiness probe affects services, create a ``mysql`` service as in the following descriptor 
 
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql
+  namespace:
+spec:
+  ports:
+  - port: 3306
+    protocol: TCP
+    targetPort: 3306
+  type: ClusterIP
+  selector:
+    run: mysql
+```
+
+and check the endpoints update on the pod creation.
 
 ### Life Cycle Conformance
 

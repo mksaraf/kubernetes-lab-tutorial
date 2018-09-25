@@ -1,40 +1,38 @@
-apiVersion: apps/v1beta2
+apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
-  name: website
+  name: wordpress
   namespace:
-  labels:
-    app: website
 spec:
-  replicas: 3
+  replicas: 1
   selector:
     matchLabels:
-      app: website
-  strategy:
-    rollingUpdate:
-      maxSurge: 1
-      maxUnavailable: 1
-    type: RollingUpdate
+      run: blog
   template:
     metadata:
       labels:
-        app: website
+        run: blog
     spec:
       affinity:
-        podAntiAffinity:
+        podAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
             - labelSelector:
                 matchExpressions:
-                - key: app
+                - key: run
                   operator: In
                   values:
-                  - website
+                  - "mariadb"
               topologyKey: kubernetes.io/hostname
       containers:
-      - image: centos/httpd:latest
-        imagePullPolicy: IfNotPresent
-        name: flask
+      - image: bitnami/wordpress:latest
+        name: wordpress
         ports:
         - containerPort: 80
           protocol: TCP
-      dnsPolicy: ClusterFirst
+        - containerPort: 443
+          protocol: TCP
+        env:
+        - name: MARIADB_HOST
+          value: mariadb
+        - name: MARIADB_PORT
+          value: '3306'

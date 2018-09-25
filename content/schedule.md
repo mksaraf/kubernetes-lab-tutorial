@@ -2,7 +2,15 @@
 A reasonably sized microservices based application will consist of multiple containers. Containers, often, have dependencies among themselves, dependencies to the host, and resource requirements. The resources available on a cluster also can vary
 over time. The way we place containers also impacts the availability, the performances, and the capacity of the distributed systems.
 
-In Kubernetes, assigning pods to nodes is done by the scheduler. Generally, the users leave the scheduler to do its job without constraints. However, it might be required introduce a sort of forcing to the scheduler in order to achieve a better resource usage or meet some application's requirements.
+In Kubernetes, assigning pods to nodes is done by the scheduler. Generally, the users leave the scheduler to do its job without constraints. However, it might be required introduce a sort of forcing to the scheduler in order to achieve a better resource usage or meet some application's requirements. In this section, we're going to explore some of these use cases:
+
+  * [Node Selectors](#node-selectors)
+  * [Node Affinity](#node-affinity)
+  * [Pods Affinity](#pods-affinity)
+  * [Colocation](#colocation)
+  * [Failure domains](#failure-domains)
+  * [Taints and Tolerations](#taint-and-tolerations)
+  
 
 ## Node Selectors
 Node selector is the first ans simplest form of scheduler forcing. For example, having a pod that needs for **GPU** (Graphical Processor Unit) to perform its work, we can force the scheduler to use only GPU-equipped nodes to run this kind of pod. This is achieved by labeling all the node GPU-equipped with a proper label, e.g ``gpu=true``, and use this label as node selector in the pod definition

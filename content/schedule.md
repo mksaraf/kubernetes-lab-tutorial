@@ -13,19 +13,19 @@ In Kubernetes, assigning pods to nodes is done by the scheduler. Generally, the 
   
 
 ## Node Selectors
-Node selector is the first ans simplest form of scheduler forcing. For example, having a pod that needs for **GPU** (Graphical Processor Unit) to perform its work, we can force the scheduler to use only GPU-equipped nodes to run this kind of pod. This is achieved by labeling all the node GPU-equipped with a proper label, e.g ``gpu=true``, and use this label as node selector in the pod definition
+Node selector is the first ans simplest form of scheduler forcing. For example, having a pod that needs for special hardware to perform its work, we can force the scheduler to use that kind of nodes to run the pods. This is achieved by labeling all the node equipped with the special hardware with a proper label, e.g ``hpc=true``, and use this label as node selector in the following ``nginx-pod-node-selector.yaml`` descriptor
 
 ```yaml
 apiVersion: v1
 kind: Pod
 metadata:
-  name: gpu
+  name: nginx-node-selector
   namespace:
   labels:
     run: nginx
 spec:
   nodeSelector:
-    gpu: true
+    hpc: true
   containers:
   - name: nginx
     image: nginx:latest
@@ -36,7 +36,7 @@ spec:
 ## Node Affinity
 The node affinity is a generalization of the node selector approach with a more expressive and flexible semantics than the node selector technique. Node affinity allows us to specify rules as either required or preferred: required rules must be met for a pod to be scheduled to a node, whereas preferred rules only imply preference for the matching the node.
 
-For example, the following pod descriptor defines a node affinity with a required rule
+For example, the following ``nginx-pod-node-affinity.yaml`` pod descriptor defines a node affinity with a required rule
 
 ```yaml
 apiVersion: v1
@@ -65,13 +65,13 @@ spec:
 
 The rule above force the scheduler to place the pod only on nodes having a label set to ``datacenter=milano-dc-1``. However the rule does only affects pod scheduling and never causes a pod to be evicted from a node if such label is removed from the node. This is because we used the ``requiredDuringSchedulingIgnoredDuringExecution`` instead of the ``requiredDuringSchedulingRequiredDuringExecution``. In the latter case, removing the label from the node, the pod gets evicted from the node.
 
-The following example, is a pod descriptor which defines a node affinity with a preferred set of rules:
+The following example ``nginx-pod-preferred-node-affinity.yaml``, is a pod descriptor which defines a node affinity with a preferred set of rules:
 
 ```yaml
 apiVersion: v1
 kind: Pod
 metadata:
-  name: nginx-node-affinity
+  name: nginx-preferred-node-affinity
   namespace:
   labels:
     app: nginx
@@ -105,7 +105,7 @@ The rule above defines a set of preferred rules based on the value of the ``hype
 ## Pods Affinity
 The node affinity rules are used to force which node a pod is scheduled to. But these rules only affect the affinity between a pod and a node, whereas sometimes we need to specify the affinity between pods themselves. In this case, the pod affinity technique is required. Having a multi services application made of a frontend and a backend service, does make sense to have the frontend pods running on the same worker node where the backend pods are running.
 
-For example, the following descriptor defines a required pod affinity rule
+For example, the following ``wordpress-pod-affinity.yaml`` descriptor defines a required pod affinity rule
 
 ```yaml
 apiVersion: extensions/v1beta1
@@ -153,7 +153,7 @@ It will create a wordpress pod having a hard requirement to be deployed on the s
 ## Colocation
 Another option provided by the affinity function is to force some pods to run in the same rack, zone, or region instead of the same node. Kubernetes nodes can be grouped into racks, zones and regions, then using proper labels and label selectors, it is possible to require pods running on the same rack, zone, or region.
 
-For example, the following descriptor defines pods with hard requirement to be deployed in the same availability zone
+For example, the following ``nginx-rs-colocate.yaml`` descriptor defines pods with hard requirement to be deployed in the same availability zone
 
 ```yaml
 apiVersion: apps/v1
@@ -198,7 +198,7 @@ The pod affinity rules can be combined with node affinity rules to have a more g
 ## Failure domains
 We have seen how to tell the scheduler to colocate pods on the same node, rack, zone or regions. In other cases, we want to have some pods running away each other, for example for balancing load on different availability zones, defining the so called *failure domains*. A failure domain is a single node, rack, zone or region that can fail at same time. For example, each availability zone can be defined as a single failure domain because of network issues. In case of network issues, all nodes in the same zone might remain unreachable. For this reason we can require to distribute pod replicas in different failure domains, i.e. zones in our example.
 
-This is achieved with the anti-affinity rules. The following descriptor requires pods replicas to be scheduled on separate availability zones
+This is achieved with the anti-affinity rules. The following ``nginx-rs-fd.yaml`` descriptor requires pods replicas to be scheduled on separate availability zones
 
 ```yaml
 apiVersion: apps/v1
@@ -248,7 +248,7 @@ A taint is a property of the node that prevents pods to be scheduled on that nod
 
 This means that no pods will be able to schedule onto the node unless it has a matching toleration for that taint.
 
-The following descriptor defines a pod with toleration for the taint above
+The following ``nginx-pod-taint-toleration.yaml`` descriptor defines a pod with toleration for the taint above
 
 ```yaml
 apiVersion: v1

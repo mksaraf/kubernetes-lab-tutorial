@@ -407,10 +407,13 @@ In Kubernetes, assigning pods to nodes is done by the scheduler. Generally, the 
 ### Declarative Deployment
 Having a growing number of microservices, the continuos delivery process with manual updating and replacing services with newer versions becomes quickly inpractical. Updating a service to a newer version involves activities such as stopping gracefully the old version, starting the new version, waiting and checking if it has started successfully, and, sometimes, rolling-back to the previous version in the case of issues.
 
-This set of operations can be made manually or automatically by Kuberentes itself. The object provided by Kuberentes for support a declarative deployment is the deployment. In a deployment declaration, we can specify the update strategy:
+This set of operations can be made manually or automatically by Kuberentes itself. The object provided by Kuberentes for support a declarative deployment is the deployment.
 
- * **Rolling Update:** removes existing pods, while adding new ones at the same time, keeping the application available during the process and ensuring there is no out of service.
- * **Recreate Update:** all existing pods are removed before new ones are created.
+#### Update Strategy
+In a deployment declaration, we can specify the update strategy:
+
+ * **Rolling:** removes existing pods, while adding new ones at the same time, keeping the application available during the process and ensuring there is no out of service.
+ * **Recreate:** all existing pods are removed before new ones are created.
 
 The following snippet reports a rolling update strategy
 
@@ -424,6 +427,22 @@ strategy:
 ...
 ```
 
+while the following reports a recreate update strategy
+
+```yaml
+...
+strategy:
+    type: Recreate
+...
+```
+
+We can use the deployment object as a building block together with other primitives to implement more advanced release strategies such as *Blue/Green* and *Canary Release* deployments.
+
+#### Blue/Green strategy
+The Blue/Green is a release strategy used for deploying software applications in production environment by minimising the downtime. In kuberentes, a Blue/Green can be implemented by creating a new deploy object for the new version of the application (Green) which are not serving any requests yet. At this stage, the old deply object (Blue) is still running and serving live requests. Once we are confident that the new version is healthy and ready to serve live requests, we switch the traffic from the Blue deploy to the Green. In kubernetes, this can be done by updating the service selector to match the pods belonging to the Green deploy object. Once the Green deploy has handled all the requests, the Blue deploy can be deleted and resources can be reutilized.
+
+#### Canary strategy
+Canary is a release strategy for softly deploying a new version of an application in production by replacing an only small subset of old instances with the new ones. This reduces the risk of introducing a new version into production by letting only a subset of users to reach the new version. After a given time window of observation about how the new version behaves, we can replace all the old instances with the new version.
 
 ### Observable Interior
 ### Life Cycle Conformance

@@ -15,14 +15,6 @@ spec:
             operator: In
             values:
             - milano-dc-1
-      preferredDuringSchedulingIgnoredDuringExecution:
-      - weight: 1
-        preference:
-          matchExpressions:
-          - key: hypervisor
-            operator: In
-            values:
-            - esxi
   containers:
   - name: nginx
     image: nginx:latest

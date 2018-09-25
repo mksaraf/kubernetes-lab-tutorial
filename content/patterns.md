@@ -468,7 +468,7 @@ When an application runs into some deadlock or out-of-memory conditions, it is s
 A liveness probe is a regular checks performed by the kubelet on the container to confirm it is still healthy. We can specify
 a liveness probe for each container in the pod’s specification. Kubernetes will periodically execute the probe and restart the container if the probe fails.
 
-Kubernetes probes a container using one of the three ways:
+Kubernetes probes a container liveness using one of the three ways:
 
   * **HTTP**: performs an http request on the container’s IP address, a port and a path. If the probe receives a response, and the response is not an http error, the probe is considered successful.
   * **TCP**: tries to open a tcp socket on the container’s IP address and a port. If the connection is established successfully, then the probe is considered successful.
@@ -505,7 +505,50 @@ The pod descriptor above defines an HTTP liveness probe, which tells Kubernetes 
 To check how a failing liveness probe behaves, change the check endpoint of the probe in the pod descriptor (for example, from port 80 to port 8080) and see the kubelet restarting continuously the container.  
 
 #### Readiness Probe
+Pods are included as endpoints of a service if their labels match the service’s pod selector. As soon as a new pod with proper labels is created, it becomes part of the service and requests start to be sent to the pod. The pod may need time to load configuration and data, or it may need some time to perform a startup procedure before the first user request can be served. It makes sense to not forward user's requests to a pod that is in still in the process of starting up until it is fully ready.
 
+To detect if a pod is ready to serve user's requests, kubernetes introduces the **Readiness Probe**. The readiness probe is invoked periodically and determines whether the specific pod should receive user's requests or not. When a readiness probe returns success, it is meaning that the container is ready to accept requests and then kuberentes add the pod as endpoint to the service.
+
+Kubernetes probes a container readiness using one of the three ways:
+
+  * **HTTP**: performs an http request on the container’s IP address, a port and a path. If the probe receives a response, and the response is not an http error, the probe is considered successful.
+  * **TCP**: tries to open a tcp socket on the container’s IP address and a port. If the connection is established successfully, then the probe is considered successful.
+  * **EXEC**: execs an arbitrary command against the container and checks the exit status code. If the status code is 0, then the probe is considered successful.
+  
+For example, the following pod descriptor defines a liveness probe for a ``mysql`` container
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: mysql
+  namespace:
+  labels:
+    run: mysql
+spec:
+  containers:
+  - name: mysql
+    image: mysql:5.6
+    env:
+    - name: MYSQL_ALLOW_EMPTY_PASSWORD
+      value: "1"
+    ports:
+    - name: mysql
+      protocol: TCP
+      containerPort: 3306
+    readinessProbe:
+      exec:
+        # Check we can execute queries over TCP
+        command: ["mysql", "-h", "127.0.0.1", "-e", "SELECT 1"]
+      initialDelaySeconds: 30
+      timeoutSeconds: 10
+      periodSeconds: 5
+      failureThreshold: 1
+```
+
+The pod descriptor above defines an exec readiness probe, which tells Kubernetes to periodically perform a sql query against the mysql server to check if the container is ready to serve sql requests. These requests start after 30 seconds after the container is running. The frequency of the probe is set to 5 seconds and the timout is set to 10 seconds before to declare the probe unsuccessful.
+
+To check how a readiness probe affects a service, create a service as in the following descriptor 
 
 
 ### Life Cycle Conformance

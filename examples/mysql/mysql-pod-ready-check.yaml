@@ -4,6 +4,7 @@ metadata:
   name: mysql
   namespace:
   labels:
+    run: mysql
 spec:
   containers:
   - name: mysql

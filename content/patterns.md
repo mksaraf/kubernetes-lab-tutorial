@@ -405,6 +405,26 @@ over time. The way we place containers also impacts the availability, the perfor
 In Kubernetes, assigning pods to nodes is done by the scheduler. Generally, the users leave the scheduler to do its job without constraints. However, it might be required introduce a sort of forcing to the scheduler in order to achieve a better resource usage or meet some application's requirements.
 
 ### Declarative Deployment
+Having a growing number of microservices, the continuos delivery process with manual updating and replacing services with newer versions becomes quickly inpractical. Updating a service to a newer version involves activities such as stopping gracefully the old version, starting the new version, waiting and checking if it has started successfully, and, sometimes, rolling-back to the previous version in the case of issues.
+
+This set of operations can be made manually or automatically by Kuberentes itself. The object provided by Kuberentes for support a declarative deployment is the deployment. In a deployment declaration, we can specify the update strategy:
+
+ * **Rolling Update:** removes existing pods, while adding new ones at the same time, keeping the application available during the process and ensuring there is no out of service.
+ * **Recreate Update:** all existing pods are removed before new ones are created.
+
+The following snippet reports a rolling update strategy
+
+```yaml
+...
+strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+    type: RollingUpdate
+...
+```
+
+
 ### Observable Interior
 ### Life Cycle Conformance
 

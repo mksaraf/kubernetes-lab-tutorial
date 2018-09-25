@@ -3,6 +3,7 @@ In this section we're going through core concepts of Kubernetes:
 
    * [Pods](#core)
    * [Labels](#labels)
+   * [Annotations](#annotations)
    * [Replica Sets](#replica-sets)
    * [Deployments](#deployments)
    * [Services](#services)
@@ -144,6 +145,30 @@ Labels can be applied not only to pods but also to other Kuberntes objects like 
       kuben02   Ready     2d
 
 Labels are also used as selector for services and deployments.
+
+## Annotations
+In addition to labels, pods and other objects can also contain annotations. Annotations are also key-value pairs, so they are similar to labels, but they can’t be used to group objects the way labels can. While objects can be selected through label selectors, it is not possible to do the same with an annotation selector.
+
+On the other hand, annotations can hold much larger pieces of information than labels. Certain annotations are automatically added to objects by Kubernetes, but others can be added by users.
+
+Here an example of pod with annotation
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx
+  annotations:
+    readme: "before to run this pod, make sure you have a service account defined."
+  namespace:
+  labels:
+    run: nginx
+spec:
+  containers:
+  - name: nginx
+    image: nginx:latest
+    ports:
+    - containerPort: 80
+```
 
 ## Replica Sets
 A Replica Set ensures that a specified number of pod replicas are running at any one time. In other words, a Replica Set makes sure that a pod or homogeneous set of pods are always up and available. If there are too many pods, it will kill some. If there are too few, it will start more. Unlike manually created pods, the pods maintained by a Replica Set are automatically replaced if they fail, get deleted, or are terminated.
@@ -303,11 +328,11 @@ The deployment creates the following objects
 
     kubectl get all -l run=nginx -o wide
 
-    NAME           DESIRED   CURRENT   UP-TO-DATE   AVAILABLE   AGE       CONTAINERS   IMAGES	SELECTOR
-    deploy/nginx   3         3         3            3           37s       nginx        nginx:1.12   run=nginx
+    NAME           DESIRED   CURRENT   UP-TO-DATE   AVAILABLE   AGE   CONTAINERS   IMAGES	SELECTOR
+    deploy/nginx   3         3         3            3           37s   nginx        nginx:1.12   run=nginx
 
-    NAME                  DESIRED   CURRENT   READY     AGE       CONTAINERS   IMAGES	SELECTOR
-    rs/nginx-698d6b8c9f   3         3         3         37s       nginx        nginx:1.12   pod-template hash=2548264759,run=nginx
+    NAME                  DESIRED   CURRENT   READY   AGE    CONTAINERS   IMAGES .     SELECTOR
+    rs/nginx-698d6b8c9f   3         3         3       37s    nginx        nginx:1.12   pod-template
 
     NAME                        READY     STATUS    RESTARTS   AGE       IP            NODE
     po/nginx-698d6b8c9f-cj9n6   1/1       Running   0          37s       10.38.4.200   kubew04
@@ -316,24 +341,7 @@ The deployment creates the following objects
 
 According to the definitions set in the file, above, there are a deploy, three pods and a replica set. 
 
-A deployment, can be scaled up and down
-
-    kubectl scale deploy nginx --replicas=6
-    deployment "nginx" scaled
-
-    kubectl get deploy nginx
-    NAME      DESIRED   CURRENT   UP-TO-DATE   AVAILABLE   AGE
-    nginx     6         6         6            3           11m
-
-In a deploy, pods are always controlled by the replica set. However, because the replica set is controlled by the deploy, if we try to scale the replica set instead of the deploy, the deploy will take priority and the number of pods will be reported to the number requested by the deploy.
-
-For example, try to scale up the replica set from the previous example to have 10 replicas
-
-    kubectl scale rs nginx-698d6b8c9f --replicas=10
-
-we see the number of pod scaled to 10, according to the request to scale the replica set to 10 pod. After few seconds, the deploy will take priority and remove all new pod created by the scaling the replica set because the desired stae, as specified by the deploy is to 6 pods.
-
-A deployment also defines the strategy for updates pods
+The deployment defines the strategy for updates pods
 
 ```yaml
   strategy:
@@ -391,6 +399,24 @@ This will report the deploy to the previous state.
 When creating new pods, the Rolling strategy waits for pods to become ready. If the new pods never become ready, the deployment will time out and result in a deployment failure. The deployment strategy uses readiness checks to determine if a new pod is ready for use. If a readiness check fails, the deployment is stopped.
 
 When the strategy update is set to ``type: Recreate``, all existing Pods are killed before new ones are created. The Recreate strategy causes all old pods to be deleted first and then the new ones are created. This strategy should be used only when the application does not support running multiple versions in parallel and requires the old version to be stopped completely before the new one is started.
+
+A deployment, can be scaled up and down
+
+    kubectl scale deploy nginx --replicas=6
+    deployment "nginx" scaled
+
+    kubectl get deploy nginx
+    NAME      DESIRED   CURRENT   UP-TO-DATE   AVAILABLE   AGE
+    nginx     6         6         6            3           11m
+
+In a deploy, pods are always controlled by the replica set. However, because the replica set is controlled by the deploy, if we try to scale the replica set instead of the deploy, the deploy will take priority and the number of pods will be reported to the number requested by the deploy.
+
+For example, try to scale up the replica set from the previous example to have 10 replicas
+
+    kubectl scale rs nginx-698d6b8c9f --replicas=10
+
+we see the number of pod scaled to 10, according to the request to scale the replica set to 10 pod. After few seconds, the deploy will take priority and remove all new pod created by the scaling the replica set because the desired stae, as specified by the deploy is to 6 pods.
+
 
 ## Services
 Kubernetes pods, as containers, are ephemeral. Replication Sets create and destroy pods dynamically, e.g. when scaling up or down or when doing rolling updates. While each pod gets its own IP address, even those IP addresses cannot be relied upon to be stable over time. This leads to a problem: if some set of pods provides functionality to other pods inside the Kubernetes cluster, how do those pods find out and keep track of which other?

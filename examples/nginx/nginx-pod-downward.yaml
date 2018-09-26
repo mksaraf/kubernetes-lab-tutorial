@@ -4,7 +4,6 @@ metadata:
   name: nginx
   namespace:
   labels:
-    run: nginx
   annotations:
     readme: "before to run this pod, make sure you have a service account defined."
 spec:
@@ -15,8 +14,7 @@ spec:
     - containerPort: 80
     volumeMounts:
     - name: podinfo
-      mountPath: /usr/share/nginx/html
-      readOnly: false
+      mountPath: /mnt
   volumes:
   - name: podinfo
     downwardAPI:

@@ -14,6 +14,7 @@
 2. [Core Concepts](./content/basics.md)
     * [Pods](./content/basics.md#pods)
     * [Labels](./content/basics.md#labels)
+    * [Annotations](./content/basics.md#annotations)
     * [Replica Sets](./content/basics.md#replica-sets)
     * [Deployments](./content/basics.md#deployments)
     * [Services](./content/basics.md#services)
@@ -101,3 +102,9 @@
     * [Colocation](./content/schedule.md#colocation)
     * [Failure domains](./content/schedule.md#failure-domains)
     * [Taints and Tolerations](./content/schedule.md#taints-and-tolerations)
+    
+12. [Applications Design Patterns](./content/patterns.md)
+    * [Foundational Patterns](./content/patterns.md#foundational-patterns)
+    * [Behavorial Patterns](./content/patterns.md#behavorial-patterns)
+    * [Structural Patterns](./content/patterns.md#structural-patterns)
+    * [Configuration Patterns](./content/patterns.md#configuration-patterns)

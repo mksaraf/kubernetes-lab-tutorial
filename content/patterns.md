@@ -1,7 +1,7 @@
 # Applications Design Patterns
 With the adoption of microservices and containers in the recent years, the way we design, develop and run software applications has changed significantly. Modern software applications are optimised for scalability, elasticity, failure, and speed of change. Driven by these new principles, modern applications require a different set of patterns and practices to be applied in an effective way.
 
-In this section, we're going to analyse these new principles with the aim to give a set of guidelines for the design of modern software applications on Kuberentes.
+In this section, we're going to analyse these new principles with the aim to give a set of guidelines for the design of modern software applications on Kuberentes. Credits to the book ***Kubernetes Patterns*** by *Bilgin Ibryam* and *Roland Huss*.
 
 Design patterns are grouped into several categories:
 
@@ -43,6 +43,13 @@ packaging and isolation. However, in the context of a distributed application, t
 Having small and modular reusable containers leads us to create a set of standard tools, similarly to a good reusable library provided by a programming language or runtime.
 
 Containers are designed to run only a single process per container, unless the process itself spawns child processes. Running multiple unrelated processes in a single container, leads to keep all those processes up and running, manage their logs, their interactions, and their healtiness. For example, we have to include a mechanism for automatically restarting individual processes if they crash. Also, all those processes would log to the same standard output, so we'll have hard time figuring out which process logged what.
+
+Some wrong practices to avoid:
+
+  * Using a process management system such as ``supervisord`` to manage multiple processes in the same container.
+  * Using a bash script to spawn several processes as background jobs in the same container.
+  
+Unfortunately, some of these practices are found into public images. Please, do not follow them!
 
 #### Pods
 In Kubernetes, a group of one or more containers is called pod. Containers in a pod are deployed together, and are started, stopped, and replicated as a group. When a pod contains multiple containers, all of them are always run on a single node, it never spans multiple nodes.
@@ -569,6 +576,101 @@ spec:
 and check the endpoints update on the pod creation.
 
 ### Life Cycle Conformance
+Microservices based applications require a more fine grained interactions and life cycle management capabilities for a better user experience. Some of these applications require a start up procedure while other need a gentle and clean shut down procedure. For these and other use cases, kubernetes provides a set of tools to help the management of the application life cycle.
+
+#### Pod temination
+Containers can be terminated at any time, due to an autoscaling policy, node failure, pod deletion or while rolling out an update. In most of such cases, we need a graceful shutdown of the processes running into the containers.
+
+When a pod is deleted, a SIGTERM signal is sent to the main process (PID 1) in each container, and a grace period timer starts (defaults to 30 seconds). Upon the receival of the SIGTERM signal, each container starts a graceful shutdown of the running processes and exit. If a container does not terminate within the grace period, a SIGKILL signal is sent to the container for a forced termination.
+
+The default grace period is 30 seconds. To change it, specify a new value in the pod descriptor file
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx
+  namespace:
+  labels:
+spec:
+  containers:
+  - name: nginx
+    image: nginx:latest
+    ports:
+    - containerPort: 80
+  terminationGracePeriodSeconds: 60
+```
+
+A common pitfall about the SIGTERM signal is how to handle the PID 1 process. A process identifier (PID) is a unique identifier that the Linux kernel gives to each process. PIDs are namespaced, meaning that a container has its own set of PIDs that are mapped to PIDs on the host system. The first process launched when starting a Linux kernel has the PID 1. For a normal operating system, this process is the init system. In a container, the first process gets PID 1. When the pod is deleted, the SIGTERM signal is sent to the process with PID 1. If such process is not the main application process, the application does not start its shutdown and a SIGKILL signal is required, leading the application in user-facing errors, interrupted i/o on devices, and unwanted alerts.
+
+For example, is we start the main process of a container with a shell script, the shell will get the PID 1 and not the main process. When sending a SIGTERM to the shell, depending on the shell, such signal might be or not be passed to the shell's child process. To avoid this pitfall, make sure to start the main process of a container with PID 1.
+
+#### Life cycle hooks
+The pod manifest file permits to define two other additional life cycle hooks:
+
+  * **Post Start Hook**: is executed after the container is created.
+  * **Pre Stop Hook**: is executed immediately before a container is terminated.
+
+The post start hook can be useful to perform some additional tasks when the application starts. This might be always done within the source code but, having an external tool, is useful to run additional commands without touching the source code.
+
+For example, the following pod descriptor define a post start hook for a ``minio`` server
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: minio
+  namespace:
+  labels:
+    app: minio
+spec:
+  containers:
+  - name: minio
+    image: minio/minio:latest
+    args:
+      - server
+      - /storage
+    env:
+    - name: MINIO_ACCESS_KEY
+      value: "minio"
+    - name: MINIO_SECRET_KEY
+      value: "minio123"
+    ports:
+    - containerPort: 9000
+    volumeMounts:
+    - name: data
+      mountPath: /storage
+    lifecycle:
+      postStart:
+        exec:
+          command: ["/bin/sh", "-c", "mkdir -p /storage/bucket"]
+  volumes:
+  - name: data
+    hostPath:
+      path: "/mnt"
+```
+
+The minio server does not provide a default bucket when it starts. To create a default bucket, without changing the source code of minio, we can use a simple post start hook to create it.
+
+While a post start hook is executed after the container's process started, a pre stop hook is executed immediately before a container's process is terminated. The pre stop hook can be used to run additional tasks in preparation of the process shutdown. 
+
+For example, the following snippet define a pre stop hook for the previous minio server
+
+```yaml
+...
+    lifecycle:
+      postStart:
+        exec:
+          command: ["/bin/sh", "-c", "mkdir -p /storage/default"]
+      preStop:
+        exec:
+          command: ["/bin/sh", "-c", "rm -rf /storage/default"]
+...
+```
+
+The pre stop hook above get ride of the default bucket before to terminate the container. 
+
+A pre stop hook can be also used to initiate a graceful shutdown of the container's process, if - for some reasons - it does not shut down gracefully upon receipt of a SIGTERM signal. This usage of the pre stop hook avoids kubelet killing the process with a SIGKILL signal if it does not terminate gracefully. However, best practice is to make sure the application's process correctly handles the SIGTERM signal and initiate the grace shoutdown without waiting for the SIGKILL signal.
 
 ## Behavorial Patterns
 Behavorial Patterns define various type of container behaviour:

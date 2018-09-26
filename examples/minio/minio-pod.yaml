@@ -6,6 +6,7 @@ metadata:
   labels:
     app: minio
 spec:
+  terminationGracePeriodSeconds: 60
   containers:
   - name: minio
     image: minio/minio:latest
@@ -25,7 +26,11 @@ spec:
     lifecycle:
       postStart:
         exec:
-          command: ["/bin/sh", "-c", "mkdir -p /storage/bucket"]
+          command: ["/bin/sh", "-c", "mkdir -p /storage/default"]
+      preStop:
+        exec:
+          command: ["/bin/sh", "-c", "rm -rf /storage/default"]
   volumes:
   - name: data
-    emptyDir: {}
+    hostPath:
+      path: "/mnt"

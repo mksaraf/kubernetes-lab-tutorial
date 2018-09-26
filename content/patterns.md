@@ -682,10 +682,119 @@ Behavorial Patterns define various type of container behaviour:
 * [Self Awareness](#self-awareness)
 
 ### Batch Jobs
+In kubernetes, a Job is an abstraction for create batch processes. A job creates one or more pods and ensures that a given number of them successfully complete. When all pod complete, the job itself is complete.
+
+Deleting a job will remove all the pods it created.
+
 ### Scheduled Jobs
+In kubernetes, a Cron Job is a time based scheduled job. A cron job runs a job periodically on a given schedule, written in standard unix cron format.
+
 ### Daemon Services
+In kuberentes, a Daemon Set is a controller type ensuring each node in the cluster runs a pod. As new node is added to the cluster, a new pod is added to the node. As the node is removed from the cluster, the pod running on it is removed and not scheduled on another node. Deleting a Daemon Set will clean up all the pods it created.
+
 ### Singleton Services
+In kuberentes, a Replica Set is a controller ensuring that a specified number of pod replicas are always running at any time. By running multiple instances of the same pod, the system usually increases power and availability. The availability increases because if one instance becomes unhealthy, the user's requests are forwarded to the other healthy instances.
+
+However, in some cases, where only one instance is allowed to run at a time, we need to take care that only one instance is running at time. In kuberentes, this can be achieved by setting the number of replicas to 1 in the Replica Set file descriptor. The Replica Set controller ensures the high availability of the pod.
+
+For example, the following file descriptor define a singleton mysql service
+
+```yaml
+apiVersion: apps/v1
+kind: ReplicaSet
+metadata:
+  labels:
+  namespace:
+  name: mysql
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mysql
+  template:
+    metadata:
+      labels:
+        app: mysql
+    spec:
+      containers:
+      - image: mysql:5.6
+        name: mysql
+        ports:
+        - containerPort: 3306
+          protocol: TCP
+        env:
+        - name: MYSQL_ALLOW_EMPTY_PASSWORD
+          value: "1"
+```
+
+Scaling this controller to multiple replicas will lead to a corruption of the database unless we implement a write locking mechanism at application level.
+
 ### Self Awareness
+There are many situations where applications need to know information about the environment where they are running into. That may include information that is known only at runtime such as the pod name, pod IP, namespace, the host name or other metadata.
+
+Such information can be required in many scenarios, for example, depending on the resources assigned to the container, we want to tune the application thread pool size, or the memory consumption algorithm. We may want to use the pod name and the host name while logging, or while sending metrics to a centralized location. We may want to discover other pods in the same
+namespace with a specific label and join them into a clustered application, etc.
+
+In kuberentes, all the cases above can be addressed by querying the APIs server from the pod itself. Pods use service accounts to authenticate against the APIs server. The authentication token used by the service account is passed to any pod running in kuberentes and mounted as secret.
+
+For example, the following pod descriptor implements an API call to read the pod namespace and put it into a pod environment variable
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nodejs-web-app
+  namespace:
+  labels:
+    app:nodejs
+spec:
+  containers:
+  - name: nodejs
+    image: kalise/nodejs-web-app:latest
+    ports:
+    - containerPort: 8080
+    env:
+    - name: POD_NAMESPACE
+      valueFrom:
+        fieldRef:
+          fieldPath: metadata.namespace
+    - name: MESSAGE
+      value: "Hello $(POD_NAMESPACE)"
+  serviceAccount: default
+```
+
+The pod above uses the default service account. Such service account is created by kubernetes with a limited set of permissions. In case we want our service account to have more permissions, we can give them such permissions or create a dedicated service account with the required permissions.
+
+Certain metadata such as labels and annotations may change while the pod is running. And using environment variables cannot reflect such a change unless the pod is restarted. For that reason we can expose metadata in a volume instead of environment variables.
+
+For example, the following descriptor defines a pod using a downward API volume to access its annotations
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx
+  namespace:
+  labels:
+  annotations:
+    readme: "this annotation will be accessible from the container in /mnt/annotations"
+spec:
+  containers:
+  - name: nginx
+    image: nginx:latest
+    ports:
+    - containerPort: 80
+    volumeMounts:
+    - name: podinfo
+      mountPath: /mnt
+  volumes:
+  - name: podinfo
+    downwardAPI:
+      items:
+      - path: "annotations"
+        fieldRef:
+          fieldPath: metadata.annotations
+```
 
 ## Structural Patterns
 Structural Patterns refer to how organize containers interaction:

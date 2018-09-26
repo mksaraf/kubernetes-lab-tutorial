@@ -1,7 +1,7 @@
 # Applications Design Patterns
 With the adoption of microservices and containers in the recent years, the way we design, develop and run software applications has changed significantly. Modern software applications are optimised for scalability, elasticity, failure, and speed of change. Driven by these new principles, modern applications require a different set of patterns and practices to be applied in an effective way.
 
-In this section, we're going to analyse these new principles with the aim to give a set of guidelines for the design of modern software applications on Kuberentes. Credits to the book ***Kubernetes Patterns*** by *Bilgin Ibryam* and *Roland Huss*.
+In this section, we're going to analyse these new principles with the aim to give a set of guidelines for the design of modern software applications on Kuberentes. This section is inspired by the book ***Kubernetes Patterns*** by *Bilgin Ibryam* and *Roland Huss*.
 
 Design patterns are grouped into several categories:
 
@@ -805,9 +805,84 @@ Structural Patterns refer to how organize containers interaction:
 * [Adapter](#adapter)
 
 ### Sidecar
+The sidecar pattern describes how to extend and enhance the functionality of a preexisting container without changing it. A good container, behaves like a single unix process, solves one single problem and does it very well. A good container design requires it is created with the idea of replaceability and reuse. But having single purpose reusable containers, requires a way of extending the container functionality. The Sidecar pattern describes a technique where a container enhances the functionality of the main container.
+
+The following is an example of sidecar pattern
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx
+  namespace:
+  labels:
+    run: nginx
+spec:
+  containers:
+  - name: main
+    image: nginx:latest
+    ports:
+    - containerPort: 80
+    volumeMounts:
+    - name: html
+      mountPath: /usr/share/nginx/html
+  - name: sidecar
+    image: busybox:latest
+    volumeMounts:
+    - name: html
+      mountPath: /mnt
+    command: ["/bin/sh", "-c"]
+    args:
+      - while true; do
+          date >> /mnt/index.html;
+          sleep 10;
+        done
+  volumes:
+  - name: html
+    emptyDir: {}
+```
+
+In the example above, the main container is an nginx webserver serving static web pages. It is supported by a sidecar container that dynamically create the content web page that the main container is going to serve. The two containers use a shared volume to pass data among them. 
+
 ### Initialiser
+The Initialiser pattern describes how to initialise a container with data. In kuberentes, this patterns is implemented by mean of the init containers. An init container starts first before the main and the other supporting containers in the same pod.
+
+For example, the following file describe a pod with one main container and an init container using a shared volume to comminicate each other
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: kubeo
+  namespace:
+  labels:
+    run: kubeo
+spec:
+  initContainers:
+    - name: git-clone
+      image: alpine/git
+      args: ["clone", "--", "https://github.com/kalise/kubeo-website.git", "/repo"]
+      volumeMounts:
+        - name: content-data
+          mountPath: /repo
+  containers:
+    - name:  nginx
+      image: nginx:latest
+      volumeMounts:
+        - name: content-data
+          mountPath: /usr/share/nginx/html
+  volumes:
+    - name: content-data
+      emptyDir: {}
+```
+
+The init container above initialises the main container by pulling data from a GitHub repository to a local shared volume. Once pulled the content, the init container exits leaving the main container initialised with pulled data. 
+
 ### Ambassador
+The Ambassador pattern describes a special case of the Sidecar pattern where the sidecar container is responsible for hiding the complexity and providing a unified interface for accessing services outside of the pod. This pattern is often used to proxy a local connection to remote services by hiding the complexity of such services.
+
 ### Adapter
+The Adapter pattern is another variant of the Sidecar pattern. In contrast to the ambassador, which presents an application with a simplified view of the outside world, the adapter pattern present a simplified view of an application to the external world. A concrete example of the adapter pattern is adapters that ensure all containers in a system have the same logging interface. In this example, the adapter container is responsible to provide a standard interface to a remote logging system.
 
 ## Configuration Patterns
 Configuration Patterns refer to how handle configurations in containers:
@@ -818,6 +893,44 @@ Configuration Patterns refer to how handle configurations in containers:
 * [Immutable Configurations](#immutable-configurations)
 
 ### Environment Variables
+For small sets of configuration values, the easiest way to pass configuration data is by putting them into environment variables. The following descriptor pass some common configuration parameters to a MySQL pod, using well defined environment variables 
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: mysql
+  namespace:
+  labels:
+    run: mysql
+spec:
+  containers:
+  - name: mysql
+    image: mysql:5.6
+    env:
+    - name: MYSQL_RANDOM_ROOT_PASSWORD
+      # The generated root password will be printed to stdout
+      # kubectl logs mysql | grep GENERATED
+      value: "yes"
+    - name: MYSQL_DATABASE
+      value: "employee"
+    - name: MYSQL_USER
+      value: "admin"
+    - name: MYSQL_PASSWORD
+      value: "password"
+    ports:
+    - name: mysql
+      protocol: TCP
+      containerPort: 3306
+```
+
 ### Configuration Resources
+Passing configuration data through environment variables can be an option. However, kuberentes offers additional tools for passing plain and confidential data to a container.
+
+#### Config Maps
+
+#### Secrets
+
+
 ### Configuration Templates
 ### Immutable Configurations

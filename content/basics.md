@@ -9,6 +9,7 @@ In this section we're going through core concepts of Kubernetes:
    * [Services](#services)
    * [Volumes](#volumes)
    * [Config Maps](#config-maps)
+   * [Secrets](#secrets)
    * [Daemons](#daemons)
    * [Jobs](#jobs)
    * [Cron Jobs](#cron-jobs)
@@ -736,7 +737,7 @@ Kubernetes allows separating configuration options into a separate object called
 ### Mount Config Map as volume
 The content of config Map is mounted as a volume into the pod. For example, let's to create a Config Map from the ``nginx.conf`` configuration file
 
-    kubectl create configmap nginx --from-file=nginx.json
+    kubectl create configmap nginx --from-file=nginx.conf
 
 Define now a nginx pod mounting the config map above as volume under the ``/etc/nginx/conf.d`` as in the ``nginx-pod-cm.yaml`` manifest file
 
@@ -744,7 +745,7 @@ Define now a nginx pod mounting the config map above as volume under the ``/etc/
 apiVersion: v1
 kind: Pod
 metadata:
-  name: nginx-cm
+  name: nginx
   namespace:
   labels:
 spec:
@@ -760,7 +761,7 @@ spec:
   volumes:
     - name: config
       configMap:
-        name: nginxconfig
+        name: nginx
 ```
 
 Create the pod
@@ -769,7 +770,7 @@ Create the pod
 
 Check if the pod just created mounted the Config Map as its default configuration file
 
-    kubectl exec -it nginx-cm cat /etc/nginx/conf.d/nginx.conf
+    kubectl exec nginx cat /etc/nginx/conf.d/nginx.conf
 
 As alternative, a Config Map can be created as in the ``nginx-conf.yaml`` manifest file
 
@@ -799,7 +800,7 @@ For example, to update the configuration above, edit the Config Map
 
 Then check the nginx application running inside the pod reloaded the configuration
 
-    kubectl exec -it nginx-cm cat /etc/nginx/conf.d/nginx.conf
+    kubectl exec nginx cat /etc/nginx/conf.d/nginx.conf
 
 In the previous example, we mounted the volume as a directory, which means any file that is stored in the ``/etc/nginx/conf.d`` directory in the container image is hidden. This is generally what happens in Linux when mounting a filesystem into a directory and the directory then only contains the files from the mounted filesystem, whereas the original files are inaccessible.
 
@@ -827,7 +828,7 @@ data:
 
 and then create the nginx pod from the following ``nginx-pod-cm-custom.yaml`` file descriptor
 
-```
+```yaml
 apiVersion: v1
 kind: Pod
 metadata:
@@ -857,6 +858,8 @@ The resulting pod will mount the both the default and custom configuration files
     total 8
     -rw-r--r-- 1 root root 1093 Sep 25 15:04 default.conf
     -rw-r--r-- 1 root root  166 Sep 27 11:45 custom.conf
+
+*Please, note that when mounting a single file in the container, and the config map changes, the file will not be updated.*
 
 ### Pass Config Map by environment variables
 In addition to mounting a volume, configuration values contained into a Config Map can be passed to a container directly into environment variables. For example, the following ``mysql-cm.yaml`` file defines a Config Map containing configuration paramenters for a MySQL application
@@ -943,6 +946,55 @@ spec:
     image: mysql:5.6
     envFrom:
     - configMapRef:
+        name: mysql
+    ports:
+    - name: mysql
+      protocol: TCP
+      containerPort: 3306
+```
+
+## Secrets
+In addition to regular, not sensitive configuration data, sometimes we need to pass sensitive information, such as credentials, tokens and private encryption keys, which need to be kept secure. For these use cases, kubernetes provides Secrets. Secrets are kept safe by distributing them only to the nodes that run the pods that need access to the secrets. Also, on the nodes, secrets are always stored in memory and never written to the disk. On the master node, secrets are stored in encrypted form into the etcd database.
+
+Secrets as for the Config Maps can be passed to containers by mounting a volume or via environment variables. For example, the following ``mysql-secret.yaml`` file descriptor defines a secret to pass the user's credentials
+
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mysql
+  namespace:
+data:
+  MYSQL_RANDOM_ROOT_PASSWORD: eWVz
+  MYSQL_DATABASE: ZW1wbG95ZWVz
+  MYSQL_USER: YWRtaW4=
+  MYSQL_PASSWORD: cGFzc3dvcmQ=
+```
+
+In a secret data are base64 encoded as
+
+    $ echo -n "admin" | base64
+    YWRtaW4=
+    $ echo -n "password" | base64
+    cGFzc3dvcmQ=
+    ...
+
+Data can be passed via environment variables to the MySQL server as defined in the following ``mysql-pod-secret.yaml`` descriptor file
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: mysql
+  namespace:
+  labels:
+    run: mysql
+spec:
+  containers:
+  - name: mysql
+    image: mysql:5.6
+    envFrom:
+    - secretRef:
         name: mysql
     ports:
     - name: mysql

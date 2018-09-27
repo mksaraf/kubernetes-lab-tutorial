@@ -879,10 +879,10 @@ spec:
 The init container above initialises the main container by pulling data from a GitHub repository to a local shared volume. Once pulled the content, the init container exits leaving the main container initialised with pulled data. 
 
 ### Ambassador
-The Ambassador pattern describes a special case of the Sidecar pattern where the sidecar container is responsible for hiding the complexity and providing a unified interface for accessing services outside of the pod. This pattern is often used to proxy a local connection to remote services by hiding the complexity of such services.
+The Ambassador pattern describes a special case of the Sidecar pattern where the sidecar container is responsible for hiding the complexity and providing a unified interface for accessing services outside of the pod. This pattern is often used to proxy a local connection to remote services by hiding the complexity of such services. For example, if the main application needs to access a SSL based service, we can create an ambassador container to proxy from HTTP to HTTPS.
 
 ### Adapter
-The Adapter pattern is another variant of the Sidecar pattern. In contrast to the ambassador, which presents an application with a simplified view of the outside world, the adapter pattern present a simplified view of an application to the external world. A concrete example of the adapter pattern is adapters that ensure all containers in a system have the same logging interface. In this example, the adapter container is responsible to provide a standard interface to a remote logging system.
+The Adapter pattern is another variant of the Sidecar pattern. In contrast to the ambassador, which presents a simplified view of the outside world to the application, the adapter pattern present a simplified view of an application to the external world. A concrete example of the adapter pattern is an adapter container that implements a common metering interface to a remote monitoring system.
 
 ## Configuration Patterns
 Configuration Patterns refer to how handle configurations in containers:
@@ -893,7 +893,7 @@ Configuration Patterns refer to how handle configurations in containers:
 * [Immutable Configurations](#immutable-configurations)
 
 ### Environment Variables
-For small sets of configuration values, the easiest way to pass configuration data is by putting them into environment variables. The following descriptor pass some common configuration parameters to a MySQL pod, using well defined environment variables 
+For small sets of configuration values, the easiest way to pass configuration data is by putting them into environment variables. The following descriptor sets some common configuration parameters to a MySQL pod, using well defined environment variables 
 
 ```yaml
 apiVersion: v1
@@ -927,10 +927,89 @@ spec:
 ### Configuration Resources
 Passing configuration data through environment variables can be an option. However, kuberentes offers additional tools for passing plain and confidential data to a container.
 
-#### Config Maps
-
-#### Secrets
-
+ * **Config Maps**: used to pass configuration parameters
+ * **Secrets**: used to pass confidential and sensitive data
 
 ### Configuration Templates
+Config Maps and Secrets are a common way of passing configurations data to containerized applications. Sometimes, however, these configuration data are only available at the starting time and cannot be placed into static configuration maps or secrets. In such cases, configuration data can be placed into Configuration Templates and processed before the startup of the container, for example by a dedicated Init Container.
+
+In the following example, we're going to create a distributed data store cluster based on Consul. This cluster, requires a minimum of three pods running a Consul server. The cluster is made when each server instance can connect togheter. For this example, we're going to use a Steful Set controller because this is the natural choiche of kuberentes to run distributed stateful applications.
+
+The configuration template we're using to setup the Consul cluster is the following ``consul.json`` file
+
+```json
+{
+  "datacenter": "kubernetes",
+  "log_level": "DEBUG",
+  "data_dir": "/consul/data",
+  "server": true,
+  "bootstrap_expect": 3,
+  "retry_join": ["consul-0.consul.default.svc.cluster.local","consul-1.consul.default.svc.cluster.local","consul-2.consul.default.svc.cluster.local"],
+  "client_addr": "0.0.0.0",
+  "bind_addr": "0.0.0.0",
+  "domain": "cluster.local",
+  "ui": true
+}
+```
+
+The template above contains the ``retry_join`` property. The value for this property must be the list of the three consul server names required to form the cluster. Unfortunately, these names are not known in advance, because they depend on the namespaces where the pods are running. For this reason, we put a placeholder ``consul.default.svc.cluster.local`` and use an init container to change the placeholder before the main consul container server starts.
+
+The following snippet reports the init container and the main container
+
+```yaml
+...
+    spec:
+      initContainers:
+      - name: consul-config-data
+        image: busybox:latest
+        imagePullPolicy: IfNotPresent
+        command: ["/bin/sh", "-c", "cp /readonly/consul.json /config && sed -i s/default/$(POD_NAMESPACE)/g /config/consul.json"]
+        env:
+          - name: POD_NAMESPACE
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.namespace
+        volumeMounts:
+        - name: readonly
+          mountPath: /readonly
+          readOnly: true
+        - name: config
+          mountPath: /config
+          readOnly: false
+      containers:
+      - name: consul
+        image: consul:1.0.2
+...
+        volumeMounts:
+        - name: data
+          mountPath: /consul/data
+          readOnly: false
+        - name: config
+          mountPath: /consul/config
+          readOnly: false
+        args:
+        - consul
+        - agent
+        - -config-file=/consul/config/consul.json
+      volumes:
+        - name: readonly
+          configMap:
+            name: consulconfig
+        - name: config
+          emptyDir: {}
+...
+```
+
+The init container implements a simple configuration template processor based on unix ``sed`` utility. In addition to the init and the main containers, this pod also defines two volumes: one volume for the configuration template, backed by a config map. The other volume is an empty shared volume which is used to share the processed templates between the init container and the main container.
+
+With this setup, the following steps are performed during startup of this pod:
+
+ 1. The init container starts and gathers the namespace from the API server
+ 2. The init container reads the configuration template from mounted config map volume and runs the processor
+ 3. The processor changes the placeholder with the real namespace and stores the result into the empty shared volume
+ 4. The init container exits after it has finished leaving the real configuration file into the shared volume
+ 5. The main consul container starts and loads the configuration file from the shared volume
+
+The complete example can be found [here](./stateful.md).
+
 ### Immutable Configurations

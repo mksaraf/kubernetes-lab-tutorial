@@ -890,7 +890,6 @@ Configuration Patterns refer to how handle configurations in containers:
 * [Environment Variables](#environment-variables)
 * [Configuration Resources](#configuration-resources)
 * [Configuration Templates](#configuration-templates)
-* [Immutable Configurations](#immutable-configurations)
 
 ### Environment Variables
 For small sets of configuration values, the easiest way to pass configuration data is by putting them into environment variables. The following descriptor sets some common configuration parameters to a MySQL pod, using well defined environment variables 
@@ -1011,5 +1010,3 @@ With this setup, the following steps are performed during startup of this pod:
  5. The main consul container starts and loads the configuration file from the shared volume
 
 The complete example can be found [here](./stateful.md).
-
-### Immutable Configurations

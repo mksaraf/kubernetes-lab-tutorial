@@ -731,13 +731,12 @@ Data in host dir volume will survive to any crash and restart of both container 
 This works only when kubernetes schedules the nginx pod on the same worker node as before.
 
 ## Config Maps
-Kubernetes allows separating configuration options into a separate object called **ConfigMap**, which is a map containing key/value pairs with the values ranging from short literals to full config files.
+Kubernetes allows separating configuration options into a separate object called **ConfigMap**, which is a map containing key/value pairs with the values ranging from short literals to full config files. An application doesn’t need to read the ConfigMap directly or even know that it exists. The contents of the map are instead passed to containers as either environment variables or as files in a volume.
 
-An application doesn’t need to read the ConfigMap directly or even know that it exists. The contents of the map are instead passed to containers as either environment variables or as files in a volume.
+### Mount Config Map as volume
+The content of config Map is mounted as a volume into the pod. For example, let's to create a Config Map from the ``nginx.conf`` configuration file
 
-For example, let's to create a ConfigMap from the ``nginx.conf`` configuration file
-
-    kubectl create configmap nginxconfig --from-file=nginx.json
+    kubectl create configmap nginx --from-file=nginx.json
 
 Define now a nginx pod mounting the config map above as volume under the ``/etc/nginx/conf.d`` as in the ``nginx-pod-cm.yaml`` manifest file
 
@@ -768,51 +767,188 @@ Create the pod
 
     kubectl create -f nginx-pod-cm.yaml
 
-Check if the pod just created mounted the ConfigMap as its default configuration file
+Check if the pod just created mounted the Config Map as its default configuration file
 
     kubectl exec -it nginx-cm cat /etc/nginx/conf.d/nginx.conf
 
-Having the configuration stored in a standalone object, allows to keep multiple ConfigMaps with the same name, each for a different environment (development, test, pre-stage, production, and so on). Because pods reference the ConfigMap by name, we can use a different config in each environment while using the same pod specification across all of them. 
-
-As alternative, a ConfigMap can be created as in the ``nginx-conf.yaml`` manifest file
+As alternative, a Config Map can be created as in the ``nginx-conf.yaml`` manifest file
 
 ```yaml
 apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx
+  namespace:
 data:
   nginx.conf: |
     server {
         listen       80;
         server_name  www.noverit.com;
-        charset koi8-r;
-        access_log  /var/log/nginx/host.access.log  main;
         location / {
             root   /usr/share/nginx/html;
             index  index.html index.htm;
         }
-        error_page  404              /404.html;
-        error_page  500 502 503 504  /50x.html;
-        location = /50x.html {
-            root   /usr/share/nginx/html;
-        }
     }
-kind: ConfigMap
-metadata:
-  name: nginxconfig
-  namespace:
 ```
 
-Using a ConfigMap and exposing it through a volume brings the ability to update the configuration without having to recreate the pod or even restart the container.
+Using a Config Map and exposing it through a volume brings the ability to update the configuration without having to recreate the pod or even restart the container. When updating a Config Map, the files in all the volumes referencing it are updated. It’s then up to the process to detect that they’ve been changed and reload them.
 
-When updating a ConfigMap, the files in all the volumes referencing it are updated. It’s then up to the process to detect that they’ve been changed and reload them.
+For example, to update the configuration above, edit the Config Map
 
-For example, to update the configuration above, edit the ConfigMap
-
-    kubectl edit cm nginxconfig
+    kubectl edit cm nginx
 
 Then check the nginx application running inside the pod reloaded the configuration
 
     kubectl exec -it nginx-cm cat /etc/nginx/conf.d/nginx.conf
 
+In the previous example, we mounted the volume as a directory, which means any file that is stored in the ``/etc/nginx/conf.d`` directory in the container image is hidden. This is generally what happens in Linux when mounting a filesystem into a directory and the directory then only contains the files from the mounted filesystem, whereas the original files are inaccessible.
+
+To avoid this pitfall, in kubernetes, it is possible to mount only individual files from a Config Map into an existing directory without hiding existing files stored on that directory. For example, as reference to the previous example, the ``/etc/nginx/conf.d`` directory of the container file system, already contains a default configuration file called ``default.conf``. We do not want to hide this file but we only want to add an additional configuration file called ``custom.conf`` for our customized nginx container.
+
+Create a Config Map as in the following ``nginx-custom.conf`` file descriptor
+
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx
+  namespace:
+data:
+  custom.conf: |
+    server {
+        listen       8080;
+        server_name  www.noverit.com;
+        location / {
+            root   /usr/share/nginx/html;
+            index  index.html index.htm;
+        }
+    }
+```
+
+and then create the nginx pod from the following ``nginx-pod-cm-custom.yaml`` file descriptor
+
+```
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx
+  namespace:
+  labels:
+spec:
+  containers:
+  - name: nginx
+    image: nginx:latest
+    ports:
+    - containerPort: 8080
+    volumeMounts:
+      - name: config
+        mountPath: /etc/nginx/conf.d/custom.conf
+        subPath: custom.conf
+        readOnly: true
+  volumes:
+    - name: config
+      configMap:
+        name: nginx
+```
+
+The resulting pod will mount the both the default and custom configuration files
+
+    kubectl exec nginx -- ls -lrt /etc/nginx/conf.d/
+    total 8
+    -rw-r--r-- 1 root root 1093 Sep 25 15:04 default.conf
+    -rw-r--r-- 1 root root  166 Sep 27 11:45 custom.conf
+
+### Pass Config Map by environment variables
+In addition to mounting a volume, configuration values contained into a Config Map can be passed to a container directly into environment variables. For example, the following ``mysql-cm.yaml`` file defines a Config Map containing configuration paramenters for a MySQL application
+
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mysql
+  namespace:
+data:
+  MYSQL_RANDOM_ROOT_PASSWORD: "yes"
+  MYSQL_DATABASE: "employees"
+  MYSQL_USER: "admin"
+  MYSQL_PASSWORD: "password"
+```
+
+The following ``mysql-cm.yaml`` file defines the MySQL pod using the values from the map above
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: mysql
+  namespace:
+  labels:
+    run: mysql
+spec:
+  containers:
+  - name: mysql
+    image: mysql:5.6
+    env:
+    - name: MYSQL_RANDOM_ROOT_PASSWORD
+      # The generated root password will be printed to stdout
+      # kubectl logs mysql | grep GENERATED
+      valueFrom:
+        configMapKeyRef:
+          name: mysql
+          key: random_root_password
+    - name: MYSQL_DATABASE
+      valueFrom:
+        configMapKeyRef:
+          name: mysql
+          key: database
+    - name: MYSQL_USER
+      valueFrom:
+        configMapKeyRef:
+          name: mysql
+          key: user
+    - name: MYSQL_PASSWORD
+      valueFrom:
+        configMapKeyRef:
+          name: mysql
+          key: password
+    ports:
+    - name: mysql
+      protocol: TCP
+      containerPort: 3306
+```
+
+Create the config map
+
+    kubectl apply -f mysql-cm.yaml
+
+and create the MySQL pod
+
+    kubectl apply -f mysql-pod-cm.yaml
+
+To check the configurations are correctly loaded from the map, try to connect the MySQL with the defined user and password.
+
+When the Config Map contains more than just a few entries, it becomes tedious to create environment variables from each entry individually. It is also possible to expose all entries of a Config Map as environment variables without specifying them in the pod descriptor. For example the following ``mysql-pod-cmx.yaml`` is a more compact form of the descriptor above
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: mysql
+  namespace:
+  labels:
+    run: mysql
+spec:
+  containers:
+  - name: mysql
+    image: mysql:5.6
+    envFrom:
+    - configMapRef:
+        name: mysql
+    ports:
+    - name: mysql
+      protocol: TCP
+      containerPort: 3306
+```
 
 ## Daemons
 A Daemon Set is a controller type ensuring each node in the cluster runs a pod. As new node is added to the cluster, a new pod is added to the node. As the node is removed from the cluster, the pod running on it is removed and not scheduled on another node. Deleting a Daemon Set will clean up all the pods it created.

@@ -835,9 +835,9 @@ The IP address space for containers will be allocated from the ``10.38.0.0/16`` 
 
 Then configure the CNI networking according to the subnets above
 
-    mkdir -p /etc/cni/config
+    mkdir -p /etc/cni/net.d
     
-    vi /etc/cni/config/bridge.conf
+    vi /etc/cni/net.d/bridge.conf
     {
         "cniVersion": "0.3.1",
         "name": "bridge",
@@ -854,7 +854,7 @@ Then configure the CNI networking according to the subnets above
         }
     }
     
-    vi /etc/cni/config/loopback.conf
+    vi /etc/cni/net.d/loopback.conf
     {
         "cniVersion": "0.3.1",
         "type": "loopback"
@@ -885,7 +885,7 @@ For each worker node, configure the kubelet by setting the required options in t
       --register-node=true \
       --network-plugin=cni \
       --cni-bin-dir=/etc/cni/bin \
-      --cni-conf-dir=/etc/cni/config \
+      --cni-conf-dir=/etc/cni/net.d \
       --kubeconfig=/var/lib/kubelet/kubeconfig \
       --anonymous-auth=false \
       --client-ca-file=/etc/kubernetes/pki/ca.pem \

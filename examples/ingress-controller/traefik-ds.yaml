@@ -1,0 +1,36 @@
+kind: DaemonSet
+apiVersion: extensions/v1beta1
+metadata:
+  name: traefik
+  namespace: kube-system
+  labels:
+spec:
+  selector:
+    matchLabels:
+      app: traefik
+  template:
+    metadata:
+      labels:
+        app: traefik
+    spec:
+      serviceAccountName: traefik
+      hostNetwork: true
+      containers:
+      - image: traefik:1.7
+        name: traefik
+        resources:
+          requests:
+            cpu: 100m
+        ports:
+        - name: http
+          containerPort: 80
+        securityContext:
+          capabilities:
+            drop:
+            - ALL
+            add:
+            - NET_BIND_SERVICE
+        args:
+        - --kubernetes
+        - --api
+        - --logLevel=DEBUG

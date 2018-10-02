@@ -862,7 +862,7 @@ The resulting pod will mount the both the default and custom configuration files
 *Please, note that when mounting a single file in the container, and the config map changes, the file will not be updated.*
 
 ### Pass Config Map by environment variables
-In addition to mounting a volume, configuration values contained into a Config Map can be passed to a container directly into environment variables. For example, the following ``mysql-cm.yaml`` file defines a Config Map containing configuration paramenters for a MySQL application
+In addition to mounting a volume, configuration values contained into a Config Map can be passed to a container directly into environment variables. For example, the following ``mysql-cmk.yaml`` file defines a Config Map containing configuration paramenters for a MySQL application
 
 ```yaml
 apiVersion: v1
@@ -877,7 +877,7 @@ data:
   MYSQL_PASSWORD: "password"
 ```
 
-The following ``mysql-cm.yaml`` file defines the MySQL pod using the values from the map above
+The following ``mysql-pod-cmk.yaml`` file defines the MySQL pod using the values from the map above
 
 ```yaml
 apiVersion: v1
@@ -922,11 +922,11 @@ spec:
 
 Create the config map
 
-    kubectl apply -f mysql-cm.yaml
+    kubectl apply -f mysql-cmk.yaml
 
 and create the MySQL pod
 
-    kubectl apply -f mysql-pod-cm.yaml
+    kubectl apply -f mysql-pod-cmk.yaml
 
 To check the configurations are correctly loaded from the map, try to connect the MySQL with the defined user and password.
 

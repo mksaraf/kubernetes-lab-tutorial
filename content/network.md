@@ -164,9 +164,10 @@ Any other pod in the cluster is able to access the nginx service without worring
     / # wget -O - 10.254.247.153:80
     Welcome to nginx!
 
-However, the service is not reachable from any cluster host. If we try to access the service we do not get anything
+Because this is a clusterIP, you should be able to access it from any cluster host. If you try to access the service from any other host you will get the same result as bove:
 
     curl 10.254.247.153:80
+    Welcome to nginx!
 
 Without specifying the type of service, kubernetes by default uses the ``Type: ClusterIP`` option, which means that the new service is only exposed only within the cluster. It is kind of like internal kubernetes service, so not particularly useful if you want to accept external traffic.
 
